@@ -1,140 +1,180 @@
-"""RQ worker: background jobs for heavy work (backtests, ingest).
+"""RQ entrypoint and isolated execution of durable application jobs."""
 
-Dev: `python -m stock_agents.jobs.worker`
-Prod (docker-compose): started by the `worker` service.
-
-Jobs are registered functions so RQ can look them up by dotted path.
-Call sites enqueue with `enqueue_backtest(start, end, n)`.
-"""
-
-from __future__ import annotations
-
-import logging
 import os
-from datetime import date
-from typing import Any
+from datetime import UTC, date, datetime
+from time import perf_counter
+from zoneinfo import ZoneInfo
 
-import redis
-from rq import Connection, Queue, Worker
+import structlog
+from opentelemetry import propagate
+from opentelemetry.trace import Span, SpanKind, StatusCode
+from rq import SimpleWorker, Worker, get_current_job
+from rq.timeouts import TimerDeathPenalty
+from sqlalchemy import select, text, update
 
-QUEUE_NAME = "default"
-HEAVY_QUEUE = "heavy"   # multi-minute backtests and bulk ingest
+from stock_agents.common import config
+from stock_agents.common.logging import configure
+from stock_agents.common.telemetry import flush_traces, setup_tracing, tracer
+from stock_agents.jobs.queue import rq_queue, sync_engine
+from stock_agents.storage.metrics import JOB_TYPES, record_job_result
+from stock_agents.storage.postgres import JobRun
+from stock_agents.storage.warehouse import Warehouse, connect
+
+log = structlog.get_logger(__name__)
+MARKET_TZ = ZoneInfo("Asia/Kolkata")
+WAREHOUSE_LOCK = 490122862
 
 
-def _redis():
-    return redis.from_url(os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+class WindowsWorker(SimpleWorker):
+    death_penalty_class = TimerDeathPenalty
 
 
-# --------------------------------------------------------------- job functions
-def run_backtest_job(start: str, end: str, n: int, job_id: str) -> dict[str, Any]:
-    """Executed inside the worker process. Runs the backtest and ships the
-    summary JSON to S3.
-    """
-    from stock_agents.common import config as _config
+def _backtest(job_id: str, payload: dict, submitted: datetime) -> tuple[dict, str]:
     from stock_agents.engine.backtest import run_backtest
-    from stock_agents.storage import schema
-    from stock_agents.storage import s3 as _s3
+    from stock_agents.storage.s3 import put_backtest
 
-    s = _config.load_settings()
-    conn = schema.connect(str(s.paths.duckdb))
-    try:
+    with connect(read_only=True) as conn:
         summary = run_backtest(
             conn,
-            start=date.fromisoformat(start),
-            end=date.fromisoformat(end),
-            n_per_side=n,
+            date.fromisoformat(payload["start"]),
+            date.fromisoformat(payload["end"]),
+            n_per_side=payload["n"],
+            persist=False,
         )
-    finally:
-        conn.close()
-
-    try:
-        key = _s3.put_backtest(job_id, summary)
-        summary["_s3_key"] = key
-    except Exception as e:  # S3 is optional for local dev
-        summary["_s3_error"] = str(e)
-    return summary
+    if "error" in summary:
+        raise BacktestInputError(summary["error"])
+    return summary, put_backtest(job_id, summary, when=submitted.astimezone(MARKET_TZ).date())
 
 
-def ingest_prices_job(years: int = 5, tickers: list[str] | None = None) -> dict[str, Any]:
-    from stock_agents.common import config as _config
-    from stock_agents.ingest.prices import backfill_prices
-    from stock_agents.sources.eodhd import EODHDClient
-    from stock_agents.storage import schema
-
-    s = _config.load_settings()
-    conn = schema.connect(str(s.paths.duckdb))
-    try:
-        schema.init_schema(conn)
-        client = EODHDClient.from_env()
-        n = backfill_prices(conn, client, years=years, tickers=tickers)
-    finally:
-        conn.close()
-    return {"rows": n, "years": years, "tickers": tickers}
+class BacktestInputError(Exception):
+    """A client-safe error from the backtest engine."""
 
 
-def compute_scores_job(asof: str | None = None) -> dict[str, int]:
-    from stock_agents.common import config as _config
+def _warehouse_job(kind: str, payload: dict, submitted: datetime, target) -> dict:
     from stock_agents.engine.scores import compute_and_store
-    from stock_agents.storage import schema
+    from stock_agents.ingest.news import ingest_news, ingest_sentiment_daily
+    from stock_agents.sources.eodhd import EODHDClient
 
-    s = _config.load_settings()
-    conn = schema.connect(str(s.paths.duckdb))
+    since = submitted.astimezone(MARKET_TZ).date()
+    source = Warehouse(target)
+    if kind == "recompute":
+        asof = date.fromisoformat(payload["asof"]) if payload.get("asof") else since
+        return compute_and_store(source, asof=asof)
+    if kind == "ingest":
+        from stock_agents.ingest.daily import refresh_eod
+
+        trade_date = date.fromisoformat(payload["trade_date"]) if payload.get("trade_date") else None
+        return refresh_eod(target, trade_date=trade_date)
+    client = EODHDClient.from_env()
+    if kind == "news":
+        count = ingest_news(source, client)
+    elif kind == "sentiment":
+        count = ingest_sentiment_daily(source, client)
+    else:
+        raise ValueError("Unsupported job type")
+    return {"rows": count}
+
+
+def run_job(job_id: str) -> None:
+    """Run one RQ delivery and commit its authoritative PostgreSQL state."""
+    setup_tracing("stock-agents.worker")
+    current = get_current_job()
+    metadata = current.meta if current else {}
+    correlation = metadata.get("request_id") or job_id
+    parent = propagate.extract(metadata.get("trace_context") or {})
     try:
-        schema.init_schema(conn)
-        asof_date = date.fromisoformat(asof) if asof else None
-        return compute_and_store(conn, asof=asof_date)
+        with structlog.contextvars.bound_contextvars(request_id=correlation, job_id=job_id):
+            with tracer().start_as_current_span(
+                "rq job", context=parent, kind=SpanKind.CONSUMER,
+                record_exception=False, set_status_on_exception=False,
+                attributes={"messaging.system": "rq", "messaging.message.id": job_id,
+                            "stock_agents.request_id": correlation},
+            ) as span:
+                try:
+                    _run_job(job_id, span)
+                except Exception:
+                    span.set_status(StatusCode.ERROR)
+                    raise
     finally:
-        conn.close()
+        flush_traces()
 
 
-# ----------------------------------------------------- high-level API callers
-def enqueue_backtest(start: str, end: str, n: int) -> str:
-    """Enqueue and return the RQ job id. The API hands this back to the client."""
-    q = Queue(HEAVY_QUEUE, connection=_redis(), default_timeout=1800)
-    job = q.enqueue(
-        "stock_agents.jobs.worker.run_backtest_job",
-        args=(start, end, n),
-        kwargs={"job_id": "pending"},  # overwritten below when id is known
-    )
-    # Attach the real job id so the function can route the S3 key
-    job.meta["job_id"] = job.id
-    job.save_meta()
-    return job.id
+def _run_job(job_id: str, span: Span) -> None:
+    table = JobRun.__table__
+    config.load_settings()
+    with sync_engine().connect() as conn:
+        conn.execute(text("SELECT pg_advisory_lock(:lock)"), {"lock": WAREHOUSE_LOCK})
+        conn.commit()
+        try:
+            job = conn.execute(select(table).where(table.c.id == job_id)).one_or_none()
+            if job is None or job.status == "finished":
+                return
+            kind = job.job_type if job.job_type in JOB_TYPES else "other"
+            span.update_name(f"rq {kind}")
+            span.set_attribute("stock_agents.job_type", kind)
+            start = perf_counter()
+            conn.execute(
+                update(table)
+                .where(table.c.id == job_id)
+                .values(
+                    status="started",
+                    started_at=datetime.now(UTC),
+                    finished_at=None,
+                    error=None,
+                )
+            )
+            conn.commit()
+            log.info("job.started", job_type=kind)
+
+            try:
+                result_key = None
+                if job.job_type == "backtest":
+                    result, result_key = _backtest(job_id, job.payload, job.enqueued_at)
+                else:
+                    result = _warehouse_job(job.job_type, job.payload, job.enqueued_at, conn)
+                conn.execute(
+                    update(table)
+                    .where(table.c.id == job_id)
+                    .values(
+                        status="finished",
+                        result_data=result,
+                        result_key=result_key,
+                        finished_at=datetime.now(UTC),
+                    )
+                )
+                duration = perf_counter() - start
+                record_job_result(conn, kind, "success", duration)
+                conn.commit()
+                log.info("job.finished", job_type=kind, duration_ms=round(duration * 1000, 2))
+            except Exception as exc:
+                conn.rollback()
+                message = str(exc) if isinstance(exc, BacktestInputError) else "Job failed"
+                conn.execute(
+                    update(table)
+                    .where(table.c.id == job_id)
+                    .values(
+                        status="failed",
+                        error=message,
+                        finished_at=datetime.now(UTC),
+                    )
+                )
+                duration = perf_counter() - start
+                record_job_result(conn, kind, "failure", duration)
+                conn.commit()
+                log.error("job.failed", job_type=kind, error_type=type(exc).__name__,
+                          duration_ms=round(duration * 1000, 2))
+                raise RuntimeError(message) from None
+        finally:
+            conn.rollback()
+            conn.execute(text("SELECT pg_advisory_unlock(:lock)"), {"lock": WAREHOUSE_LOCK})
+            conn.commit()
 
 
-def enqueue_ingest(years: int = 5, tickers: list[str] | None = None) -> str:
-    q = Queue(HEAVY_QUEUE, connection=_redis(), default_timeout=7200)
-    return q.enqueue("stock_agents.jobs.worker.ingest_prices_job", years, tickers).id
-
-
-def enqueue_scores(asof: str | None = None) -> str:
-    q = Queue(QUEUE_NAME, connection=_redis(), default_timeout=600)
-    return q.enqueue("stock_agents.jobs.worker.compute_scores_job", asof).id
-
-
-def job_status(job_id: str) -> dict[str, Any]:
-    from rq.job import Job
-
-    try:
-        job = Job.fetch(job_id, connection=_redis())
-    except Exception as e:
-        return {"job_id": job_id, "status": "unknown", "error": str(e)}
-    return {
-        "job_id": job_id,
-        "status": job.get_status(),
-        "result": job.result if job.is_finished else None,
-        "error": str(job.exc_info) if job.is_failed else None,
-    }
-
-
-# ------------------------------------------------------------------- entrypoint
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s | %(message)s")
-    log = logging.getLogger("worker")
-    r = _redis()
-    log.info("worker starting; listening on queues: %s, %s", HEAVY_QUEUE, QUEUE_NAME)
-    with Connection(r):
-        Worker([HEAVY_QUEUE, QUEUE_NAME]).work(with_scheduler=True)
+    configure(service="stock-agents.worker")
+    queue = rq_queue()
+    worker_class = WindowsWorker if os.name == "nt" else Worker
+    worker_class([queue], connection=queue.connection, serializer=queue.serializer).work()
 
 
 if __name__ == "__main__":

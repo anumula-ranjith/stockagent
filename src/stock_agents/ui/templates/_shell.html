@@ -8,6 +8,23 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/styles.css">
+<script>
+function signInUrl(){
+  return "/login?next=" + encodeURIComponent(location.pathname + location.search);
+}
+function signInNotice(id, label){
+  const target = document.getElementById(id);
+  const link = document.createElement("a");
+  link.href = signInUrl();
+  link.textContent = label;
+  target.replaceChildren(link);
+}
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  })[char]);
+}
+</script>
 </head>
 <body>
 <header class="site-header">
@@ -21,6 +38,9 @@
       <a href="/methodology" data-nav="methodology">Methodology</a>
     </nav>
     <div class="header-actions">
+      <a id="signInLink" href="/login">Sign in</a>
+      <a id="jobsLink" href="/_admin/rq/" hidden>Job queues</a>
+      <button type="button" class="btn" id="signOutButton" style="display:none">Sign out</button>
       <span class="live-dot">Live · NSE</span>
     </div>
   </div>
@@ -83,6 +103,22 @@
     if (el) el.classList.add("active");
   }
 })();
+const signInLink = document.getElementById("signInLink");
+const signOutButton = document.getElementById("signOutButton");
+if (location.pathname !== "/login") signInLink.href = signInUrl();
+fetch("/me").then(async response => {
+  if (response.ok) {
+    signInLink.style.display = "none";
+    signOutButton.style.display = "";
+    document.getElementById("jobsLink").hidden = !(await response.json()).is_admin;
+  }
+}).catch(() => {});
+signOutButton.addEventListener("click", async () => {
+  const response = await fetch("/logout", {
+    method:"POST", headers:{"X-Stock-Agents-Request":"1"}
+  });
+  if (response.ok) location.reload();
+});
 </script>
 </body>
 </html>

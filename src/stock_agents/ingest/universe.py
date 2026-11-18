@@ -1,4 +1,4 @@
-"""Load the universe seed CSV into the DuckDB warehouse.
+"""Load the universe seed CSV into the PostgreSQL warehouse.
 
 Populates:
   - symbology       (ticker -> EODHD symbol)
@@ -11,51 +11,52 @@ import csv
 from datetime import date
 from pathlib import Path
 
-import duckdb
-
 from stock_agents.common import config as _config
 from stock_agents.common.logging import get_logger
+from stock_agents.storage.warehouse import Warehouse
 
 log = get_logger(__name__)
 
 
-def load_universe(conn: duckdb.DuckDBPyConnection, seed_csv: Path, exchange_suffix: str) -> int:
+def load_universe(conn: Warehouse, seed_csv: Path, exchange_suffix: str) -> int:
     """Return number of tickers loaded."""
-    rows = list(csv.DictReader(open(seed_csv)))
+    with seed_csv.open(encoding="utf-8-sig", newline="") as seed:
+        rows = list(csv.DictReader(seed))
     today = date.today()
     sym_rows = [
         (r["ticker"], f"{r['ticker']}{exchange_suffix}", None, None, None, True, today)
         for r in rows
     ]
-    conn.execute("BEGIN")
     conn.executemany(
-        """INSERT OR REPLACE INTO symbology
+        """INSERT INTO symbology
            (ticker, eodhd_symbol, factset_id, isin, cusip, active, updated_at)
-           VALUES (?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?)
+           ON CONFLICT (ticker) DO UPDATE SET
+               eodhd_symbol=EXCLUDED.eodhd_symbol, updated_at=EXCLUDED.updated_at""",
         sym_rows,
     )
     cls_rows = [
         (r["ticker"], today, today, r.get("sector"), r.get("industry"), "seed_csv") for r in rows
     ]
     conn.executemany(
-        """INSERT OR REPLACE INTO classification
+        """INSERT INTO classification
            (ticker, effective_date, known_date, sector, industry, source)
-           VALUES (?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?)
+           ON CONFLICT (ticker,effective_date,source) DO UPDATE SET
+               sector=EXCLUDED.sector, industry=EXCLUDED.industry, known_date=EXCLUDED.known_date""",
         cls_rows,
     )
-    conn.execute("COMMIT")
     return len(rows)
 
 
 def main() -> int:
     s = _config.load_settings()
-    conn = duckdb.connect(str(s.paths.duckdb))
-    from stock_agents.storage.schema import init_schema
+    from stock_agents.storage.warehouse import connect
 
-    init_schema(conn)
     suffix = getattr(s, "exchange_suffix", ".NSE")
     seed = _config.project_root() / s.universe_seed_csv
-    n = load_universe(conn, seed, suffix)
+    with connect() as conn:
+        n = load_universe(conn, seed, suffix)
     log.info("universe loaded: %d tickers", n)
     print(f"Loaded {n} tickers into symbology + classification")
     return 0

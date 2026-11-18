@@ -49,11 +49,12 @@ class EODHDClient:
         p = {"api_token": self.api_key, "fmt": "json"}
         if params:
             p.update(params)
-        last_exc: Exception | None = None
+        failure = "request failed"
         for attempt in range(1, self.max_retries + 1):
             try:
                 r = requests.get(f"{BASE}{path}", params=p, timeout=self.timeout)
                 if r.status_code == 429:
+                    failure = "HTTP 429"
                     time.sleep(self.backoff_s * attempt)
                     continue
                 if r.status_code == 404:
@@ -62,10 +63,10 @@ class EODHDClient:
                 ctype = r.headers.get("content-type", "")
                 return r.json() if "json" in ctype else r.text
             except requests.RequestException as e:
-                last_exc = e
-                log.warning("eodhd %s attempt %d failed: %s", path, attempt, e)
+                failure = f"HTTP {e.response.status_code}" if e.response is not None else type(e).__name__
+                log.warning("eodhd %s attempt %d failed (%s)", path, attempt, failure)
                 time.sleep(self.backoff_s * attempt)
-        raise RuntimeError(f"eodhd {path} failed after {self.max_retries} retries: {last_exc}")
+        raise RuntimeError(f"eodhd {path} failed after {self.max_retries} attempts ({failure})")
 
     # -- endpoints ----------------------------------------------------------
     def eod(

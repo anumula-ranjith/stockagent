@@ -156,11 +156,22 @@ async function loadAgent(name){
 }
 async function refreshCombine(){
   const q = new URLSearchParams({n:STATE.n, mode:STATE.mode});
-  STATE.combined = await (await fetch("/combine?"+q)).json();
+  const response = await fetch("/combine?"+q);
+  if (response.status === 401) {
+    signInNotice("view", "Sign in to view rankings");
+    return;
+  }
+  if (!response.ok) return;
+  STATE.combined = await response.json();
   if(STATE.tab==="combined") renderCombinedTab();
 }
 
 async function boot(){
+  const me = await fetch("/me");
+  if (me.status === 401) {
+    signInNotice("view", "Sign in to view rankings");
+    return;
+  }
   renderSide();
   renderTabs();
   await Promise.all([

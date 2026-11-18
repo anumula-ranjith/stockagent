@@ -7,9 +7,9 @@ generate (openapi.json -> openapi-typescript -> api.ts).
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, SecretStr
 
 
 # ------------------------------------------------------------------ core
@@ -19,6 +19,7 @@ class HealthOut(BaseModel):
     tickers_with_prices: int | None = None
     price_rows: int | None = None
     error: str | None = None
+    checks: dict[str, Literal["ok", "unavailable", "unconfigured"]] | None = None
 
 
 # -------------------------------------------------------------- universe
@@ -64,10 +65,16 @@ AgentName = Literal["technical", "sentiment", "momentum", "fundamental"]
 
 class AgentScoreRow(BaseModel):
     ticker: str
-    score: float
+    score: float | None
     imputed: bool = False
     sector: str | None = None
     industry: str | None = None
+
+
+class AgentHistoryPoint(BaseModel):
+    date: date
+    agent: str
+    score: float | None
 
 
 # ---------------------------------------------------------------- combine
@@ -92,10 +99,21 @@ class CombineRow(BaseModel):
 
 class CombineOut(BaseModel):
     asof: date
-    mode: str
-    weights: dict[str, float]
+    mode: str | None = None
+    weights: dict[str, float] | None = None
     longs: list[CombineRow]
     shorts: list[CombineRow]
+    note: str | None = None
+
+
+class CombineQuery(BaseModel):
+    asof: date | None = None
+    n: int = Field(10, ge=1, le=50)
+    mode: Literal["weighted", "consensus", "hybrid"] = "weighted"
+    technical: float | None = Field(None, ge=0, le=100)
+    sentiment: float | None = Field(None, ge=0, le=100)
+    momentum: float | None = Field(None, ge=0, le=100)
+    fundamental: float | None = Field(None, ge=0, le=100)
 
 
 # ---------------------------------------------------------------- backtest
@@ -132,10 +150,30 @@ class BacktestJobRef(BaseModel):
     result_key: str | None = None
 
 
+class BacktestNotice(BaseModel):
+    note: str
+
+
+class JobStatusOut(BaseModel):
+    job_id: str
+    status: str
+    result: dict[str, Any] | None
+    error: str | None
+    result_key: str | None
+    result_url: str | None
+
+
 # -------------------------------------------------------------------- auth
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: SecretStr
+
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: SecretStr | None = None
+    clerk_subject: str | None = Field(None, min_length=1, max_length=255)
+    is_admin: bool = False
 
 
 class TokenResponse(BaseModel):

@@ -14,12 +14,11 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-import duckdb
 import pandas as pd
 
-from stock_agents.common import config as _config
 from stock_agents.common.logging import get_logger
 from stock_agents.factors.technical import compute_technical_factors
+from stock_agents.storage.warehouse import Warehouse
 
 log = get_logger(__name__)
 
@@ -30,7 +29,7 @@ def _winsorize_rank(s: pd.Series) -> pd.Series:
 
 
 # ---------------------------------------------------------------- Technical
-def technical_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFrame:
+def technical_scores(conn: Warehouse, asof: date) -> pd.DataFrame:
     """Return DataFrame[ticker, score, imputed]."""
     f = compute_technical_factors(conn, asof)
     if f.empty:
@@ -55,7 +54,7 @@ def technical_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFram
 
 
 # ----------------------------------------------------------------- Momentum
-def momentum_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFrame:
+def momentum_scores(conn: Warehouse, asof: date) -> pd.DataFrame:
     f = compute_technical_factors(conn, asof)
     if f.empty:
         return pd.DataFrame(columns=["ticker", "score", "imputed"])
@@ -78,7 +77,7 @@ def momentum_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFrame
 
 
 # ---------------------------------------------------------------- Sentiment
-def sentiment_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFrame:
+def sentiment_scores(conn: Warehouse, asof: date) -> pd.DataFrame:
     rows = conn.execute(
         """SELECT ticker,
                   AVG(polarity) AS pol,
@@ -109,7 +108,7 @@ def sentiment_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFram
 
 
 # -------------------------------------------------------------- Fundamental
-def fundamental_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFrame:
+def fundamental_scores(conn: Warehouse, asof: date) -> pd.DataFrame:
     """Placeholder: fundamentals pipeline is Phase 3+ (requires parsing the
     fundamentals JSON from EODHD). Until then: all neutral 50, flagged imputed.
     """
@@ -125,17 +124,12 @@ AGENTS = {
 }
 
 
-def compute_and_store(conn: duckdb.DuckDBPyConnection, asof: date | None = None) -> dict[str, int]:
+def compute_and_store(conn: Warehouse, asof: date | None = None) -> dict[str, int]:
     """Compute scores for all 4 agents as of `asof` and INSERT into agent_scores."""
     asof = asof or date.today()
-    today = date.today()
     counts: dict[str, int] = {}
     for name, fn in AGENTS.items():
-        try:
-            df = fn(conn, asof)
-        except Exception as e:
-            log.exception("agent %s failed: %s", name, e)
-            continue
+        df = fn(conn, asof)
         if df.empty:
             counts[name] = 0
             continue
@@ -144,9 +138,11 @@ def compute_and_store(conn: duckdb.DuckDBPyConnection, asof: date | None = None)
             for r in df.itertuples()
         ]
         conn.executemany(
-            """INSERT OR REPLACE INTO agent_scores
+            """INSERT INTO agent_scores
                (date, ticker, agent, score, passes)
-               VALUES (?,?,?,?,?)""",
+               VALUES (?,?,?,?,?)
+               ON CONFLICT (date,ticker,agent) DO UPDATE SET
+                   score=EXCLUDED.score, passes=EXCLUDED.passes""",
             rows,
         )
         counts[name] = len(rows)
@@ -155,7 +151,7 @@ def compute_and_store(conn: duckdb.DuckDBPyConnection, asof: date | None = None)
 
 
 def latest_agent_scores(
-    conn: duckdb.DuckDBPyConnection, name: str, asof: str | None = None
+    conn: Warehouse, name: str, asof: str | None = None
 ) -> list[dict[str, Any]]:
     """Read back persisted scores for one agent, latest asof."""
     if asof:
