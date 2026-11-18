@@ -1,0 +1,20 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Data warehouse and local artifacts
+data/market.duckdb
+data/raw/
+logs/
+backtests/
+*.log
+
+# Editor
+.vscode/
+.idea/

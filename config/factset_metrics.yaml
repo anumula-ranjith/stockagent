@@ -1,0 +1,37 @@
+# Map from our factor name to FactSet Fundamentals/Estimates metric codes.
+# Populated in Phase 1 from the FactSet Fundamentals metrics endpoint.
+# Every key below is a placeholder; do NOT use for ingestion until replaced
+# with verified codes and signed off in docs/DATA_NOTES.md.
+
+fundamentals:
+  revenue_ttm:        TBD
+  net_income_ttm:     TBD
+  eps_ttm:            TBD
+  eps_diluted_ttm:    TBD
+  book_value:         TBD
+  total_debt:         TBD
+  total_equity:       TBD
+  current_assets:     TBD
+  current_liab:       TBD
+  cash_and_equiv:     TBD
+  ebitda_ttm:         TBD
+  op_income_ttm:      TBD
+  gross_profit_ttm:   TBD
+  interest_expense:   TBD
+  shares_diluted:     TBD
+  dividends_paid_ttm: TBD
+  buybacks_ttm:       TBD
+  capex_ttm:          TBD
+  cfo_ttm:            TBD
+  filing_date_field:  TBD   # the point-in-time known_date column
+
+estimates:
+  eps_ntm_consensus:  TBD
+  eps_fy1_consensus:  TBD
+  eps_fy2_consensus:  TBD
+  revenue_ntm:        TBD
+  rating_mean:        TBD
+  target_price_mean:  TBD
+  surprise_latest:    TBD
+  revisions_up_30d:   TBD
+  revisions_down_30d: TBD

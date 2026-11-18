@@ -1,0 +1,96 @@
+# Default agent and factor weights, plus named presets. All weights are on a
+# 0-10 scale; the scoring engine normalizes over enabled factors.
+
+combiner:
+  mode: weighted        # weighted | consensus | hybrid
+  agent_weights:
+    technical:   25
+    sentiment:   25
+    momentum:    25
+    fundamental: 25
+  n_per_side: 10
+  consensus_k: 3
+  hybrid_long_floor: 40
+  hybrid_short_ceiling: 60
+  max_names_per_sector: 3
+  earnings_blackout_days: 2
+  buffer: 5
+
+portfolio:
+  mode: long_short      # long_only | long_short | 130_30
+  gross_long: 1.00
+  gross_short: 1.00
+  weighting: equal      # equal | score | inverse_vol
+  max_weight_per_name: 0.10
+  rebalance: weekly     # daily | weekly | monthly
+  execution: next_open
+
+agents:
+  technical:
+    enabled: true
+    filters:
+      rsi_min: 30
+      rsi_max: 80
+      require_above_sma200: false
+      min_dollar_volume_20d: 1_000_000
+    factors:
+      rsi14:         {weight: 5, shape: {peak: 60, span: 30}}
+      macd_hist:     {weight: 5}
+      vs_sma50:      {weight: 5}
+      vs_sma200:     {weight: 5}
+      golden_cross:  {weight: 3}
+      adx14_signed:  {weight: 5}
+      bb_pctb:       {weight: 3, shape: {peak: 0.75, span: 0.6}}
+      stoch_k:       {weight: 3, shape: {peak: 65, span: 40}}
+      vol_surge:     {weight: 5}
+      obv_trend:     {weight: 5}
+      atr_pct:       {weight: 3, lower_is_better: true}
+      prox_52w_high: {weight: 5}
+
+  sentiment:
+    enabled: true
+    min_headlines_7d: 3
+    boost_top_sectors: true
+    short_mode: avoid     # avoid | squeeze
+    factors:
+      news_tone_7d:    {weight: 8, half_life_days: 2}
+      news_volume:     {weight: 3, short_window: 3, long_window: 30}
+      hot_sector:      {weight: 6}
+      est_revisions:   {weight: 6}
+      rating_change:   {weight: 4}
+      insider_activity: {weight: 3, window_days: 90}
+      short_interest:  {weight: 3}
+      social_buzz:     {weight: 0}
+
+  momentum:
+    enabled: true
+    vol_adjust: false
+    require_above_sma200: false
+    factors:
+      ret_1m:   {weight: 3}
+      ret_3m:   {weight: 6}
+      ret_6m:   {weight: 7}
+      ret_12_1: {weight: 9}
+      rel_str:  {weight: 3}
+      accel:    {weight: 2}
+
+  fundamental:
+    enabled: true
+    sector_neutral: true
+    winsorize: [0.05, 0.95]
+    filters:
+      max_pe: 0            # 0 disables
+      max_de: 0            # 0 disables
+      require_positive_fcf: false
+    pillar_weights:
+      value:             25
+      quality:           25
+      growth:            25
+      health:            15
+      shareholder_yield: 10
+
+presets:
+  balanced: {combiner: {agent_weights: {technical: 25, sentiment: 25, momentum: 25, fundamental: 25}}}
+  momentum_heavy: {combiner: {agent_weights: {technical: 15, sentiment: 15, momentum: 55, fundamental: 15}}}
+  quality_value: {combiner: {agent_weights: {technical: 10, sentiment: 10, momentum: 20, fundamental: 60}}}
+  trend_follower: {combiner: {agent_weights: {technical: 45, sentiment: 10, momentum: 40, fundamental:  5}}}
