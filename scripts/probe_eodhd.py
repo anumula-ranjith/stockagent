@@ -34,7 +34,8 @@ from _probe_util import (  # noqa: E402
 )
 
 BASE = "https://eodhistoricaldata.com/api"
-TICKER = "AAPL.US"
+TICKER = "RELIANCE.NSE"  # NSE India (Nifty 200 strategy)
+BULK_EXCHANGE = "NSE"
 TIMEOUT = 20
 
 
@@ -69,7 +70,9 @@ def main() -> list[ProbeResult]:
     start = today - timedelta(days=30)
     results = [
         _probe("eod", f"/eod/{TICKER}", {"from": start.isoformat(), "to": today.isoformat()}),
-        _probe("eod-bulk-last-day", "/eod-bulk-last-day/US", {"filter": "extended"}),
+        _probe(
+            "eod-bulk-last-day", f"/eod-bulk-last-day/{BULK_EXCHANGE}", {"filter": "extended"}
+        ),
         _probe("splits", f"/splits/{TICKER}"),
         _probe("div", f"/div/{TICKER}"),
         _probe("fundamentals", f"/fundamentals/{TICKER}"),

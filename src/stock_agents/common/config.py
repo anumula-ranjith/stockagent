@@ -44,6 +44,9 @@ class Settings:
     paths: Paths
     timezone: str
     market_calendar: str
+    exchange_suffix: str
+    base_currency: str
+    universe_seed_csv: str
 
     def env(self, key: str, default: str | None = None) -> str | None:
         return os.environ.get(key, default)
@@ -80,6 +83,11 @@ def load_settings() -> Settings:
         paths=paths,
         timezone=settings_raw.get("timezone", "America/New_York"),
         market_calendar=settings_raw.get("market_calendar", "XNYS"),
+        exchange_suffix=settings_raw.get("exchange_suffix", ".US"),
+        base_currency=settings_raw.get("base_currency", "USD"),
+        universe_seed_csv=settings_raw.get("universe", {}).get(
+            "seed_csv", "config/universe_seed.csv"
+        ),
     )
 
 

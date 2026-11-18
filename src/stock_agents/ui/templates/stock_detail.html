@@ -1,0 +1,116 @@
+<main class="page">
+
+<div class="page-head">
+  <h1 id="dtk">{{TICKER}}</h1>
+  <p class="sub" id="dsub">Loading details…</p>
+</div>
+
+<div class="metrics" id="dMetrics"></div>
+
+<div class="grid2">
+  <div class="card"><h2>Price (1 year, adjusted close)</h2><div id="priceChart"></div></div>
+  <div class="card"><h2>Agent scores (as of latest)</h2><div id="scoreGrid"></div></div>
+</div>
+
+<div class="card"><h2>Recent news</h2><div class="tw" id="newsBox"><p class="loading">Loading…</p></div></div>
+
+</main>
+<script>
+const TK = "{{TICKER}}";
+
+async function boot(){
+  try{
+    const u = await (await fetch("/universe")).json();
+    const meta = u.find(r=>r.ticker===TK) || {};
+    document.getElementById("dsub").textContent =
+      `${meta.sector||""} · ${meta.industry||""} · EODHD symbol ${meta.symbol||TK+".NSE"}`;
+
+    const px = await (await fetch(`/prices/${TK}?days=365`).catch(()=>null))?.json().catch(()=>null);
+    if(px && px.length){
+      renderPrice(px);
+      renderMetrics(px);
+    } else {
+      document.getElementById("priceChart").innerHTML = `<div class="err">No price rows in warehouse yet. Backfill still running for this ticker.</div>`;
+    }
+
+    // scores
+    const scoreBox = document.getElementById("scoreGrid");
+    const agents = ["technical","sentiment","momentum","fundamental"];
+    const scores = {};
+    for(const a of agents){
+      const arr = await (await fetch(`/agents/${a}`)).json();
+      const row = arr.find(r=>r.ticker===TK);
+      scores[a] = row ? row.score : null;
+    }
+    scoreBox.innerHTML = agents.map(a=>{
+      const s = scores[a];
+      const w = s==null ? 0 : Math.max(0, Math.min(100, s));
+      const label = a.charAt(0).toUpperCase()+a.slice(1);
+      return `<div style="display:grid;grid-template-columns:120px 1fr 48px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--soft)">
+        <span>${label}</span>
+        <span style="height:8px;background:var(--soft);border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:${w}%;background:var(--accent)"></span></span>
+        <b style="text-align:right">${s==null?'—':s.toFixed(1)}</b></div>`;
+    }).join("");
+
+    // news
+    try {
+      const news = await (await fetch(`/news/${TK}?limit=15`)).json();
+      const box = document.getElementById("newsBox");
+      if(!news.length){ box.innerHTML = `<p class="note">No news in warehouse yet. Run <code>python -m stock_agents ingest-news --tickers ${TK}</code>.</p>`; return; }
+      box.innerHTML = `<table><thead><tr><th>When</th><th>Headline</th><th>Source</th><th>Polarity</th></tr></thead><tbody>${
+        news.map(n=>{
+          const p = n.polarity ?? 0;
+          const cls = p>0.1?"pos":p<-0.1?"neg":"";
+          return `<tr><td>${(n.published_at||"").slice(0,10)}</td>
+            <td style="text-align:left"><a href="${n.url}" target="_blank" rel="noopener">${n.headline||"—"}</a></td>
+            <td class="sec">${n.source||""}</td>
+            <td class="${cls}">${p.toFixed(2)}</td></tr>`;
+        }).join("")
+      }</tbody></table>`;
+    } catch(e) {
+      document.getElementById("newsBox").innerHTML = `<p class="err">News error: ${e.message}</p>`;
+    }
+  } catch(e){
+    document.getElementById("dsub").textContent = "Error: " + e.message;
+  }
+}
+
+function renderMetrics(px){
+  const last = px[px.length-1], first = px[0];
+  const n = px.length;
+  const r1m = n>21 ? (last.adj_close/px[n-22].adj_close - 1) : null;
+  const rYTD = (last.adj_close/first.adj_close - 1);
+  const high = Math.max(...px.map(r=>r.high||r.close));
+  const low = Math.min(...px.map(r=>r.low||r.close));
+  const pct = (x)=> x==null?"—":(x*100).toFixed(2)+"%";
+  document.getElementById("dMetrics").innerHTML = `
+    <div class="m"><small>Last close (INR)</small><strong>${last.close?.toFixed(2)}</strong></div>
+    <div class="m"><small>1M return</small><strong class="${r1m>0?'pos':'neg'}">${pct(r1m)}</strong></div>
+    <div class="m"><small>1Y return</small><strong class="${rYTD>0?'pos':'neg'}">${pct(rYTD)}</strong></div>
+    <div class="m"><small>1Y high</small><strong>${high.toFixed(2)}</strong></div>
+    <div class="m"><small>1Y low</small><strong>${low.toFixed(2)}</strong></div>
+    <div class="m"><small>Volume (last)</small><strong>${(last.volume||0).toLocaleString()}</strong></div>
+  `;
+}
+
+function renderPrice(px){
+  const w=800, h=280, pad=40;
+  const ys = px.map(r=>r.adj_close);
+  const mn=Math.min(...ys), mx=Math.max(...ys), span=mx-mn||1;
+  const x = i => pad + (i/(px.length-1))*(w-2*pad);
+  const y = v => h - pad - ((v-mn)/span)*(h-2*pad);
+  const path = "M" + px.map((r,i)=>x(i).toFixed(1)+","+y(r.adj_close).toFixed(1)).join(" L");
+  const last = px[px.length-1].adj_close;
+  const first = px[0].adj_close;
+  const col = last>=first ? "var(--long)" : "var(--short)";
+  document.getElementById("priceChart").innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto">
+      <path d="${path}" fill="none" stroke="${col}" stroke-width="1.8"/>
+      <text x="${pad}" y="${h-12}">${px[0].date}</text>
+      <text x="${w-pad-70}" y="${h-12}">${px[px.length-1].date}</text>
+      <text x="${pad}" y="20">${mn.toFixed(0)} – ${mx.toFixed(0)}</text>
+    </svg>`;
+}
+
+boot();
+</script>

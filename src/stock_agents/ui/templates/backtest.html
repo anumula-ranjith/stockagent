@@ -1,0 +1,98 @@
+<main class="page">
+
+<div class="page-head">
+  <h1>Backtest</h1>
+  <p class="sub">Dollar-neutral long/short on the four-agent composite. Monthly rebalance, equal weight within each sleeve, 5 bps slippage, 50 bps borrow. Point-in-time respected.</p>
+</div>
+
+<div class="layout-side">
+  <aside class="side">
+    <h2>Configuration</h2>
+    <label class="field">Start date
+      <input type="date" id="bStart" value="2023-01-02">
+    </label>
+    <label class="field">End date
+      <input type="date" id="bEnd" value="2026-11-17">
+    </label>
+    <label class="field">Names per side
+      <input type="number" id="bN" value="10" min="3" max="30">
+    </label>
+    <button class="btn primary" id="bRun" style="width:100%;margin-top:10px">Run backtest</button>
+    <p class="note" style="margin-top:14px">Backtests run server-side and take 15–60s for 3-year windows on the current universe.</p>
+  </aside>
+
+  <section class="content">
+    <div id="bView">
+      <div class="loading">Loading latest backtest…</div>
+    </div>
+  </section>
+</div>
+
+</main>
+<script>
+async function loadLatest(){
+  try{
+    const b = await (await fetch("/backtest/latest")).json();
+    render(b);
+  }catch(e){ document.getElementById("bView").innerHTML = `<div class="err">${e.message}</div>`; }
+}
+async function runBacktest(){
+  document.getElementById("bView").innerHTML = `<div class="loading">Running backtest… (this takes a while)</div>`;
+  const q = new URLSearchParams({
+    start: document.getElementById("bStart").value,
+    end: document.getElementById("bEnd").value,
+    n: document.getElementById("bN").value,
+  });
+  try{
+    const r = await fetch("/backtest/run?"+q.toString(), {method:"POST"});
+    if(!r.ok){ document.getElementById("bView").innerHTML = `<div class="err">Server error ${r.status}: ${await r.text()}</div>`; return; }
+    const b = await r.json();
+    render(b);
+  }catch(e){ document.getElementById("bView").innerHTML = `<div class="err">${e.message}</div>`; }
+}
+function render(b){
+  if(b.note){ document.getElementById("bView").innerHTML =
+    `<div class="card"><h2>${b.note}</h2><p>Click "Run backtest" to generate one.</p></div>`; return; }
+  if(b.error){ document.getElementById("bView").innerHTML = `<div class="err">${b.error}</div>`; return; }
+  const pct = x => x==null ? "—" : (x*100).toFixed(2)+"%";
+  const sgn = x => x>0 ? "pos" : "neg";
+  document.getElementById("bView").innerHTML = `
+    <div class="metrics">
+      <div class="m"><small>Total return</small><strong class="${sgn(b.total_return)}">${pct(b.total_return)}</strong></div>
+      <div class="m"><small>Annual return</small><strong class="${sgn(b.annual_return)}">${pct(b.annual_return)}</strong></div>
+      <div class="m"><small>Sharpe</small><strong>${b.sharpe?.toFixed(2) ?? "—"}</strong></div>
+      <div class="m"><small>Max drawdown</small><strong class="neg">${pct(b.max_drawdown)}</strong></div>
+      <div class="m"><small>Annual vol</small><strong>${pct(b.annual_vol)}</strong></div>
+      <div class="m"><small>Period</small><strong>${b.start} → ${b.end}</strong></div>
+    </div>
+    <div class="card"><h2>Equity curve</h2>${equitySvg(b.equity_curve)}</div>
+    <div class="grid2">
+      <div class="card"><h2>Final longs</h2><div class="tw"><table><tbody>${
+        (b.longs_last||[]).map((t,i)=>`<tr><td>${i+1}</td><td class="tk"><a href="/stocks/${t}">${t}</a></td></tr>`).join("")
+      }</tbody></table></div></div>
+      <div class="card"><h2>Final shorts</h2><div class="tw"><table><tbody>${
+        (b.shorts_last||[]).map((t,i)=>`<tr><td>${i+1}</td><td class="tk"><a href="/stocks/${t}">${t}</a></td></tr>`).join("")
+      }</tbody></table></div></div>
+    </div>`;
+}
+function equitySvg(pts){
+  if(!pts || !pts.length) return "<p>no points</p>";
+  const w=900, h=260, pad=36;
+  const ys = pts.map(p=>p.equity);
+  const mn=Math.min(...ys), mx=Math.max(...ys), span=mx-mn||1;
+  const x = i => pad + (i/(pts.length-1))*(w-2*pad);
+  const y = v => h - pad - ((v-mn)/span)*(h-2*pad);
+  const path = "M" + pts.map((p,i)=>x(i).toFixed(1)+","+y(p.equity).toFixed(1)).join(" L");
+  const last = pts[pts.length-1].equity;
+  const color = last>=1 ? "var(--long)" : "var(--short)";
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto">
+    <line x1="${pad}" y1="${y(1)}" x2="${w-pad}" y2="${y(1)}" stroke="var(--line)" stroke-dasharray="3 3"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>
+    <text x="${pad}" y="${h-10}">${pts[0].date}</text>
+    <text x="${w-pad-70}" y="${h-10}">${pts[pts.length-1].date}</text>
+    <text x="${w-pad-80}" y="20">equity: ${last.toFixed(3)}</text>
+  </svg>`;
+}
+document.getElementById("bRun").addEventListener("click", runBacktest);
+loadLatest();
+</script>

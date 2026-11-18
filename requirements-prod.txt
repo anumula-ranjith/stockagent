@@ -1,0 +1,50 @@
+# Production dependencies (used by Dockerfile + any cloud host).
+# Dev deps (pytest, ruff, black) stay in pyproject.toml extras.
+
+# --- core app ---------------------------------------------------------------
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.9
+pydantic-settings>=2.6
+python-dotenv>=1.0
+pyyaml>=6.0
+
+# --- database: Postgres + TimescaleDB ---------------------------------------
+sqlalchemy>=2.0
+asyncpg>=0.30          # async Postgres driver (used by FastAPI endpoints)
+psycopg2-binary>=2.9   # sync driver (RQ workers, scripts, Alembic)
+alembic>=1.13          # schema migrations
+
+# --- research store (kept) --------------------------------------------------
+duckdb>=1.1
+pandas>=2.2
+numpy>=1.26
+
+# --- jobs + cache -----------------------------------------------------------
+redis>=5.2
+rq>=2.0                # simpler than Celery; swap for celery[redis] when needed
+
+# --- scheduler --------------------------------------------------------------
+apscheduler>=3.10
+# For a managed UI: `pip install prefect` (optional, not pinned here).
+
+# --- object storage ---------------------------------------------------------
+boto3>=1.35            # S3 + MinIO (use endpoint_url override for MinIO)
+
+# --- auth -------------------------------------------------------------------
+pyjwt>=2.10
+passlib[bcrypt]>=1.7
+python-multipart>=0.0.12
+
+# --- data sources -----------------------------------------------------------
+requests>=2.32
+pandas-market-calendars>=4.4
+fds.sdk.utils
+fds.sdk.Symbology
+fds.sdk.FactSetFundamentals
+fds.sdk.FactSetEstimates
+fds.sdk.FactSetPrices
+fds.sdk.FactSetOwnership
+
+# --- observability ----------------------------------------------------------
+structlog>=24.4

@@ -1,0 +1,111 @@
+# Production-shape stack. Dev: `docker compose up`.
+# Services:
+#   postgres   TimescaleDB-flavored Postgres (prices_daily becomes a hypertable)
+#   redis      Job queue + cache
+#   api        FastAPI (uvicorn), public on :8701
+#   worker     RQ worker for backtests / ingest jobs
+#   minio      S3-compatible object storage for raw API payloads + backtest JSON
+#
+# Secrets come from .env at the repo root (never committed).
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: stock_agents_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER:-stockagents}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-devpassword}
+      POSTGRES_DB: ${PG_DB:-stockagents}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-stockagents}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: stock_agents_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: stock_agents_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console
+    volumes:
+      - miniodata:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock_agents_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${PG_USER:-stockagents}:${PG_PASSWORD:-devpassword}@postgres:5432/${PG_DB:-stockagents}
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: stock-agents
+      S3_ACCESS_KEY: ${MINIO_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_PASSWORD:-minioadmin}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      PYTHONUNBUFFERED: "1"
+    env_file: .env
+    ports:
+      - "8701:8701"
+    volumes:
+      - ./src:/app/src:ro
+      - ./config:/app/config:ro
+    command: >
+      uvicorn stock_agents.api.main:app
+      --host 0.0.0.0 --port 8701 --proxy-headers
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock_agents_worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${PG_USER:-stockagents}:${PG_PASSWORD:-devpassword}@postgres:5432/${PG_DB:-stockagents}
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: stock-agents
+      S3_ACCESS_KEY: ${MINIO_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_PASSWORD:-minioadmin}
+    env_file: .env
+    volumes:
+      - ./src:/app/src:ro
+      - ./config:/app/config:ro
+    command: python -m stock_agents.jobs.worker
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

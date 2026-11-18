@@ -1,101 +1,214 @@
-ticker,name,sector
-AAPL,Apple,Technology
-MSFT,Microsoft,Technology
-NVDA,NVIDIA,Technology
-AVGO,Broadcom,Technology
-ORCL,Oracle,Technology
-CRM,Salesforce,Technology
-ADBE,Adobe,Technology
-AMD,Advanced Micro Devices,Technology
-INTC,Intel,Technology
-CSCO,Cisco,Technology
-QCOM,Qualcomm,Technology
-TXN,Texas Instruments,Technology
-IBM,IBM,Technology
-NOW,ServiceNow,Technology
-INTU,Intuit,Technology
-AMAT,Applied Materials,Technology
-MU,Micron,Technology
-PANW,Palo Alto Networks,Technology
-ADI,Analog Devices,Technology
-LRCX,Lam Research,Technology
-KLAC,KLA,Technology
-GOOGL,Alphabet,Communication
-META,Meta Platforms,Communication
-NFLX,Netflix,Communication
-DIS,Disney,Communication
-CMCSA,Comcast,Communication
-T,AT&T,Communication
-VZ,Verizon,Communication
-TMUS,T-Mobile US,Communication
-CHTR,Charter Communications,Communication
-AMZN,Amazon,Consumer Disc.
-TSLA,Tesla,Consumer Disc.
-HD,Home Depot,Consumer Disc.
-MCD,McDonald's,Consumer Disc.
-NKE,Nike,Consumer Disc.
-SBUX,Starbucks,Consumer Disc.
-LOW,Lowe's,Consumer Disc.
-BKNG,Booking Holdings,Consumer Disc.
-TJX,TJX,Consumer Disc.
-TGT,Target,Consumer Disc.
-WMT,Walmart,Consumer Staples
-COST,Costco,Consumer Staples
-PG,Procter & Gamble,Consumer Staples
-KO,Coca-Cola,Consumer Staples
-PEP,PepsiCo,Consumer Staples
-PM,Philip Morris Int'l,Consumer Staples
-MDLZ,Mondelez,Consumer Staples
-CL,Colgate-Palmolive,Consumer Staples
-JPM,JPMorgan Chase,Financials
-BAC,Bank of America,Financials
-WFC,Wells Fargo,Financials
-GS,Goldman Sachs,Financials
-MS,Morgan Stanley,Financials
-C,Citigroup,Financials
-BLK,BlackRock,Financials
-SCHW,Charles Schwab,Financials
-AXP,American Express,Financials
-V,Visa,Financials
-MA,Mastercard,Financials
-BRK-B,Berkshire Hathaway B,Financials
-SPGI,S&P Global,Financials
-PYPL,PayPal,Financials
-CB,Chubb,Financials
-UNH,UnitedHealth,Health Care
-JNJ,Johnson & Johnson,Health Care
-LLY,Eli Lilly,Health Care
-MRK,Merck,Health Care
-ABBV,AbbVie,Health Care
-PFE,Pfizer,Health Care
-TMO,Thermo Fisher Scientific,Health Care
-ABT,Abbott,Health Care
-DHR,Danaher,Health Care
-AMGN,Amgen,Health Care
-GILD,Gilead,Health Care
-ISRG,Intuitive Surgical,Health Care
-CVS,CVS Health,Health Care
-MDT,Medtronic,Health Care
-BMY,Bristol-Myers Squibb,Health Care
-CAT,Caterpillar,Industrials
-DE,Deere,Industrials
-HON,Honeywell,Industrials
-GE,GE Aerospace,Industrials
-UPS,United Parcel Service,Industrials
-RTX,RTX,Industrials
-LMT,Lockheed Martin,Industrials
-BA,Boeing,Industrials
-UNP,Union Pacific,Industrials
-MMM,3M,Industrials
-ETN,Eaton,Industrials
-ADP,Automatic Data Processing,Industrials
-XOM,Exxon Mobil,Energy
-CVX,Chevron,Energy
-COP,ConocoPhillips,Energy
-SLB,Schlumberger,Energy
-NEE,NextEra Energy,Utilities
-DUK,Duke Energy,Utilities
-SO,Southern Company,Utilities
-AMT,American Tower,Real Estate
-PLD,Prologis,Real Estate
-LIN,Linde,Materials
+ticker,name,sector,industry,exchange
+RELIANCE,Reliance Industries,Energy,Oil Gas & Consumable Fuels,NSE
+ONGC,Oil & Natural Gas Corp,Energy,Oil Gas & Consumable Fuels,NSE
+IOC,Indian Oil Corp,Energy,Oil Gas & Consumable Fuels,NSE
+BPCL,Bharat Petroleum,Energy,Oil Gas & Consumable Fuels,NSE
+HINDPETRO,Hindustan Petroleum,Energy,Oil Gas & Consumable Fuels,NSE
+GAIL,GAIL India,Energy,Oil Gas & Consumable Fuels,NSE
+PETRONET,Petronet LNG,Energy,Oil Gas & Consumable Fuels,NSE
+OIL,Oil India,Energy,Oil Gas & Consumable Fuels,NSE
+IGL,Indraprastha Gas,Energy,Oil Gas & Consumable Fuels,NSE
+MGL,Mahanagar Gas,Energy,Oil Gas & Consumable Fuels,NSE
+HDFCBANK,HDFC Bank,Financials,Banks,NSE
+ICICIBANK,ICICI Bank,Financials,Banks,NSE
+SBIN,State Bank of India,Financials,Banks,NSE
+KOTAKBANK,Kotak Mahindra Bank,Financials,Banks,NSE
+AXISBANK,Axis Bank,Financials,Banks,NSE
+INDUSINDBK,IndusInd Bank,Financials,Banks,NSE
+BANKBARODA,Bank of Baroda,Financials,Banks,NSE
+PNB,Punjab National Bank,Financials,Banks,NSE
+CANBK,Canara Bank,Financials,Banks,NSE
+UNIONBANK,Union Bank of India,Financials,Banks,NSE
+FEDERALBNK,Federal Bank,Financials,Banks,NSE
+IDFCFIRSTB,IDFC First Bank,Financials,Banks,NSE
+AUBANK,AU Small Finance Bank,Financials,Banks,NSE
+BANDHANBNK,Bandhan Bank,Financials,Banks,NSE
+RBLBANK,RBL Bank,Financials,Banks,NSE
+BAJFINANCE,Bajaj Finance,Financials,Finance,NSE
+BAJAJFINSV,Bajaj Finserv,Financials,Finance,NSE
+JIOFIN,Jio Financial Services,Financials,Finance,NSE
+CHOLAFIN,Cholamandalam Investment,Financials,Finance,NSE
+SBILIFE,SBI Life Insurance,Financials,Insurance,NSE
+HDFCLIFE,HDFC Life Insurance,Financials,Insurance,NSE
+ICICIPRULI,ICICI Prudential Life,Financials,Insurance,NSE
+ICICIGI,ICICI Lombard,Financials,Insurance,NSE
+LICI,Life Insurance Corp,Financials,Insurance,NSE
+GICRE,General Insurance Corp,Financials,Insurance,NSE
+HDFCAMC,HDFC Asset Management,Financials,Finance,NSE
+SHRIRAMFIN,Shriram Finance,Financials,Finance,NSE
+MUTHOOTFIN,Muthoot Finance,Financials,Finance,NSE
+MANAPPURAM,Manappuram Finance,Financials,Finance,NSE
+MFSL,Max Financial Services,Financials,Insurance,NSE
+POONAWALLA,Poonawalla Fincorp,Financials,Finance,NSE
+LICHSGFIN,LIC Housing Finance,Financials,Finance,NSE
+PFC,Power Finance Corp,Financials,Finance,NSE
+RECLTD,REC Ltd,Financials,Finance,NSE
+IRFC,Indian Railway Finance Corp,Financials,Finance,NSE
+BSE,BSE Ltd,Financials,Capital Markets,NSE
+CDSL,Central Depository Services,Financials,Capital Markets,NSE
+ANGELONE,Angel One,Financials,Capital Markets,NSE
+TCS,Tata Consultancy Services,Information Technology,IT Services,NSE
+INFY,Infosys,Information Technology,IT Services,NSE
+HCLTECH,HCL Technologies,Information Technology,IT Services,NSE
+WIPRO,Wipro,Information Technology,IT Services,NSE
+TECHM,Tech Mahindra,Information Technology,IT Services,NSE
+LTM,LTIMindtree,Information Technology,IT Services,NSE
+PERSISTENT,Persistent Systems,Information Technology,IT Services,NSE
+COFORGE,Coforge,Information Technology,IT Services,NSE
+MPHASIS,Mphasis,Information Technology,IT Services,NSE
+LTTS,L&T Technology Services,Information Technology,IT Services,NSE
+OFSS,Oracle Financial Services,Information Technology,IT Services,NSE
+KPITTECH,KPIT Technologies,Information Technology,IT Services,NSE
+TATAELXSI,Tata Elxsi,Information Technology,IT Services,NSE
+HINDUNILVR,Hindustan Unilever,Consumer Staples,Household Products,NSE
+ITC,ITC Ltd,Consumer Staples,Tobacco,NSE
+NESTLEIND,Nestle India,Consumer Staples,Food Products,NSE
+BRITANNIA,Britannia Industries,Consumer Staples,Food Products,NSE
+DABUR,Dabur India,Consumer Staples,Personal Products,NSE
+MARICO,Marico,Consumer Staples,Personal Products,NSE
+GODREJCP,Godrej Consumer Products,Consumer Staples,Personal Products,NSE
+COLPAL,Colgate-Palmolive India,Consumer Staples,Personal Products,NSE
+TATACONSUM,Tata Consumer Products,Consumer Staples,Food Products,NSE
+VBL,Varun Beverages,Consumer Staples,Beverages,NSE
+UNITDSPR,United Spirits,Consumer Staples,Beverages,NSE
+PGHH,Procter & Gamble Hygiene,Consumer Staples,Personal Products,NSE
+EMAMILTD,Emami,Consumer Staples,Personal Products,NSE
+RADICO,Radico Khaitan,Consumer Staples,Beverages,NSE
+PATANJALI,Patanjali Foods,Consumer Staples,Food Products,NSE
+MARUTI,Maruti Suzuki India,Consumer Discretionary,Automobiles,NSE
+TATAMOTORS,Tata Motors,Consumer Discretionary,Automobiles,NSE
+M&M,Mahindra & Mahindra,Consumer Discretionary,Automobiles,NSE
+BAJAJ-AUTO,Bajaj Auto,Consumer Discretionary,Automobiles,NSE
+HEROMOTOCO,Hero MotoCorp,Consumer Discretionary,Automobiles,NSE
+EICHERMOT,Eicher Motors,Consumer Discretionary,Automobiles,NSE
+TVSMOTOR,TVS Motor Company,Consumer Discretionary,Automobiles,NSE
+ASHOKLEY,Ashok Leyland,Consumer Discretionary,Automobiles,NSE
+BOSCHLTD,Bosch,Consumer Discretionary,Auto Components,NSE
+MOTHERSON,Samvardhana Motherson,Consumer Discretionary,Auto Components,NSE
+BHARATFORG,Bharat Forge,Consumer Discretionary,Auto Components,NSE
+BALKRISIND,Balkrishna Industries,Consumer Discretionary,Auto Components,NSE
+MRF,MRF,Consumer Discretionary,Auto Components,NSE
+APOLLOTYRE,Apollo Tyres,Consumer Discretionary,Auto Components,NSE
+TITAN,Titan Company,Consumer Discretionary,Textiles & Luxury,NSE
+DMART,Avenue Supermarts,Consumer Discretionary,Retailing,NSE
+TRENT,Trent,Consumer Discretionary,Retailing,NSE
+PAGEIND,Page Industries,Consumer Discretionary,Textiles,NSE
+VOLTAS,Voltas,Consumer Discretionary,Consumer Durables,NSE
+HAVELLS,Havells India,Consumer Discretionary,Consumer Durables,NSE
+WHIRLPOOL,Whirlpool of India,Consumer Discretionary,Consumer Durables,NSE
+CROMPTON,Crompton Greaves Consumer,Consumer Discretionary,Consumer Durables,NSE
+DIXON,Dixon Technologies,Consumer Discretionary,Consumer Durables,NSE
+BATAINDIA,Bata India,Consumer Discretionary,Textiles & Luxury,NSE
+RELAXO,Relaxo Footwears,Consumer Discretionary,Textiles & Luxury,NSE
+JUBLFOOD,Jubilant FoodWorks,Consumer Discretionary,Hotels Restaurants,NSE
+INDIGO,InterGlobe Aviation,Consumer Discretionary,Transportation,NSE
+IRCTC,Indian Railway Catering,Consumer Discretionary,Hotels Restaurants,NSE
+ETERNAL,Eternal (fmr Zomato),Consumer Discretionary,Retailing,NSE
+NYKAA,Nykaa,Consumer Discretionary,Retailing,NSE
+POLICYBZR,PB Fintech,Consumer Discretionary,Retailing,NSE
+PAYTM,One 97 Communications,Consumer Discretionary,Retailing,NSE
+SUNPHARMA,Sun Pharmaceutical,Health Care,Pharmaceuticals,NSE
+DRREDDY,Dr Reddys Laboratories,Health Care,Pharmaceuticals,NSE
+CIPLA,Cipla,Health Care,Pharmaceuticals,NSE
+DIVISLAB,Divis Laboratories,Health Care,Pharmaceuticals,NSE
+APOLLOHOSP,Apollo Hospitals,Health Care,Health Care Providers,NSE
+MAXHEALTH,Max Healthcare Institute,Health Care,Health Care Providers,NSE
+FORTIS,Fortis Healthcare,Health Care,Health Care Providers,NSE
+LUPIN,Lupin,Health Care,Pharmaceuticals,NSE
+AUROPHARMA,Aurobindo Pharma,Health Care,Pharmaceuticals,NSE
+TORNTPHARM,Torrent Pharmaceuticals,Health Care,Pharmaceuticals,NSE
+ZYDUSLIFE,Zydus Lifesciences,Health Care,Pharmaceuticals,NSE
+ALKEM,Alkem Laboratories,Health Care,Pharmaceuticals,NSE
+BIOCON,Biocon,Health Care,Pharmaceuticals,NSE
+IPCALAB,IPCA Laboratories,Health Care,Pharmaceuticals,NSE
+GLAND,Gland Pharma,Health Care,Pharmaceuticals,NSE
+GLENMARK,Glenmark Pharmaceuticals,Health Care,Pharmaceuticals,NSE
+ABBOTINDIA,Abbott India,Health Care,Pharmaceuticals,NSE
+MANKIND,Mankind Pharma,Health Care,Pharmaceuticals,NSE
+LAURUSLABS,Laurus Labs,Health Care,Pharmaceuticals,NSE
+SYNGENE,Syngene International,Health Care,Pharmaceuticals,NSE
+SANOFI,Sanofi India,Health Care,Pharmaceuticals,NSE
+LT,Larsen & Toubro,Industrials,Construction,NSE
+ULTRACEMCO,UltraTech Cement,Materials,Cement,NSE
+GRASIM,Grasim Industries,Materials,Cement,NSE
+SHREECEM,Shree Cement,Materials,Cement,NSE
+AMBUJACEM,Ambuja Cements,Materials,Cement,NSE
+ACC,ACC Ltd,Materials,Cement,NSE
+DALBHARAT,Dalmia Bharat,Materials,Cement,NSE
+RAMCOCEM,Ramco Cements,Materials,Cement,NSE
+JKCEMENT,JK Cement,Materials,Cement,NSE
+TATASTEEL,Tata Steel,Materials,Metals & Mining,NSE
+JSWSTEEL,JSW Steel,Materials,Metals & Mining,NSE
+HINDALCO,Hindalco Industries,Materials,Metals & Mining,NSE
+VEDL,Vedanta,Materials,Metals & Mining,NSE
+SAIL,Steel Authority of India,Materials,Metals & Mining,NSE
+JINDALSTEL,Jindal Steel & Power,Materials,Metals & Mining,NSE
+COALINDIA,Coal India,Materials,Metals & Mining,NSE
+NMDC,NMDC,Materials,Metals & Mining,NSE
+NATIONALUM,National Aluminium,Materials,Metals & Mining,NSE
+JSL,Jindal Stainless,Materials,Metals & Mining,NSE
+HINDZINC,Hindustan Zinc,Materials,Metals & Mining,NSE
+APLAPOLLO,APL Apollo Tubes,Materials,Metals & Mining,NSE
+JINDWORLD,Jindal Saw,Materials,Metals & Mining,NSE
+ASIANPAINT,Asian Paints,Materials,Chemicals,NSE
+BERGEPAINT,Berger Paints,Materials,Chemicals,NSE
+PIDILITIND,Pidilite Industries,Materials,Chemicals,NSE
+UPL,UPL Ltd,Materials,Chemicals,NSE
+PIIND,PI Industries,Materials,Chemicals,NSE
+SRF,SRF Ltd,Materials,Chemicals,NSE
+TATACHEM,Tata Chemicals,Materials,Chemicals,NSE
+DEEPAKNTR,Deepak Nitrite,Materials,Chemicals,NSE
+AARTIIND,Aarti Industries,Materials,Chemicals,NSE
+SOLARINDS,Solar Industries India,Materials,Chemicals,NSE
+LINDEINDIA,Linde India,Materials,Chemicals,NSE
+BAYERCROP,Bayer CropScience,Materials,Chemicals,NSE
+GUJGASLTD,Gujarat Gas,Materials,Gas Utilities,NSE
+ADANIGREEN,Adani Green Energy,Utilities,Independent Power,NSE
+ADANIPOWER,Adani Power,Utilities,Independent Power,NSE
+ADANIENSOL,Adani Energy Solutions,Utilities,Electric Utilities,NSE
+NTPC,NTPC,Utilities,Electric Utilities,NSE
+POWERGRID,Power Grid Corp of India,Utilities,Electric Utilities,NSE
+TATAPOWER,Tata Power,Utilities,Electric Utilities,NSE
+JSWENERGY,JSW Energy,Utilities,Independent Power,NSE
+TORNTPOWER,Torrent Power,Utilities,Electric Utilities,NSE
+NHPC,NHPC Ltd,Utilities,Independent Power,NSE
+SJVN,SJVN Ltd,Utilities,Independent Power,NSE
+CESC,CESC Ltd,Utilities,Electric Utilities,NSE
+BHARTIARTL,Bharti Airtel,Communication Services,Telecom,NSE
+IDEA,Vodafone Idea,Communication Services,Telecom,NSE
+INDUSTOWER,Indus Towers,Communication Services,Telecom,NSE
+TATACOMM,Tata Communications,Communication Services,Telecom,NSE
+ZEEL,Zee Entertainment,Communication Services,Media,NSE
+SUNTV,Sun TV Network,Communication Services,Media,NSE
+PVRINOX,PVR INOX,Communication Services,Media,NSE
+ADANIENT,Adani Enterprises,Industrials,Trading & Distribution,NSE
+ADANIPORTS,Adani Ports & SEZ,Industrials,Transportation,NSE
+SIEMENS,Siemens India,Industrials,Electrical Equipment,NSE
+ABB,ABB India,Industrials,Electrical Equipment,NSE
+CGPOWER,CG Power & Industrial,Industrials,Electrical Equipment,NSE
+BEL,Bharat Electronics,Industrials,Aerospace & Defense,NSE
+HAL,Hindustan Aeronautics,Industrials,Aerospace & Defense,NSE
+BHEL,Bharat Heavy Electricals,Industrials,Electrical Equipment,NSE
+POLYCAB,Polycab India,Industrials,Electrical Equipment,NSE
+KEI,KEI Industries,Industrials,Electrical Equipment,NSE
+CUMMINSIND,Cummins India,Industrials,Machinery,NSE
+THERMAX,Thermax,Industrials,Machinery,NSE
+ABCAPITAL,Aditya Birla Capital,Financials,Finance,NSE
+MAZDOCK,Mazagon Dock Shipbuilders,Industrials,Aerospace & Defense,NSE
+COCHINSHIP,Cochin Shipyard,Industrials,Aerospace & Defense,NSE
+CONCOR,Container Corp of India,Industrials,Transportation,NSE
+GMRAIRPORT,GMR Airports,Industrials,Transportation,NSE
+IRB,IRB Infrastructure Developers,Industrials,Construction,NSE
+NBCC,NBCC India,Industrials,Construction,NSE
+RVNL,Rail Vikas Nigam,Industrials,Construction,NSE
+IRCON,IRCON International,Industrials,Construction,NSE
+SUPREMEIND,Supreme Industries,Industrials,Building Products,NSE
+ASTRAL,Astral Ltd,Industrials,Building Products,NSE
+KAJARIACER,Kajaria Ceramics,Industrials,Building Products,NSE
+DLF,DLF Ltd,Real Estate,Real Estate,NSE
+GODREJPROP,Godrej Properties,Real Estate,Real Estate,NSE
+OBEROIRLTY,Oberoi Realty,Real Estate,Real Estate,NSE
+PRESTIGE,Prestige Estates Projects,Real Estate,Real Estate,NSE
+LODHA,Macrotech Developers,Real Estate,Real Estate,NSE
+PHOENIXLTD,Phoenix Mills,Real Estate,Real Estate,NSE
+BRIGADE,Brigade Enterprises,Real Estate,Real Estate,NSE

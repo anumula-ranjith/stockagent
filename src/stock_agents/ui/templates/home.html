@@ -1,0 +1,101 @@
+<main class="page">
+
+<section class="hero">
+  <div>
+    <h1>Four agents.<br>One <span class="accent">Nifty 200</span> ranking.</h1>
+    <p>Technical, sentiment, momentum and fundamental agents each score every stock in the Nifty 200 from 0–100. You adjust the weights; the composite, long/short list and backtest update live.</p>
+    <div class="cta">
+      <a href="/dashboard" class="btn primary lg">Open the dashboard →</a>
+      <a href="/methodology" class="btn lg">How it works</a>
+    </div>
+  </div>
+  <div class="hero-visual" id="heroVisual">
+    <div class="row"><span>Loading live snapshot…</span></div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <div class="icon">T</div>
+    <h3>Technical</h3>
+    <p>Twelve price/volume factors — moving averages, RSI, MACD, ADX, breakout, volatility.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">S</div>
+    <h3>Sentiment</h3>
+    <p>News polarity + headline volume + analyst revisions. Neutral when coverage is thin.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">M</div>
+    <h3>Momentum</h3>
+    <p>12-1 cross-sectional momentum plus 3M and 6M return percentiles.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">F</div>
+    <h3>Fundamental</h3>
+    <p>Value, quality, growth, health and shareholder yield — sector-neutral, winsorized.</p>
+  </div>
+</section>
+
+<section class="grid3">
+  <div class="card">
+    <h2>Universe</h2>
+    <p class="note">Nifty 200 constituents across 11 GICS sectors on NSE India. Reconstituted semi-annually.</p>
+    <div class="metrics" id="univMetrics"></div>
+  </div>
+  <div class="card">
+    <h2>Data sources</h2>
+    <p class="note">EODHD for prices, corporate actions and news. FactSet Formula API for fundamentals. INR base currency.</p>
+    <ul style="margin:8px 0 0 18px;color:var(--muted);font-size:13.5px">
+      <li>5 years of daily OHLCV, split- and dividend-adjusted</li>
+      <li>Per-ticker news with polarity scoring</li>
+      <li>Point-in-time columns on every fact table</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Discipline</h2>
+    <p class="note">Every stored fact carries <code>effective_date</code> and <code>known_date</code>. Agents only read where <code>known_date ≤ t</code> — no look-ahead, ever.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Today's top 5 longs and shorts</h2>
+  <div class="grid2">
+    <div><h3 style="margin:6px 0;font-size:14px">Longs</h3><div id="homeLongs" class="tw"></div></div>
+    <div><h3 style="margin:6px 0;font-size:14px">Shorts</h3><div id="homeShorts" class="tw"></div></div>
+  </div>
+  <div class="note">Computed from the current configuration. <a href="/dashboard">Open the dashboard</a> to tune weights.</div>
+</section>
+
+</main>
+<script>
+async function boot(){
+  try{
+    const u = await (await fetch("/universe")).json();
+    const sectors = new Set(u.map(r=>r.sector).filter(Boolean));
+    document.getElementById("univMetrics").innerHTML =
+      `<div class="m"><small>Tickers</small><strong>${u.length}</strong></div>
+       <div class="m"><small>Sectors</small><strong>${sectors.size}</strong></div>`;
+    const c = await (await fetch("/combine?n=5")).json();
+    if(c.longs && c.longs.length){
+      document.getElementById("homeLongs").innerHTML = renderTable(c.longs, "pos");
+      document.getElementById("homeShorts").innerHTML = renderTable(c.shorts, "neg");
+    }
+    // Hero visual: show top 3 longs + top 3 shorts as colored rows
+    const hv = document.getElementById("heroVisual");
+    if(c.longs){
+      hv.innerHTML =
+        c.longs.slice(0,3).map(r=>`<div class="row pos"><span>${r.ticker} · ${r.sector||""}</span><b class="pos">${r.composite.toFixed(1)}</b></div>`).join("") +
+        c.shorts.slice(0,3).map(r=>`<div class="row neg"><span>${r.ticker} · ${r.sector||""}</span><b class="neg">${r.composite.toFixed(1)}</b></div>`).join("");
+    }
+  }catch(e){
+    document.getElementById("heroVisual").innerHTML = `<div class="row">Snapshot unavailable: ${e.message}</div>`;
+  }
+}
+function renderTable(rows, cls){
+  return `<table><thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th>Score</th></tr></thead><tbody>${
+    rows.map((r,i)=>`<tr><td>${i+1}</td><td class="tk"><a href="/stocks/${r.ticker}">${r.ticker}</a></td><td class="sec">${r.sector||""}</td><td class="${cls}">${r.composite.toFixed(1)}</td></tr>`).join("")
+  }</tbody></table>`;
+}
+boot();
+</script>

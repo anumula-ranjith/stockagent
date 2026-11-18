@@ -1,0 +1,174 @@
+<main class="page">
+
+<div class="page-head">
+  <h1>Dashboard</h1>
+  <p class="sub">Adjust agent weights, combiner mode and sector caps. The composite, longs/shorts list recomputes live from the DuckDB warehouse.</p>
+</div>
+
+<div class="layout-side">
+  <aside class="side" id="side"></aside>
+  <section class="content">
+    <div class="tabs" id="tabs"></div>
+    <div id="view"><div class="loading">Loading…</div></div>
+  </section>
+</div>
+
+</main>
+<script>
+const TABS = [
+  {id:"combined", label:"Combined"},
+  {id:"technical", label:"Technical"},
+  {id:"sentiment", label:"Sentiment"},
+  {id:"momentum", label:"Momentum"},
+  {id:"fundamental", label:"Fundamental"},
+];
+const STATE = {
+  tab:"combined",
+  weights:{tech:25,sent:25,mom:25,fund:25},
+  mode:"weighted",
+  n:10, consensus_k:3, max_per_sector:3,
+  scores:{}, combined:null,
+};
+
+function el(t, attrs={}, ch=[]){
+  const e = document.createElement(t);
+  for(const [k,v] of Object.entries(attrs)){
+    if(k==="class") e.className=v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2),v);
+    else if(k==="html") e.innerHTML=v;
+    else e.setAttribute(k,v);
+  }
+  (Array.isArray(ch)?ch:[ch]).forEach(c=>{
+    if(c==null)return;
+    if(typeof c==="string") e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+}
+
+function renderTabs(){
+  const nav = document.getElementById("tabs"); nav.innerHTML="";
+  TABS.forEach(t=>{
+    const b = el("button", {role:"tab", "aria-selected":(t.id===STATE.tab?"true":"false"),
+      onclick:()=>{STATE.tab=t.id; renderView();}}, t.label);
+    nav.appendChild(b);
+  });
+}
+
+function renderSide(){
+  const s = document.getElementById("side"); s.innerHTML = "";
+  s.appendChild(el("h2",{},"Agent weights"));
+  const labels = {tech:"Technical", sent:"Sentiment", mom:"Momentum", fund:"Fundamental"};
+  Object.keys(labels).forEach(k=>{
+    const row = el("div",{class:"frow"},[
+      el("label",{html:labels[k]+'<span class="pct">'+STATE.weights[k]+'%</span>'})
+    ]);
+    row.appendChild(el("input",{type:"range", min:"0", max:"50", value:String(STATE.weights[k]),
+      oninput:(e)=>{STATE.weights[k]=parseInt(e.target.value); renderSide(); refreshCombine();}}));
+    s.appendChild(row);
+  });
+  s.appendChild(el("h3",{},"Combiner"));
+  const sel = el("select",{onchange:(e)=>{STATE.mode=e.target.value; refreshCombine();}});
+  ["weighted","consensus","hybrid"].forEach(m=>{
+    const o = el("option",{value:m}, m); if(m===STATE.mode) o.selected=true; sel.appendChild(o);
+  });
+  s.appendChild(el("div",{class:"ctl"},[el("span",{},"Mode"), sel]));
+  s.appendChild(el("div",{class:"ctl"},[
+    el("span",{},"Names per side"),
+    el("input",{type:"number", min:"3", max:"30", value:String(STATE.n),
+      onchange:(e)=>{STATE.n=parseInt(e.target.value); refreshCombine();}})
+  ]));
+  s.appendChild(el("div",{class:"ctl"},[
+    el("span",{},"Agents must agree"),
+    el("input",{type:"number", min:"1", max:"4", value:String(STATE.consensus_k),
+      onchange:(e)=>{STATE.consensus_k=parseInt(e.target.value); refreshCombine();}})
+  ]));
+  s.appendChild(el("div",{class:"ctl"},[
+    el("span",{},"Max per sector"),
+    el("input",{type:"number", min:"1", max:"10", value:String(STATE.max_per_sector),
+      onchange:(e)=>{STATE.max_per_sector=parseInt(e.target.value); refreshCombine();}})
+  ]));
+  s.appendChild(el("a",{href:"/backtest", class:"btn primary", style:"width:100%;margin-top:14px;justify-content:center"},"Run a backtest →"));
+}
+
+function scoreBar(v){
+  const p = Math.max(0, Math.min(100, v||0));
+  return `<span class="sb"><span><i style="width:${p}%"></i></span><b>${Math.round(p)}</b></span>`;
+}
+
+function renderAgentTab(name){
+  const rows = STATE.scores[name];
+  const v = document.getElementById("view");
+  if(!rows){ v.innerHTML = `<div class="loading">Loading ${name}…</div>`; return; }
+  if(!rows.length){ v.innerHTML = `<div class="err">No ${name} scores yet. Run <code>python -m stock_agents compute-scores</code>.</div>`; return; }
+  const n = STATE.n;
+  const top = rows.slice(0,n), bottom = rows.slice(-n).reverse();
+  v.innerHTML = `
+    <div class="metrics">
+      <div class="m"><small>Universe</small><strong>${rows.length}</strong></div>
+      <div class="m"><small>Top score</small><strong>${rows[0]?.score.toFixed(1)}</strong></div>
+      <div class="m"><small>Median</small><strong>${rows[Math.floor(rows.length/2)]?.score.toFixed(1)}</strong></div>
+      <div class="m"><small>Imputed</small><strong>${rows.filter(r=>r.imputed).length}</strong></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Top ${n} ${name}</h2><div class="tw"><table>
+        <thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th>Score</th></tr></thead>
+        <tbody>${top.map((r,i)=>`<tr class="${r.imputed?'imp':''}"><td>${i+1}</td><td class="tk"><a href="/stocks/${r.ticker}">${r.ticker}</a></td><td class="sec">${r.sector||""}</td><td>${scoreBar(r.score)}</td></tr>`).join("")}</tbody>
+      </table></div></div>
+      <div class="card"><h2>Bottom ${n} ${name}</h2><div class="tw"><table>
+        <thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th>Score</th></tr></thead>
+        <tbody>${bottom.map((r,i)=>`<tr class="${r.imputed?'imp':''}"><td>${i+1}</td><td class="tk"><a href="/stocks/${r.ticker}">${r.ticker}</a></td><td class="sec">${r.sector||""}</td><td>${scoreBar(r.score)}</td></tr>`).join("")}</tbody>
+      </table></div></div>
+    </div>`;
+}
+
+function renderCombinedTab(){
+  const c = STATE.combined;
+  const v = document.getElementById("view");
+  if(!c){ v.innerHTML = `<div class="loading">Computing…</div>`; return; }
+  if(c.note){ v.innerHTML = `<div class="err">${c.note}</div>`; return; }
+  const r2 = n => n==null ? "" : n.toFixed(1);
+  const tbl = (label, items, side) => `
+    <div class="card"><h2>${label}</h2><div class="tw"><table>
+      <thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th>Composite</th><th>Tech</th><th>Sent</th><th>Mom</th><th>Fund</th></tr></thead>
+      <tbody>${items.map((r,i)=>`<tr><td>${i+1}</td><td class="tk"><a href="/stocks/${r.ticker}">${r.ticker}</a></td><td class="sec">${r.sector||""}</td><td class="${side}">${r2(r.composite)}</td><td>${r2(r.technical)}</td><td>${r2(r.sentiment)}</td><td>${r2(r.momentum)}</td><td>${r2(r.fundamental)}</td></tr>`).join("")}</tbody>
+    </table></div></div>`;
+  v.innerHTML = `
+    <div class="metrics">
+      <div class="m"><small>As of</small><strong>${c.asof}</strong></div>
+      <div class="m"><small>Mode</small><strong>${c.mode}</strong></div>
+      <div class="m"><small>Longs</small><strong>${c.longs.length}</strong></div>
+      <div class="m"><small>Shorts</small><strong>${c.shorts.length}</strong></div>
+    </div>
+    ${tbl("Longs", c.longs, "pos")}
+    ${tbl("Shorts", c.shorts, "neg")}`;
+}
+
+function renderView(){
+  renderTabs();
+  if(STATE.tab==="combined") renderCombinedTab();
+  else renderAgentTab(STATE.tab);
+}
+
+async function loadAgent(name){
+  try{ STATE.scores[name] = await (await fetch(`/agents/${name}`)).json(); }
+  catch{ STATE.scores[name] = []; }
+}
+async function refreshCombine(){
+  const q = new URLSearchParams({n:STATE.n, mode:STATE.mode});
+  STATE.combined = await (await fetch("/combine?"+q)).json();
+  if(STATE.tab==="combined") renderCombinedTab();
+}
+
+async function boot(){
+  renderSide();
+  renderTabs();
+  await Promise.all([
+    loadAgent("technical"), loadAgent("sentiment"),
+    loadAgent("momentum"),  loadAgent("fundamental"),
+  ]);
+  await refreshCombine();
+  renderView();
+}
+boot();
+</script>

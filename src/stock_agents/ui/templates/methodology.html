@@ -1,0 +1,108 @@
+<main class="page">
+
+<div class="page-head">
+  <h1>Methodology</h1>
+  <p class="sub">What each agent measures, how the composite blends them, and the discipline that keeps the backtest honest.</p>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Universe</h2>
+    <p>Nifty 200 constituents on NSE India, 11 GICS sectors, reconstituted semi-annually. The seed list lives at <code>config/universe_seed.csv</code>.</p>
+    <p class="note">EODHD symbols use the <code>.NSE</code> suffix (e.g. <code>RELIANCE.NSE</code>). Ticker renames like Zomato → Eternal are tracked.</p>
+  </div>
+  <div class="card">
+    <h2>Scoring</h2>
+    <p>Every factor is cross-sectionally percentile-ranked, winsorized at the 5/95 extremes. Ranks are averaged within an agent and scaled to 0–100.</p>
+    <p class="note">Missing data → neutral 50 and row flagged <code>imputed=true</code>. No agent is forced into a decision it can't support.</p>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Technical agent</h2>
+    <ul>
+      <li>1M, 3M, 6M, 12M total return</li>
+      <li>60-day annualized volatility (inverted)</li>
+      <li>Distance to SMA-50 and SMA-200</li>
+      <li>14-day RSI</li>
+      <li>Planned: MACD histogram, Bollinger %B, Stochastic, ADX, 14-day ATR/price, OBV momentum</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Momentum agent</h2>
+    <ul>
+      <li>12-1 momentum (ret_12m − ret_1m) — the classic Jegadeesh-Titman factor</li>
+      <li>3-month return</li>
+      <li>6-month return</li>
+    </ul>
+    <p class="note">Keep momentum separate from the technical agent so you can weight them independently.</p>
+  </div>
+  <div class="card">
+    <h2>Sentiment agent</h2>
+    <ul>
+      <li>30-day mean news polarity (EODHD scoring)</li>
+      <li>30-day headline volume</li>
+      <li>Thin-coverage guard: if &lt; 3 headlines in 7 days, mark imputed</li>
+      <li>Planned: analyst revisions, surprise direction, social buzz, event risk</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Fundamental agent</h2>
+    <ul>
+      <li>Value: P/E, EV/EBITDA, P/B, P/S, FCF yield, PEG</li>
+      <li>Quality: ROE, ROIC, gross/operating/net margin, Piotroski F-score</li>
+      <li>Growth: revenue growth, EPS growth, surprise history, forward EPS growth</li>
+      <li>Balance sheet: debt/equity, current ratio, interest coverage</li>
+      <li>Shareholder yield: dividend + buyback yield</li>
+    </ul>
+    <p class="note">Sector-neutral ranks inside each pillar. Winsorized at 5/95.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Combiner</h2>
+  <p>Three modes:</p>
+  <ul>
+    <li><b>Weighted composite</b> — weighted average of the four agent scores. Sidebar weights normalize to 100%.</li>
+    <li><b>Consensus</b> — a stock is only a candidate if <code>k</code> of 4 agents agree it's above / below the cutoff.</li>
+    <li><b>Hybrid</b> — 70% weighted composite + 30% weakest-agent score (penalizes a stock that one agent hates).</li>
+  </ul>
+  <p>Sector cap: no more than <code>max_names_per_sector</code> on each side. Buffer: an existing position stays in the book until it drops below <code>n + buffer</code> to cut turnover.</p>
+</div>
+
+<div class="card">
+  <h2>Point-in-time discipline</h2>
+  <p>Every fact table carries two dates:</p>
+  <ul>
+    <li><code>effective_date</code> — the date the fact describes (price date, earnings period end, insider transaction date)</li>
+    <li><code>known_date</code> — the earliest date we could have observed it (file ingest date, SEC filing date, press release timestamp)</li>
+  </ul>
+  <p>At backtest time <code>t</code>, every query filters on <code>known_date ≤ t</code>. There is no API in the codebase that lets a factor see data it couldn't have had — <a href="/dashboard">try toggling the date</a> in the dashboard, the agent output rolls forward exactly as it would have at the time.</p>
+</div>
+
+<div class="card">
+  <h2>Costs &amp; execution assumptions</h2>
+  <ul>
+    <li>Slippage: 5 bps per fill</li>
+    <li>Commission: 0 bps (NSE direct)</li>
+    <li>Short borrow: 50 bps annual, prorated</li>
+    <li>Min trade: ₹100 equivalent</li>
+    <li>Execution: pre-open on next trading day after the rebalance signal</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source</th><th style="text-align:left">Used for</th><th style="text-align:left">Entitlement</th></tr></thead>
+    <tbody>
+      <tr><td>EODHD</td><td style="text-align:left">Prices, corporate actions, news, sentiments, EOD fundamentals, earnings calendar</td><td style="text-align:left">Live</td></tr>
+      <tr><td>FactSet Formula API</td><td style="text-align:left">Fundamentals, estimates, ratings cross-check in INR/USD</td><td style="text-align:left">Live (batch mode)</td></tr>
+      <tr><td>Alpaca Paper</td><td style="text-align:left">US paper execution sandbox (not used for NSE)</td><td style="text-align:left">Idle</td></tr>
+      <tr><td>FRED</td><td style="text-align:left">Macro (US Treasury, VIX) — optional cross-market</td><td style="text-align:left">Live</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</main>

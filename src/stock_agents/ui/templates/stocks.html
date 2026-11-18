@@ -1,0 +1,109 @@
+<main class="page">
+
+<div class="page-head">
+  <h1>Stocks</h1>
+  <p class="sub">All {{N_TICKERS}} Nifty 200 constituents. Filter by sector, search by ticker or name, click a row for the detail page.</p>
+</div>
+
+<div class="card">
+  <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:end">
+    <label class="field" style="flex:1; min-width:220px">Search
+      <input type="search" id="q" placeholder="Ticker or name…">
+    </label>
+    <label class="field" style="min-width:180px">Sector
+      <select id="sectorFilter"><option value="">All sectors</option></select>
+    </label>
+    <label class="field" style="min-width:140px">Sort by
+      <select id="sortBy">
+        <option value="ticker">Ticker A–Z</option>
+        <option value="tech_desc">Technical (high → low)</option>
+        <option value="tech_asc">Technical (low → high)</option>
+        <option value="mom_desc">Momentum (high → low)</option>
+        <option value="mom_asc">Momentum (low → high)</option>
+      </select>
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="tw">
+    <table id="stocksTable">
+      <thead><tr>
+        <th>Ticker</th><th>Name / Sector</th><th>Industry</th>
+        <th>Technical</th><th>Sentiment</th><th>Momentum</th><th>Fundamental</th>
+      </tr></thead>
+      <tbody id="stocksBody"><tr><td colspan="7" class="loading">Loading…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="note" id="stocksCount"></div>
+</div>
+
+</main>
+<script>
+const STATE = {universe:[], scores:{}};
+
+async function boot(){
+  STATE.universe = await (await fetch("/universe")).json();
+  for(const a of ["technical","sentiment","momentum","fundamental"]){
+    STATE.scores[a] = {};
+    try{
+      const arr = await (await fetch(`/agents/${a}`)).json();
+      arr.forEach(r => STATE.scores[a][r.ticker] = r);
+    }catch{}
+  }
+  // populate sectors
+  const sectors = [...new Set(STATE.universe.map(r=>r.sector).filter(Boolean))].sort();
+  const sel = document.getElementById("sectorFilter");
+  sectors.forEach(s=>{
+    const o = document.createElement("option"); o.value=s; o.textContent=s; sel.appendChild(o);
+  });
+  ["q","sectorFilter","sortBy"].forEach(id=>{
+    document.getElementById(id).addEventListener("input", render);
+    document.getElementById(id).addEventListener("change", render);
+  });
+  render();
+}
+
+function render(){
+  const q = document.getElementById("q").value.toLowerCase().trim();
+  const sec = document.getElementById("sectorFilter").value;
+  const sort = document.getElementById("sortBy").value;
+  let rows = STATE.universe.filter(r=>{
+    if(sec && r.sector!==sec) return false;
+    if(q){
+      const hay = (r.ticker + " " + (r.symbol||"") + " " + (r.sector||"") + " " + (r.industry||"")).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const t = STATE.scores.technical, m = STATE.scores.momentum;
+  const getT = r => t[r.ticker]?.score ?? -1;
+  const getM = r => m[r.ticker]?.score ?? -1;
+  if(sort==="tech_desc") rows.sort((a,b)=>getT(b)-getT(a));
+  else if(sort==="tech_asc") rows.sort((a,b)=>getT(a)-getT(b));
+  else if(sort==="mom_desc") rows.sort((a,b)=>getM(b)-getM(a));
+  else if(sort==="mom_asc") rows.sort((a,b)=>getM(a)-getM(b));
+  else rows.sort((a,b)=>a.ticker.localeCompare(b.ticker));
+
+  const scoreCell = (name, tk) => {
+    const s = STATE.scores[name]?.[tk];
+    if(!s) return `<span class="imp">—</span>`;
+    const w = Math.max(0, Math.min(100, s.score));
+    return `<span class="sb${s.imputed?' imp':''}"><span><i style="width:${w}%"></i></span><b>${s.score.toFixed(0)}</b></span>`;
+  };
+  document.getElementById("stocksBody").innerHTML = rows.map(r => `
+    <tr>
+      <td class="tk"><a href="/stocks/${r.ticker}">${r.ticker}</a></td>
+      <td>${r.sector||""}</td>
+      <td class="sec">${r.industry||""}</td>
+      <td>${scoreCell("technical", r.ticker)}</td>
+      <td>${scoreCell("sentiment", r.ticker)}</td>
+      <td>${scoreCell("momentum", r.ticker)}</td>
+      <td>${scoreCell("fundamental", r.ticker)}</td>
+    </tr>
+  `).join("");
+  document.getElementById("stocksCount").textContent = `${rows.length} stocks shown · imputed = neutral 50 (grey)`;
+}
+
+boot();
+</script>

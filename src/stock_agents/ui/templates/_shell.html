@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{PAGE_TITLE}} — stock-agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a href="/" class="brand"><span class="logo">SA</span>stock-agents</a>
+    <nav class="site-nav">
+      <a href="/" data-nav="home">Home</a>
+      <a href="/dashboard" data-nav="dashboard">Dashboard</a>
+      <a href="/stocks" data-nav="stocks">Stocks</a>
+      <a href="/backtest" data-nav="backtest">Backtest</a>
+      <a href="/methodology" data-nav="methodology">Methodology</a>
+    </nav>
+    <div class="header-actions">
+      <span class="live-dot">Live · NSE</span>
+    </div>
+  </div>
+</header>
+
+<!-- PAGE CONTENT STARTS -->
+{{CONTENT}}
+<!-- PAGE CONTENT ENDS -->
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>
+      <h4>stock-agents</h4>
+      <p>Four agents (technical, sentiment, momentum, fundamental) rank the Nifty 200 every day. Transparent scores, point-in-time discipline, no black boxes.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <ul>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="/stocks">Stocks</a></li>
+        <li><a href="/backtest">Backtest</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Resources</h4>
+      <ul>
+        <li><a href="/methodology">Methodology</a></li>
+        <li><a href="/docs">API docs</a></li>
+        <li><a href="/health">Health</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Data</h4>
+      <ul>
+        <li>EODHD (prices, news)</li>
+        <li>FactSet (fundamentals)</li>
+        <li>Alpaca (paper execution)</li>
+      </ul>
+    </div>
+    <div class="legal">
+      <span>© stock-agents · For research and education, not investment advice.</span>
+      <span>Built on FastAPI + DuckDB</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const path = location.pathname.replace(/\/$/, "") || "/";
+  const map = {
+    "/": "home",
+    "/dashboard": "dashboard",
+    "/stocks": "stocks",
+    "/backtest": "backtest",
+    "/methodology": "methodology",
+  };
+  const key = map[path] || (path.startsWith("/stocks") ? "stocks" : null);
+  if (key) {
+    const el = document.querySelector(`.site-nav a[data-nav="${key}"]`);
+    if (el) el.classList.add("active");
+  }
+})();
+</script>
+</body>
+</html>

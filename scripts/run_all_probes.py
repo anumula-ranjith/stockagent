@@ -15,29 +15,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import probe_alpaca  # noqa: E402
 import probe_eodhd  # noqa: E402
-import probe_factset_estimates as fs_est  # noqa: E402
-import probe_factset_events as fs_events  # noqa: E402
-import probe_factset_fundamentals as fs_fund  # noqa: E402
-import probe_factset_ownership as fs_own  # noqa: E402
-import probe_factset_prices as fs_prc  # noqa: E402
-import probe_factset_symbology as fs_sym  # noqa: E402
-import probe_finra  # noqa: E402
-import probe_fred  # noqa: E402
+import probe_factset_formula as fs_formula  # noqa: E402
 from _probe_util import ProbeResult, banner  # noqa: E402
 
+# For a Nifty 200 strategy on NSE:
+#   - EODHD is the primary feed (prices, corporate actions, news, fundamentals).
+#   - FactSet Formula API cross-checks prices in INR.
+#   - FRED (US-centric), FINRA (US-only), Alpaca (US paper broker) are skipped;
+#     Indian macro (RBI/MOSPI) and paper execution (Zerodha/Upstox) land later.
 PROBES = [
-    ("EODHD", probe_eodhd.main),
-    ("FRED", probe_fred.main),
-    ("FINRA", probe_finra.main),
-    ("Alpaca paper", probe_alpaca.main),
-    ("FactSet Symbology", fs_sym.main),
-    ("FactSet Fundamentals", fs_fund.main),
-    ("FactSet Estimates", fs_est.main),
-    ("FactSet Prices", fs_prc.main),
-    ("FactSet Ownership", fs_own.main),
-    ("FactSet Events", fs_events.main),
+    ("EODHD (NSE)", probe_eodhd.main),
+    ("FactSet Formula API", fs_formula.main),
 ]
 
 

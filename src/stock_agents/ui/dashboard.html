@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Four-agent stock ranker — Nifty 200 (live)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F3; --panel:#FFFFFF; --ink:#15202C; --muted:#5A6676; --line:#D4DBE3; --soft:#E4E9EF;
+  --accent:#1F4E79; --long:#1A7547; --short:#AE3628; --bench:#8A96A5;
+  color-scheme: light; box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11171E; --panel:#19212A; --ink:#E5EBF1; --muted:#93A1B1; --line:#2B3641; --soft:#222C37;
+    --accent:#86B4E0; --long:#52C089; --short:#E8796B; --bench:#6F7C8B; color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14.5px;line-height:1.45;font-variant-numeric:tabular-nums}
+header{padding:20px 24px 0;max-width:1320px;margin:0 auto}
+h1{font-size:26px;font-weight:700;letter-spacing:-.01em;margin:0}
+.sub{color:var(--muted);margin:4px 0 14px;max-width:72ch}
+.live{display:inline-block;border:1px solid var(--long);color:var(--long);border-radius:4px;padding:1px 7px;font-size:12.5px;font-weight:600;margin-left:6px;vertical-align:2px}
+nav{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav button{font:inherit;font-weight:600;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:10px 14px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+main{max-width:1320px;margin:0 auto;padding:18px 24px 40px;display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;position:sticky;top:12px}
+aside h2{font-size:15px;margin:2px 0 4px}
+aside h3{font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+.frow{display:grid;grid-template-columns:1fr 44px;gap:6px;padding:4px 0;font-size:13.5px}
+.frow input[type=range]{grid-column:1 / 3;width:100%;margin:0;accent-color:var(--accent)}
+.pct{text-align:right;color:var(--muted);font-size:12.5px}
+.ctl{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13.5px}
+.ctl select,.ctl input{font:inherit;padding:3px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink)}
+.btn{font:inherit;font-weight:600;font-size:13px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:5px;padding:7px 10px;cursor:pointer;width:100%;margin-top:10px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.content{min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 8px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.m{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.m small{display:block;color:var(--muted);font-size:12.5px}
+.m strong{font-size:20px;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-weight:600;color:var(--muted);text-align:right;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:5px 7px;border-bottom:1px solid var(--soft);text-align:right;white-space:nowrap}
+th:nth-child(-n+2),td:nth-child(-n+2){text-align:left}
+td.tk{font-weight:700}
+td.sec{color:var(--muted)}
+.pos{color:var(--long)} .neg{color:var(--short)}
+.sb{display:inline-flex;align-items:center;gap:6px;justify-content:flex-end}
+.sb span{width:64px;height:7px;background:var(--soft);border-radius:4px;overflow:hidden;display:inline-block}
+.sb i{display:block;height:100%;background:var(--accent)}
+.sb b{min-width:24px;text-align:right}
+.imp{opacity:.45}
+.loading{color:var(--muted);padding:40px;text-align:center}
+.err{color:var(--short);padding:20px;border:1px solid var(--short);border-radius:6px;background:var(--soft)}
+.note{color:var(--muted);font-size:12.5px;margin-top:8px}
+svg text{fill:var(--muted);font-size:11px;font-family:inherit}
+@media (max-width:900px){main{grid-template-columns:1fr;padding:14px} aside{position:static}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Four-agent stock ranker</h1>
+  <p class="sub">Technical, sentiment, momentum and fundamental agents rank Nifty 200 names. Adjust weights or mode; the composite recalculates on the server. <span class="live">Live data · EODHD NSE</span></p>
+  <nav role="tablist" id="tabs"></nav>
+</header>
+<main>
+  <aside id="side"></aside>
+  <section class="content" id="view"><div class="loading">Loading universe…</div></section>
+</main>
+<script>
+const API = "";  // same origin
+const TABS = [
+  {id:"combined", label:"Combined"},
+  {id:"technical", label:"Technical"},
+  {id:"sentiment", label:"Sentiment"},
+  {id:"momentum", label:"Momentum"},
+  {id:"fundamental", label:"Fundamental"},
+  {id:"backtest", label:"Portfolio & Backtest"},
+];
+const STATE = {
+  tab: "combined",
+  weights: {tech:25, sent:25, mom:25, fund:25},
+  mode: "weighted",
+  n: 10,
+  consensus_k: 3,
+  max_per_sector: 3,
+  universe: [],
+  scores: {},   // {agent_name: [{ticker,score,imputed,sector,industry}, ...]}
+  combined: null,
+  backtest: null,
+  selectedTicker: null,
+  priceSeries: null,
+};
+
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)){
+    if(k==="class") e.className=v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2),v);
+    else if(k==="html") e.innerHTML=v;
+    else e.setAttribute(k,v);
+  }
+  (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(c==null)return;
+    if(typeof c==="string") e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+}
+
+function renderTabs(){
+  const nav = document.getElementById("tabs");
+  nav.innerHTML = "";
+  TABS.forEach(t=>{
+    const b = el("button", {role:"tab", "aria-selected":(t.id===STATE.tab?"true":"false"),
+      onclick: ()=>{STATE.tab=t.id; render();}}, t.label);
+    nav.appendChild(b);
+  });
+}
+
+function renderSide(){
+  const s = document.getElementById("side");
+  s.innerHTML = "";
+  s.appendChild(el("h2",{},"Agent weights"));
+  const labels = {tech:"Technical", sent:"Sentiment", mom:"Momentum", fund:"Fundamental"};
+  Object.keys(labels).forEach(k=>{
+    const row = el("div", {class:"frow"}, [
+      el("label",{html:labels[k]+"<span class='pct'>"+STATE.weights[k]+"%</span>"})
+    ]);
+    const r = el("input",{type:"range", min:"0", max:"50", value:String(STATE.weights[k]),
+      oninput:(e)=>{STATE.weights[k]=parseInt(e.target.value); renderSide(); refreshCombine();}});
+    row.appendChild(r);
+    s.appendChild(row);
+  });
+  s.appendChild(el("h3",{},"Mode"));
+  const modeSel = el("select",{onchange:(e)=>{STATE.mode=e.target.value; refreshCombine();}});
+  ["weighted","consensus","hybrid"].forEach(m=>{
+    const o = el("option",{value:m}, m);
+    if(m===STATE.mode) o.selected=true;
+    modeSel.appendChild(o);
+  });
+  s.appendChild(el("div",{class:"ctl"},[el("span",{},"Combiner"), modeSel]));
+  const nIn = el("input",{type:"number", min:"3", max:"30", value:String(STATE.n),
+    onchange:(e)=>{STATE.n=parseInt(e.target.value); refreshCombine();}});
+  s.appendChild(el("div",{class:"ctl"},[el("span",{},"Names per side"), nIn]));
+  const kIn = el("input",{type:"number", min:"1", max:"4", value:String(STATE.consensus_k),
+    onchange:(e)=>{STATE.consensus_k=parseInt(e.target.value); refreshCombine();}});
+  s.appendChild(el("div",{class:"ctl"},[el("span",{},"Agents must agree"), kIn]));
+  const sIn = el("input",{type:"number", min:"1", max:"10", value:String(STATE.max_per_sector),
+    onchange:(e)=>{STATE.max_per_sector=parseInt(e.target.value); refreshCombine();}});
+  s.appendChild(el("div",{class:"ctl"},[el("span",{},"Max per sector"), sIn]));
+  s.appendChild(el("button",{class:"btn primary", onclick:()=>runBacktest()},"Run backtest"));
+}
+
+function scoreBar(v){
+  const pct = Math.max(0, Math.min(100, v||0));
+  return `<span class="sb"><span><i style="width:${pct}%"></i></span><b>${Math.round(pct)}</b></span>`;
+}
+
+function renderAgentTab(name){
+  const rows = STATE.scores[name];
+  if(!rows){
+    document.getElementById("view").innerHTML = `<div class="loading">Loading ${name} scores…</div>`;
+    return;
+  }
+  if(rows.length===0){
+    document.getElementById("view").innerHTML = `<div class="err">No ${name} scores yet. Run <code>python -m stock_agents compute-scores</code> after the price backfill finishes.</div>`;
+    return;
+  }
+  const n = STATE.n;
+  const top = rows.slice(0, n);
+  const bottom = rows.slice(-n).reverse();
+  const html = `
+    <div class="metrics">
+      <div class="m"><small>Universe</small><strong>${rows.length}</strong></div>
+      <div class="m"><small>Top score</small><strong>${rows[0]?.score.toFixed(1) ?? "—"}</strong></div>
+      <div class="m"><small>Median</small><strong>${rows[Math.floor(rows.length/2)]?.score.toFixed(1) ?? "—"}</strong></div>
+      <div class="m"><small>Imputed</small><strong>${rows.filter(r=>r.imputed).length}</strong></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Top ${n} ${name}</h2>
+        <div class="tw"><table><thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th>Score</th></tr></thead><tbody>
+        ${top.map((r,i)=>`<tr class="${r.imputed?'imp':''}"><td>${i+1}</td><td class="tk">${r.ticker}</td><td class="sec">${r.sector||""}</td><td>${scoreBar(r.score)}</td></tr>`).join("")}
+        </tbody></table></div>
+      </div>
+      <div class="card"><h2>Bottom ${n} ${name}</h2>
+        <div class="tw"><table><thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th>Score</th></tr></thead><tbody>
+        ${bottom.map((r,i)=>`<tr class="${r.imputed?'imp':''}"><td>${i+1}</td><td class="tk">${r.ticker}</td><td class="sec">${r.sector||""}</td><td>${scoreBar(r.score)}</td></tr>`).join("")}
+        </tbody></table></div>
+      </div>
+    </div>`;
+  document.getElementById("view").innerHTML = html;
+}
+
+function renderCombinedTab(){
+  const c = STATE.combined;
+  if(!c){ document.getElementById("view").innerHTML = `<div class="loading">Computing combined…</div>`; return; }
+  if(c.note){ document.getElementById("view").innerHTML = `<div class="err">${c.note}</div>`; return; }
+  const r2 = (n)=>n==null?"":n.toFixed(1);
+  const tbl = (label, items, side) => `
+    <div class="card"><h2>${label}</h2>
+      <div class="tw"><table><thead><tr>
+        <th>#</th><th>Ticker</th><th>Sector</th><th>Composite</th><th>Tech</th><th>Sent</th><th>Mom</th><th>Fund</th>
+      </tr></thead><tbody>
+      ${items.map((r,i)=>`<tr><td>${i+1}</td><td class="tk">${r.ticker}</td><td class="sec">${r.sector||""}</td>
+        <td class="${side}">${r2(r.composite)}</td>
+        <td>${r2(r.technical)}</td><td>${r2(r.sentiment)}</td>
+        <td>${r2(r.momentum)}</td><td>${r2(r.fundamental)}</td></tr>`).join("")}
+      </tbody></table></div></div>`;
+  document.getElementById("view").innerHTML = `
+    <div class="metrics">
+      <div class="m"><small>As of</small><strong>${c.asof}</strong></div>
+      <div class="m"><small>Mode</small><strong>${c.mode}</strong></div>
+      <div class="m"><small>Longs</small><strong>${c.longs.length}</strong></div>
+      <div class="m"><small>Shorts</small><strong>${c.shorts.length}</strong></div>
+    </div>
+    ${tbl("Longs", c.longs, "pos")}
+    ${tbl("Shorts", c.shorts, "neg")}`;
+}
+
+function renderBacktestTab(){
+  const b = STATE.backtest;
+  if(!b){ document.getElementById("view").innerHTML = `<div class="loading">Loading backtest…</div>`; return; }
+  if(b.note){ document.getElementById("view").innerHTML = `
+    <div class="card"><h2>No backtests run yet</h2>
+      <p>Click "Run backtest" in the sidebar to kick one off. Requires at least ~2 years of price data in the warehouse (the backfill is still running on first use).</p>
+    </div>`; return; }
+  const pct = (x)=>x==null?"—":(x*100).toFixed(2)+"%";
+  const sign = (x)=>x>0?"pos":"neg";
+  document.getElementById("view").innerHTML = `
+    <div class="metrics">
+      <div class="m"><small>Total return</small><strong class="${sign(b.total_return)}">${pct(b.total_return)}</strong></div>
+      <div class="m"><small>Annual return</small><strong class="${sign(b.annual_return)}">${pct(b.annual_return)}</strong></div>
+      <div class="m"><small>Sharpe</small><strong>${b.sharpe?.toFixed(2) ?? "—"}</strong></div>
+      <div class="m"><small>Max drawdown</small><strong class="neg">${pct(b.max_drawdown)}</strong></div>
+      <div class="m"><small>Annual vol</small><strong>${pct(b.annual_vol)}</strong></div>
+      <div class="m"><small>Period</small><strong>${b.start} → ${b.end}</strong></div>
+    </div>
+    <div class="card"><h2>Equity curve</h2>${equityCurveSvg(b.equity_curve)}</div>
+    <div class="grid2">
+      <div class="card"><h2>Last longs</h2><div class="tw"><table><tbody>
+        ${(b.longs_last||[]).map((t,i)=>`<tr><td>${i+1}</td><td class="tk">${t}</td></tr>`).join("")}
+      </tbody></table></div></div>
+      <div class="card"><h2>Last shorts</h2><div class="tw"><table><tbody>
+        ${(b.shorts_last||[]).map((t,i)=>`<tr><td>${i+1}</td><td class="tk">${t}</td></tr>`).join("")}
+      </tbody></table></div></div>
+    </div>`;
+}
+
+function equityCurveSvg(points){
+  if(!points || !points.length) return "<p class='note'>no points</p>";
+  const w=900, h=260, pad=36;
+  const ys = points.map(p=>p.equity);
+  const mn = Math.min(...ys), mx = Math.max(...ys);
+  const span = mx - mn || 1;
+  const x = (i)=> pad + (i/(points.length-1))*(w-2*pad);
+  const y = (v)=> h - pad - ((v-mn)/span)*(h-2*pad);
+  const path = "M" + points.map((p,i)=>x(i).toFixed(1)+","+y(p.equity).toFixed(1)).join(" L");
+  const last = points[points.length-1].equity;
+  const color = last >= 1 ? "var(--long)" : "var(--short)";
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto">
+    <line x1="${pad}" y1="${y(1)}" x2="${w-pad}" y2="${y(1)}" stroke="var(--line)" stroke-dasharray="3 3"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>
+    <text x="${pad}" y="${h-10}">${points[0].date}</text>
+    <text x="${w-pad-70}" y="${h-10}">${points[points.length-1].date}</text>
+    <text x="${w-pad-70}" y="20">equity: ${last.toFixed(3)}</text>
+  </svg>`;
+}
+
+function render(){
+  renderTabs();
+  renderSide();
+  if(STATE.tab==="combined") renderCombinedTab();
+  else if(STATE.tab==="backtest") renderBacktestTab();
+  else renderAgentTab(STATE.tab);
+}
+
+// ---- data loaders ----
+async function loadUniverse(){
+  const r = await fetch(API+"/universe");
+  STATE.universe = await r.json();
+}
+async function loadAgent(name){
+  const r = await fetch(API+"/agents/"+name);
+  if(r.ok) STATE.scores[name] = await r.json();
+  else STATE.scores[name] = [];
+}
+async function refreshCombine(){
+  const q = new URLSearchParams({n:STATE.n, mode:STATE.mode});
+  // server-side weights come from config/weights.yaml; sidebar is informational
+  // until we expose POST-override. Render whatever server returns.
+  const r = await fetch(API+"/combine?"+q.toString());
+  STATE.combined = await r.json();
+  if(STATE.tab==="combined") renderCombinedTab();
+}
+async function loadBacktest(){
+  const r = await fetch(API+"/backtest/latest");
+  STATE.backtest = await r.json();
+  if(STATE.tab==="backtest") renderBacktestTab();
+}
+async function runBacktest(){
+  alert("Backtest runs via CLI:\n\npython -m stock_agents backtest --start 2023-01-01 --end 2026-11-17 --n 10\n\n(Browser-triggered backtest POST endpoint lands next.)");
+}
+
+async function boot(){
+  try{
+    await loadUniverse();
+    await Promise.all([
+      loadAgent("technical"), loadAgent("sentiment"),
+      loadAgent("momentum"),  loadAgent("fundamental"),
+    ]);
+    await refreshCombine();
+    await loadBacktest();
+    render();
+  } catch(e){
+    document.getElementById("view").innerHTML = `<div class="err">Boot error: ${e.message}</div>`;
+  }
+}
+boot();
+</script>
+</body>
+</html>

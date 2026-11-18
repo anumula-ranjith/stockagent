@@ -8,18 +8,21 @@ paths:
   log_dir:  logs
   fixtures_dir: tests/fixtures
 
-timezone: America/New_York
-market_calendar: XNYS          # pandas_market_calendars
+timezone: Asia/Kolkata
+market_calendar: XNSE          # pandas_market_calendars (NSE India)
+exchange_suffix: ".NSE"        # EODHD ticker suffix for NSE India
+base_currency: INR
 
 schedule:
-  daily_data_et:         "18:30"   # after US close + settlement window
-  daily_signals_et:      "19:30"
-  execute_orders_et:     "09:25"   # next trading day
-  mark_to_market_et:     "16:15"
+  # All times in IST. NSE trades 09:15–15:30 IST.
+  daily_data_et:         "17:00"   # after NSE close + settlement window
+  daily_signals_et:      "18:00"
+  execute_orders_et:     "09:10"   # pre-open on next trading day
+  mark_to_market_et:     "15:45"
   weekly_fundamentals_et:
     day: Saturday
     time: "09:00"
-  retry_data_until_et:   "21:00"
+  retry_data_until_et:   "20:00"
   retry_interval_min:    15
 
 costs:
@@ -29,8 +32,8 @@ costs:
   min_trade_size_usd: 100.0
 
 universe:
-  mode: factset_constituents   # factset_constituents | seed_csv
-  benchmark_constituents: "SP100"
+  mode: seed_csv               # seed_csv | factset_constituents
+  benchmark_constituents: "NIFTY200"
   seed_csv: config/universe_seed.csv
   rebalance_check: monthly
 
