@@ -148,6 +148,13 @@ async def get_current_user(
 CurrentUser = Annotated[UserOut, Depends(get_current_user)]
 
 
+async def require_market_data_user(
+    request: Request, bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(credentials)]
+) -> None:
+    if config.load_settings().env("REQUIRE_MARKET_DATA_AUTH", "false") == "true":
+        await get_current_user(request, bearer)
+
+
 async def require_admin(request: Request, user: CurrentUser) -> UserOut:
     if not user.is_admin:
         raise HTTPException(403, "Administrator access required")

@@ -9,7 +9,7 @@ from stock_agents.api import diagnostics
 from stock_agents.api.auth import make_token
 from stock_agents.api.main import app
 from stock_agents.common.config import project_root
-from stock_agents.storage.postgres import Base
+from stock_agents.storage.postgres import Base, database_url
 from stock_agents.storage.schema import ALL_TABLES, connect, init_schema
 
 
@@ -22,9 +22,14 @@ def test_postgres_metadata_covers_warehouse():
     }
 
 
+def test_managed_postgres_tls_url_works_for_both_drivers():
+    value = "postgresql://user:password@database.example.com/warehouse?sslmode=require"
+    assert dict(database_url("asyncpg", value).query) == {"ssl": "require"}
+    assert dict(database_url("psycopg2", value).query) == {"sslmode": "require"}
+
+
 def test_migration_and_api_parity(postgres_url, _isolated_paths, monkeypatch):
     from scripts.migrate_duckdb_to_postgres import migrate
-    from stock_agents.storage.postgres import database_url
 
     monkeypatch.setenv("DATABASE_URL", postgres_url)
     monkeypatch.setenv("JWT_SECRET", "integration-test-key-for-postgres-parity")

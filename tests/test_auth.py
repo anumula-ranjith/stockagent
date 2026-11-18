@@ -37,6 +37,13 @@ def test_login_form():
         assert "script-src 'nonce-" in result.headers["content-security-policy"]
 
 
+def test_production_market_data_requires_authentication(monkeypatch):
+    monkeypatch.setenv("REQUIRE_MARKET_DATA_AUTH", "true")
+    with TestClient(app) as client:
+        for path in ("/universe", "/prices/SAMPLE", "/news/SAMPLE", "/sentiment/SAMPLE"):
+            assert client.get(path).status_code == 401
+
+
 def test_admin_bootstrap_login_audit_and_backtest(
     auth_database, rq_test_queue, _isolated_paths, monkeypatch
 ):

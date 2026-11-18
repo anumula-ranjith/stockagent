@@ -11,7 +11,7 @@ Copy `.env.example` to `.env` if needed. Run the following from the repository
 root with Docker Compose and a local `data/market.duckdb` file.
 
 ```powershell
-docker compose up -d --wait postgres redis minio
+docker compose up -d --wait postgres redis object-store
 docker compose exec postgres psql -U stockagents -d stockagents -c "SELECT hypertable_name FROM timescaledb_information.hypertables;"
 ```
 

@@ -30,6 +30,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -446,18 +447,23 @@ def database_url(driver: str = "asyncpg", value: str | None = None) -> URL:
     url = make_url(raw)
     if url.get_backend_name() not in {"postgres", "postgresql"}:
         raise ValueError("DATABASE_URL must point to PostgreSQL")
+    # Managed PostgreSQL URLs use the libpq spelling. The asyncpg adapter
+    # passes query parameters as keyword arguments, where the name is `ssl`.
+    if driver == "asyncpg" and "sslmode" in url.query:
+        mode = url.query["sslmode"]
+        url = url.difference_update_query(["sslmode"]).update_query_dict({"ssl": mode})
     return url.set(drivername=f"postgresql+{driver}")
 
 
 @lru_cache(maxsize=1)
-def _engine():
+def _engine() -> AsyncEngine:
     engine = create_async_engine(database_url(), pool_pre_ping=True, hide_parameters=True)
     instrument_engine(engine.sync_engine)
     return engine
 
 
 @lru_cache(maxsize=1)
-def session_factory():
+def session_factory() -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(_engine(), expire_on_commit=False, class_=AsyncSession)
 
 

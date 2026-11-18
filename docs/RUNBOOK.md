@@ -7,6 +7,7 @@ local Compose setup. See [Authentication](AUTHENTICATION.md) for account
 bootstrap and deployment. See [Jobs and scheduler](JOBS.md) for operating RQ.
 See [Next.js frontend](FRONTEND.md) for the web app and its API gateway.
 See [Observability and CI](OBSERVABILITY.md) for health checks, traces, metrics, and CI.
+See [Production deployment](../DEPLOY.md) for staging, cutover, and rollback.
 The API, CLI, scheduled ingestion, scoring and backtests use PostgreSQL.
 Set `DATABASE_URL` in `.env` before running these commands.
 

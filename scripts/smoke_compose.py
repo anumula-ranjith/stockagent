@@ -4,6 +4,7 @@ import json
 import os
 from http.cookiejar import CookieJar
 from time import monotonic, sleep
+from urllib.error import HTTPError
 from urllib.request import HTTPCookieProcessor, Request, build_opener, urlopen
 
 BASE = "http://127.0.0.1:8701"
@@ -42,8 +43,15 @@ def main() -> None:
     else:
         raise TimeoutError("The Compose backtest did not finish within 60 seconds")
 
-    with urlopen(job["result_url"], timeout=10) as response:
+    artifact_url = job["result_url"]
+    assert artifact_url.startswith("http://127.0.0.1:9000/")
+    with urlopen(artifact_url, timeout=10) as response:
         assert json.load(response)["n_days"] == 1
+    try:
+        with urlopen(artifact_url.partition("?")[0], timeout=10):
+            raise AssertionError("The backtest artifact was readable without a signature")
+    except HTTPError as error:
+        assert error.code in {401, 403}
     with urlopen(f"{BASE}/metrics", timeout=10) as response:
         assert b'stock_agents_jobs_completed_total{job_type="backtest",outcome="success"} 1.0' in response.read()
     print("Compose sign-in, admin dashboard, backtest, signed artifact, and metrics passed.")

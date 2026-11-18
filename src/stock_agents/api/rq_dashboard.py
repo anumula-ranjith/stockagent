@@ -16,6 +16,7 @@ from starlette.responses import JSONResponse
 from starlette.types import Receive, Scope, Send
 
 from stock_agents.api import auth
+from stock_agents.common import config
 from stock_agents.jobs.queue import QUEUE_NAME, redis_url, rq_queue
 from stock_agents.storage.postgres import session_factory
 
@@ -50,7 +51,9 @@ async def admin_dashboard(scope: Scope, receive: Receive, send: Send) -> None:
         return
     request = Request(scope)
     bearer = await auth.credentials(request)
-    origin = f"{request.url.scheme}://{request.url.netloc}"
+    settings = config.load_settings()
+    origin = settings.env("PUBLIC_API_ORIGIN") or settings.env("RENDER_EXTERNAL_URL")
+    origin = origin or f"{request.url.scheme}://{request.url.netloc}"
     csrf_header = auth.CSRF_HEADER.lower().encode()
     if (
         request.method == "POST"

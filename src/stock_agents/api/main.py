@@ -135,7 +135,7 @@ async def server_error(request: Request, _exc: Exception) -> JSONResponse:
     return JSONResponse({"detail": "Internal server error"}, status_code=500, headers=headers)
 
 
-@app.get("/universe", response_model=list[UniverseRow])
+@app.get("/universe", response_model=list[UniverseRow], dependencies=[Depends(auth.require_market_data_user)])
 async def universe(db: OperationalDB) -> list[dict[str, Any]]:
     rows = await db.fetch(
         f"""SELECT s.ticker, s.eodhd_symbol, cl.sector, cl.industry
@@ -151,7 +151,7 @@ async def universe(db: OperationalDB) -> list[dict[str, Any]]:
     ]
 
 
-@app.get("/prices/{ticker}", response_model=list[PriceBar])
+@app.get("/prices/{ticker}", response_model=list[PriceBar], dependencies=[Depends(auth.require_market_data_user)])
 async def prices(
     ticker: str, db: OperationalDB, days: int = Query(90, ge=1, le=3650)
 ) -> list[dict[str, Any]]:
@@ -177,7 +177,7 @@ def _news_timestamp(ts) -> str:
     return str(ts)
 
 
-@app.get("/news/{ticker}", response_model=list[NewsItem])
+@app.get("/news/{ticker}", response_model=list[NewsItem], dependencies=[Depends(auth.require_market_data_user)])
 async def news(
     ticker: str, db: OperationalDB, limit: int = Query(20, ge=1, le=200)
 ) -> list[dict[str, Any]]:
@@ -205,7 +205,7 @@ async def news(
     ]
 
 
-@app.get("/sentiment/{ticker}", response_model=list[SentimentDay])
+@app.get("/sentiment/{ticker}", response_model=list[SentimentDay], dependencies=[Depends(auth.require_market_data_user)])
 async def sentiment(
     ticker: str, db: OperationalDB, days: int = Query(90, ge=1, le=730)
 ) -> list[dict[str, Any]]:
