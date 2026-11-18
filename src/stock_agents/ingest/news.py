@@ -99,27 +99,20 @@ def ingest_sentiment_daily(
     today = date.today()
     inserted = 0
     failures = 0
-    for ticker, symbol in univ:
+    for offset in range(0, len(univ), 50):
+        batch = univ[offset:offset + 50]
         try:
-            resp = client.sentiments(symbol)
+            resp = client.sentiments(",".join(symbol for _, symbol in batch))
+            if resp and not isinstance(resp, dict):
+                raise ValueError("Unexpected EODHD sentiment response")
         except Exception as e:
-            failures += 1
-            log.warning("sentiment ingest skipped %s (%s)", ticker, type(e).__name__)
+            failures += len(batch)
+            log.warning("sentiment ingest skipped %d symbols (%s)", len(batch), type(e).__name__)
             continue
         # response is {"SYMBOL.NSE": [{"date":"YYYY-MM-DD","count":N,"normalized":x}, ...]}
-        entries = resp.get(symbol, []) if isinstance(resp, dict) else []
-        rows = []
-        for e in entries:
-            rows.append(
-                (
-                    ticker,
-                    e.get("date"),
-                    e.get("normalized"),
-                    int(e.get("count") or 0),
-                    SOURCE,
-                    today,
-                )
-            )
+        rows = [(ticker, e["date"], e["normalized"], int(e["count"]), SOURCE, today)
+                for ticker, symbol in batch for e in (resp or {}).get(symbol, [])
+                if e.get("normalized") is not None and e.get("count")]
         if rows:
             conn.executemany(
                 """INSERT INTO sentiment_daily

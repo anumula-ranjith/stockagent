@@ -5,38 +5,36 @@ The snapshot import below is retained for older installations migrating an
 existing DuckDB file. Install the development dependencies to use that legacy
 importer. New installations use PostgreSQL directly.
 
-## 1. Start the infrastructure
+## 1. Prepare PostgreSQL
 
-Copy `.env.example` to `.env` if needed. Run the following from the repository
-root with Docker Compose and a local `data/market.duckdb` file.
-
-```powershell
-docker compose up -d --wait postgres redis object-store
-docker compose exec postgres psql -U stockagents -d stockagents -c "SELECT hypertable_name FROM timescaledb_information.hypertables;"
-```
-
-Use the configured database user and name if they differ from the development
-defaults. Expect `prices_daily` in the result. A new volume applies
-`scripts/sql/init.sql` followed by `scripts/sql/timescale.sql`. For an
-existing development volume created from the earlier scaffold, back it up and
-apply both updated SQL files in the same order with `psql -v ON_ERROR_STOP=1`.
-
-## 2. Verify and register the baseline
+Create a local PostgreSQL database owned by the role in `DATABASE_URL`.
+From the repository root with the project virtual environment active, run:
 
 ```powershell
-docker compose build api
-docker compose run --rm --no-deps api python -m alembic stamp 0001_postgres_baseline
-docker compose run --rm --no-deps api python -m alembic upgrade head
-docker compose run --rm --no-deps api python -m alembic check
+python -m stock_agents.cli init-db
+python -m alembic current
+python -m alembic check
 ```
 
-Stamp the baseline once after SQL bootstrap, then apply the current
-revisions. `alembic check` should report zero new operations. Resolve any
-differences before the API cutover. For
-subsequent schema changes, update SQLAlchemy metadata, generate a revision
+The first migration applies `scripts/sql/init.sql` on a fresh database.
+Alembic then applies each outstanding revision. The same command upgrades
+existing Alembic-managed warehouses and preserves existing rows. For a
+legacy warehouse created from ORM metadata with no Alembic history, back it
+up and compare its schema with the recorded revisions before stamping its
+matching revision.
+
+## 2. Optional TimescaleDB and future migrations
+
+The standard install uses ordinary PostgreSQL tables. On a TimescaleDB
+installation supporting the columnstore API, apply `scripts/sql/timescale.sql`
+with `psql -v ON_ERROR_STOP=1` against the configured database if you want
+the `prices_daily` hypertable and compression policy. This can migrate
+existing prices, so take a backup and schedule the change before running it.
+
+For future schema changes, update SQLAlchemy metadata, generate a revision
 with `python -m alembic revision --autogenerate -m "describe change"`, review
-it, then run `python -m alembic upgrade head`. Timescale-specific DDL belongs
-in reviewed SQL within the migration.
+it, then run `python -m alembic upgrade head`. Check for drift with
+`python -m alembic check`.
 
 ## 3. Import and reconcile
 
@@ -44,7 +42,7 @@ Pause writers to the DuckDB file before importing. Run the import before
 starting the API and worker.
 
 ```powershell
-docker compose run --rm --no-deps api python -m scripts.migrate_duckdb_to_postgres
+python -m scripts.migrate_duckdb_to_postgres
 ```
 
 The command opens the source in read-only mode. It imports all 27
@@ -57,15 +55,14 @@ both stores and exits with a nonzero status if any target count differs.
 DuckDB timestamps without time zones are interpreted as UTC when the
 destination column has a time zone.
 
-## 4. Start and test the API
+## 4. Verify the database
+
+Start the native services using the [local startup guide](../DEPLOY.md),
+then request the warehouse counts.
 
 ```powershell
-docker compose up -d --wait
 Invoke-RestMethod 'http://127.0.0.1:8701/health?include_stats=true'
 ```
-
-Open [the local dashboard](http://127.0.0.1:8701/dashboard) or
-[the API docs](http://127.0.0.1:8701/docs). All runtime services use PostgreSQL. Keep the stack on loopback until the authentication phase.
 
 To run the integration test from the host, install
 `requirements-dev.txt` and set `TEST_DATABASE_URL` to a development

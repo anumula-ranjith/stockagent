@@ -7,7 +7,7 @@ import math
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import bindparam, func, select, update
+from sqlalchemy import Date, Float, column, func, select, update, values
 from sqlalchemy.dialects.postgresql import insert
 
 from stock_agents.storage.postgres import Base
@@ -110,11 +110,17 @@ def refresh_adjustments(target, nse, trade_date: date, tickers: set[str]) -> dic
         replacements = [dict(price_date=row["date"], adjusted=calculated[row["date"]])
                         for row in prices if row["source"] == "nse_bhavcopy" and
                         row["adj_close"] != calculated[row["date"]]]
-        if replacements:
+        for offset in range(0, len(replacements), 1000):
+            batch = replacements[offset:offset + 1000]
+            calculated_values = values(column("price_date", Date), column("adjusted", Float),
+                                       name="calculated").data([
+                (row["price_date"], row["adjusted"]) for row in batch
+            ])
             target.execute(update(table).where(
                 table.c.ticker == ticker, table.c.source == "nse_bhavcopy",
-                table.c.date == bindparam("price_date"),
-            ).values(adj_close=bindparam("adjusted"), known_date=known), replacements)
+                table.c.date == calculated_values.c.price_date,
+                table.c.date.between(batch[0]["price_date"], batch[-1]["price_date"]),
+            ).values(adj_close=calculated_values.c.adjusted, known_date=known))
         written += len(replacements)
         completed.append(ticker)
         action_table = Base.metadata.tables["corporate_actions"]

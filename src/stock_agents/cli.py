@@ -17,11 +17,11 @@ def _init_logging():
 
 
 def _cmd_init_db(_args: argparse.Namespace) -> None:
-    s, log = _init_logging()
-    from stock_agents.storage.postgres import Base
+    from alembic import command
+    from alembic.config import Config
 
-    with connect() as conn:
-        Base.metadata.create_all(conn.connection)
+    _init_logging()
+    command.upgrade(Config(str(_config.project_root() / "alembic.ini")), "head")
     print("PostgreSQL warehouse ready")
 
 

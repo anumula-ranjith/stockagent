@@ -128,8 +128,20 @@ def compute_and_store(conn: Warehouse, asof: date | None = None) -> dict[str, in
     """Compute scores for all 4 agents as of `asof` and INSERT into agent_scores."""
     asof = asof or date.today()
     counts: dict[str, int] = {}
+    from stock_agents.engine.ranker import RankSettings, score_book
+    from stock_agents.engine.ranker_inputs import snapshot_inputs
+
+    raw, _ = snapshot_inputs(conn, asof)
+    nifty_scores, _ = score_book(raw, RankSettings())
     for name, fn in AGENTS.items():
         df = fn(conn, asof)
+        if not nifty_scores.empty:
+            current = nifty_scores[name]
+            replacement = pd.DataFrame(
+                {"ticker": current.index, "score": current.fillna(50).values,
+                 "imputed": current.isna().values}
+            )
+            df = pd.concat([df.loc[~df.ticker.isin(current.index)], replacement], ignore_index=True)
         if df.empty:
             counts[name] = 0
             continue

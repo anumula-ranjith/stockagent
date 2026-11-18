@@ -34,13 +34,18 @@ def _backtest(job_id: str, payload: dict, submitted: datetime) -> tuple[dict, st
     from stock_agents.storage.s3 import put_backtest
 
     with connect(read_only=True) as conn:
-        summary = run_backtest(
-            conn,
-            date.fromisoformat(payload["start"]),
-            date.fromisoformat(payload["end"]),
-            n_per_side=payload["n"],
-            persist=False,
-        )
+        if "ranker" in payload:
+            from stock_agents.engine.ranker_replay import Replay, replay
+
+            summary = replay(conn, Replay.model_validate(payload["ranker"]))
+        else:
+            summary = run_backtest(
+                conn,
+                date.fromisoformat(payload["start"]),
+                date.fromisoformat(payload["end"]),
+                n_per_side=payload["n"],
+                persist=False,
+            )
     if "error" in summary:
         raise BacktestInputError(summary["error"])
     return summary, put_backtest(job_id, summary, when=submitted.astimezone(MARKET_TZ).date())

@@ -16,17 +16,6 @@ jobs:
     env:
       PYTHONPATH: src
       TEST_DATABASE_URL: postgresql://stockagents:ci-database-password@127.0.0.1:5432/stockagents
-    services:
-      postgres:
-        image: timescale/timescaledb:latest-pg16
-        env:
-          POSTGRES_USER: stockagents
-          POSTGRES_PASSWORD: ci-database-password
-          POSTGRES_DB: stockagents
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U stockagents -d stockagents"
-          --health-interval 5s --health-timeout 3s --health-retries 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -36,10 +25,26 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
+      - name: Start native PostgreSQL
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE ROLE stockagents WITH LOGIN CREATEDB PASSWORD 'ci-database-password'"
+          sudo -u postgres createdb -O stockagents stockagents
       - run: python -m pip install -r requirements-dev.txt
       - run: ruff check src scripts tests
       - run: python -m mypy
       - run: python -m pytest
+      - name: Smoke-test native services and a private backtest artifact
+        env:
+          DATABASE_URL: postgresql://stockagents:ci-database-password@127.0.0.1:5432/stockagents
+          AUTH_COOKIE_SECURE: 'false'
+          REDIS_URL: redis://127.0.0.1:6379/0
+          S3_BUCKET: stock-agents-ci
+          S3_ENDPOINT: http://127.0.0.1:9002
+          S3_PUBLIC_ENDPOINT: http://127.0.0.1:9002
+          S3_ACCESS_KEY: native-ci-service
+          SCHEDULER_RUN_MARKET_JOBS: 'false'
+        run: bash scripts/ci_native_smoke.sh
 
   frontend:
     runs-on: ubuntu-latest
@@ -60,45 +65,3 @@ jobs:
       - run: pnpm lint
       - run: pnpm build
       - run: pnpm typecheck
-
-  compose-smoke:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      SCHEDULER_RUN_MARKET_JOBS: 'false'
-    steps:
-      - uses: actions/checkout@v6
-      - name: Prepare local CI configuration
-        run: |
-          cp .env.example .env
-          jwt="$(openssl rand -hex 32)"
-          bootstrap="$(openssl rand -hex 32)"
-          echo "::add-mask::$jwt"
-          echo "::add-mask::$bootstrap"
-          printf '\nJWT_SECRET=%s\nBOOTSTRAP_SIGNUP_TOKEN=%s\nAUTH_COOKIE_SECURE=false\n' "$jwt" "$bootstrap" >> .env
-          printf 'SMOKE_BOOTSTRAP_TOKEN=%s\n' "$bootstrap" >> "$GITHUB_ENV"
-      - name: Build the API image
-        run: docker build --tag stock-agents-ci .
-      - name: Start the development stack
-        run: docker compose up -d --build --wait --wait-timeout 150
-      - name: Check API readiness and metrics
-        run: |
-          curl --fail --silent --show-error http://127.0.0.1:8701/health
-          curl --fail --silent --show-error http://127.0.0.1:8701/metrics --output /tmp/stock-agents-metrics
-          grep -q 'stock_agents_dependency_ready{dependency="s3"} 1.0' /tmp/stock-agents-metrics
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8701/health/deep)" = 401
-      - name: Verify sign-in, RQ backtest, and private artifact
-        run: |
-          docker compose exec -T postgres psql -U stockagents -d stockagents -v ON_ERROR_STOP=1 <<'SQL'
-          INSERT INTO prices_daily (ticker, date, adj_close, source, known_date)
-          VALUES ('SAMPLE', '2025-01-03', 11.0, 'eodhd', '2025-01-03');
-          SQL
-          python3 -m scripts.smoke_compose
-      - name: Collect failure details
-        if: failure()
-        run: |
-          docker compose ps
-          docker compose logs --tail=120
-      - name: Stop the test stack
-        if: always()
-        run: docker compose down --volumes

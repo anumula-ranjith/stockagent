@@ -165,8 +165,20 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     hashed_pwd = Column(String)
     clerk_subject = Column(String, unique=True)
+    email_verified = Column(Boolean, nullable=False, server_default=text("true"))
+    session_version = Column(Integer, nullable=False, server_default=text("0"))
     is_admin = Column(Boolean, server_default=text("false"))
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
+
+
+class AccountToken(Base):
+    __tablename__ = "account_tokens"
+    token_hash = Column(String(64), primary_key=True)
+    user_id = Column(Uuid(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    purpose = Column(String(20), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
+    consumed_at = Column(DateTime(timezone=True))
 
 
 class JobRun(Base):

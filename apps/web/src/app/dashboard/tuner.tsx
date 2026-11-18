@@ -1,94 +1,58 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { RotateCcw } from "lucide-react";
+import dynamic from "next/dynamic";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
-import { RankedTable } from "@/components/ranked-table";
 import { SignInNotice, State } from "@/components/presentation";
 import { useSession } from "@/components/providers";
-import { Button } from "@/components/ui/button";
-import { agentLabels, agents, api, type Agent, type Combine } from "@/lib/api";
-import { dateLabel } from "@/lib/utils";
+import { agentLabels, agents, api } from "@/lib/api";
+import { SettingsPanel } from "./ranker-controls";
+import { defaults, type Settings, type Snapshot, type Tab } from "./ranker-model";
+import { Candidates, Heat } from "./ranker-tables";
+import s from "./ranker.module.css";
 
-const initial = { technical: 25, sentiment: 25, momentum: 25, fundamental: 25 };
-type Mode = "weighted" | "consensus" | "hybrid";
+const Portfolio = dynamic(()=>import("./portfolio").then(m=>m.Portfolio));
+const tabs = [...agents,"combined","portfolio"] as const;
+const labels = {...agentLabels,combined:"Combined",portfolio:"Portfolio & Backtest"};
+const summaries = {
+  technical:"Ranks stocks on chart health. Stocks failing a long-list filter can still appear as shorts.",
+  sentiment:"Ranks stocks on news tone, analyst revisions, sector performance and available positioning data.",
+  momentum:"Ranks stocks by the strength of their price trends across several lookbacks.",
+  fundamental:"Ranks stocks on value, quality, growth, balance-sheet health and shareholder yield.",
+  combined:"The four agents’ weighted scores determine each side of the portfolio.",
+};
 
 export function Tuner() {
   const session = useSession();
-  const [weights, setWeights] = useState<Record<Agent, number>>(initial);
-  const [debounced, setDebounced] = useState(weights);
-  const [mode, setMode] = useState<Mode>("weighted");
-  const [size, setSize] = useState(10);
-  const [asof, setAsof] = useState("");
-  const [side, setSide] = useState<"long" | "short">("long");
-  const total = agents.reduce((sum, agent) => sum + weights[agent], 0);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(weights), 300);
-    return () => window.clearTimeout(timer);
-  }, [weights]);
-  const book = useQuery({
-    queryKey: ["combine", session.data?.id, mode, size, asof, debounced],
-    queryFn: ({ signal }) => {
-      const query = new URLSearchParams({ mode, n: String(size) });
-      if (asof) query.set("asof", asof);
-      if (mode !== "consensus") agents.forEach(agent => query.set(agent, String(debounced[agent])));
-      return api<Combine>("/combine?" + query, { signal });
-    },
-    enabled: !!session.data && (mode === "consensus" || (total > 0 && agents.some(name => debounced[name] > 0))),
-    placeholderData: keepPreviousData,
-  });
-  if (session.isPending) return <State>Checking your session…</State>;
-  if (session.isError) return <State error>Session unavailable. Try again shortly.</State>;
-  if (!session.data) return <SignInNotice next="/dashboard">Sign in to tune the composite and view the ranking book.</SignInNotice>;
-  return <div className="split">
-    <aside className="surface"><h2 className="section-title">Configuration</h2>
-      <div className="controls">
-        <label className="field">Method
-          <select value={mode} onChange={event => setMode(event.target.value as Mode)}>
-            <option value="weighted">Weighted composite</option><option value="consensus">Consensus</option><option value="hybrid">Hybrid</option>
-          </select>
-        </label>
-        <label className="field">Ranking date
-          <input aria-label="Ranking date" type="date" value={asof} onChange={event => setAsof(event.target.value)}/>
-        </label>
-        <label className="field">Names per side
-          <select value={size} onChange={event => setSize(Number(event.target.value))}>
-            {[5, 10, 15, 20, 30, 50].map(value => <option key={value}>{value}</option>)}
-          </select>
-        </label>
-        <fieldset className="controls">
-          <legend className="mb-2 font-semibold">Agent weights</legend>
-          {agents.map(agent => <label className="field" key={agent}>
-            <span className="control-label"><span>{agentLabels[agent]}</span>
-              <span>{mode === "consensus" ? "25%" : total ? (100 * weights[agent] / total).toFixed(0) + "%" : "0%"}</span></span>
-            <input aria-label={agentLabels[agent] + " weight"} type="range" min={0} max={100} value={weights[agent]}
-              disabled={mode === "consensus"}
-              onChange={event => setWeights(current => ({ ...current, [agent]: Number(event.target.value) }))}/>
-          </label>)}
-        </fieldset>
-        <Button variant="secondary" onClick={() => setWeights(initial)}><RotateCcw size={15}/> Reset weights</Button>
-      </div>
-    </aside>
-    <section className="stack">
-      <div className="metrics">
-        <div className="metric"><span>As of</span><strong>{book.data ? dateLabel(book.data.asof) : "—"}</strong></div>
-        <div className="metric"><span>Long candidates</span><strong className="positive">{book.data?.longs.length ?? "—"}</strong></div>
-        <div className="metric"><span>Short candidates</span><strong className="negative">{book.data?.shorts.length ?? "—"}</strong></div>
-      </div>
-      <div className="surface" aria-busy={book.isFetching}>
-        <div className="surface-top">
-          <div><h2 className="section-title">Ranking book</h2><p className="subtle" role="status">{book.isFetching && book.data ? "Updating rankings…" : ""}</p></div>
-          <div className="tabs" aria-label="Book side">
-            <button aria-pressed={side === "long"} onClick={() => setSide("long")}>Longs</button>
-            <button aria-pressed={side === "short"} onClick={() => setSide("short")}>Shorts</button>
-          </div>
-        </div>
-        {mode !== "consensus" && total === 0 ? <State>Set at least one weight above zero.</State>
-          : book.isError ? <State error>{book.error.message}</State>
-          : !book.data ? <State>Loading rankings…</State>
-          : book.data.note ? <State>No rankings are stored for this date.</State>
-          : <RankedTable rows={side === "long" ? book.data.longs : book.data.shorts} side={side}/>}
-      </div>
-    </section>
-  </div>;
+  const [tab,setTab] = useQueryState("tab",parseAsStringLiteral(tabs).withDefault("technical"));
+  const [date,setDate] = useState("");
+  const [config,setConfig] = useState<Settings>(defaults);
+  const [debounced,setDebounced] = useState(config);
+  useEffect(()=>{const t=window.setTimeout(()=>setDebounced(config),230);return()=>window.clearTimeout(t);},[config]);
+  const snapshot = useQuery({queryKey:["ranker",session.data?.id,date,debounced],enabled:!!session.data,
+    queryFn:({signal})=>api<Snapshot>("/ranker/snapshot"+(date?"?asof="+date:""),{method:"POST",signal,body:JSON.stringify(debounced)}),
+    placeholderData:keepPreviousData});
+  const data = snapshot.data;
+  return <div className={s.workspace}><div className={s.inner}>
+    <header className={s.header}><div><h1>Four-agent stock ranker</h1>
+      <p>Technical, sentiment, momentum and fundamental rankings for the Nifty 500.</p>
+      <span className={s.source}><i/>{data?.price_date?"NSE close · "+data.price_date:"NSE India · End of day"}</span></div>
+      {session.data && <label className={s.date}>Ranking date<input type="date" aria-label="Ranking date" value={date||data?.asof||""} max={new Date().toLocaleDateString("en-CA")} onChange={e=>setDate(e.target.value)}/></label>}
+    </header>
+    <nav className={s.tabs} aria-label="Ranking workspaces">{tabs.map(name=><button key={name} aria-current={name===tab?"page":undefined}
+      onClick={()=>void setTab(name as Tab)}>{labels[name]}</button>)}</nav>
+    {session.isPending ? <State>Checking your session…</State> : session.isError ? <State error>Session unavailable.</State>
+      : !session.data ? <SignInNotice next="/dashboard">Sign in to tune the four agents and compare their portfolios.</SignInNotice>
+      : tab==="portfolio" ? <Portfolio config={config} end={date||data?.asof||new Date().toISOString().slice(0,10)} admin={!!session.data.is_admin} user={session.data.id}/>
+      : <div className={s.grid}><SettingsPanel tab={tab} config={config} change={setConfig} coverage={data?.coverage}/>
+        <section className={s.results} aria-busy={snapshot.isFetching}>
+          <p className={s.summary}>{summaries[tab]}</p>
+          {snapshot.isError ? <p role="alert" className={s.error}>{snapshot.error.message} <button onClick={()=>void snapshot.refetch()}>Retry</button></p>
+            : !data ? <div className={s.card}><p role="status" className={s.hint}>Loading Nifty 500 observations…</p></div>
+            : <>{tab==="sentiment" && <Heat data={data.heat} boost={config.boost_sectors}/>}
+              <div className={tab==="combined"?s.stacked:s.books}>{(["longs","shorts"] as const).map(side=><Candidates key={side} tab={tab} side={side} size={debounced.size} data={data}/>)}</div>
+              <p className={s.hint} role="status">{snapshot.isFetching?"Updating rankings…":data.universe+" constituents · "+(tab==="fundamental"?"Raw licensed or unavailable values appear as a dash.":"Only observed signals contribute to a candidate’s rank.")}</p></>}
+        </section></div>}
+  </div></div>;
 }

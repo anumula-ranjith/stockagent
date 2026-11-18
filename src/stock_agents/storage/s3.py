@@ -1,6 +1,6 @@
 """S3 / MinIO helper: upload raw API payloads, backtest JSON, and other
 artifacts. Uses boto3 with an optional endpoint_url so the same code works
-against AWS S3 and a MinIO container.
+against a local S3-compatible service and AWS S3.
 
 Keys follow the convention:
   raw/<source>/<endpoint>/<YYYY/MM/DD>/<ticker>.json.gz

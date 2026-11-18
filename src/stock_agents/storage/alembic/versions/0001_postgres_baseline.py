@@ -1,4 +1,8 @@
-"""Register the PostgreSQL schema bootstrapped by scripts/sql/init.sql."""
+"""Create the PostgreSQL baseline, or register an existing SQL bootstrap."""
+
+from alembic import op
+
+from stock_agents.common.config import project_root
 
 revision = "0001_postgres_baseline"
 down_revision = None
@@ -7,7 +11,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """The schema already exists before this baseline is stamped."""
+    op.execute((project_root() / "scripts/sql/init.sql").read_text(encoding="utf-8"))
 
 
 def downgrade() -> None:

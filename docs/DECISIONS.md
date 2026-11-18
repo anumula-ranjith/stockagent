@@ -24,8 +24,7 @@ for the HTML prototype belong to their later phases.
 
 Local verification used PostgreSQL 16 and TimescaleDB 2.22.1. Both imports
 matched all 27 warehouse table counts, and the integration suite exercised
-API parity and the hypertable. Full Compose startup remains pending on a
-machine with Docker.
+API parity and the hypertable.
 
 ## Phase 2 · Authentication
 
@@ -67,6 +66,6 @@ machine with Docker.
 2. Expose request latency and durable job execution metrics. Split public
    readiness, process liveness, and the administrator-only vendor check.
 3. Add a local Tempo receiver and CI for Python, the Next.js build, and the
-   Compose startup check.
+   native service startup check.
 4. Verify the new signals against an isolated backtest, then roll out locally
    while keeping the API's existing routes and role boundaries.

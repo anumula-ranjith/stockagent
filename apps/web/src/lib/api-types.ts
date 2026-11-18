@@ -72,6 +72,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register */
+        post: operations["register_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Verification */
+        post: operations["resend_verification_resend_verification_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Email */
+        post: operations["verify_email_verify_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forgot Password */
+        post: operations["forgot_password_forgot_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Password */
+        post: operations["reset_password_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Password */
+        post: operations["change_password_change_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/backtest/run": {
         parameters: {
             query?: never;
@@ -157,6 +259,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live */
+        get: operations["live_health_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -168,6 +287,92 @@ export interface paths {
         get: operations["health_health_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/deep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Deep Health */
+        get: operations["deep_health_health_deep_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/screener/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Screen */
+        post: operations["run_screen_screener_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ranker/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Default Snapshot */
+        get: operations["default_snapshot_ranker_snapshot_get"];
+        put?: never;
+        /** Tuned Snapshot */
+        post: operations["tuned_snapshot_ranker_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ranker/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Latest Replay */
+        get: operations["latest_replay_ranker_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ranker/backtest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Replay */
+        post: operations["start_replay_ranker_backtest_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -325,6 +530,11 @@ export interface components {
             /** Industry */
             industry?: string | null;
         };
+        /** AuthMessage */
+        AuthMessage: {
+            /** Message */
+            message: string;
+        };
         /** BacktestJobRef */
         BacktestJobRef: {
             /** Job Id */
@@ -389,6 +599,19 @@ export interface components {
              */
             equity_curve: components["schemas"]["EquityPoint"][];
         };
+        /** ChangePasswordRequest */
+        ChangePasswordRequest: {
+            /**
+             * Current Password
+             * Format: password
+             */
+            current_password: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+        };
         /** CombineOut */
         CombineOut: {
             /**
@@ -438,6 +661,22 @@ export interface components {
              */
             fundamental: number;
         };
+        /** EmailRequest */
+        EmailRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /** EmailTokenRequest */
+        EmailTokenRequest: {
+            /**
+             * Token
+             * Format: password
+             */
+            token: string;
+        };
         /** EquityPoint */
         EquityPoint: {
             /**
@@ -468,6 +707,10 @@ export interface components {
             price_rows?: number | null;
             /** Error */
             error?: string | null;
+            /** Checks */
+            checks?: {
+                [key: string]: "ok" | "unavailable" | "unconfigured";
+            } | null;
         };
         /** JobStatusOut */
         JobStatusOut: {
@@ -541,6 +784,277 @@ export interface components {
             /** Volume */
             volume?: number | null;
         };
+        /** RankSettings */
+        RankSettings: {
+            /** Factors */
+            factors?: {
+                [key: string]: number;
+            };
+            /** Pillars */
+            pillars?: {
+                [key: string]: number;
+            };
+            /** Agents */
+            agents?: {
+                [key: string]: number;
+            };
+            /**
+             * Rsi Min
+             * @default 30
+             */
+            rsi_min: number;
+            /**
+             * Rsi Max
+             * @default 80
+             */
+            rsi_max: number;
+            /**
+             * Min Traded Value
+             * @default 0
+             */
+            min_traded_value: number;
+            /**
+             * Tech Above Ma
+             * @default false
+             */
+            tech_above_ma: boolean;
+            /**
+             * Mom Above Ma
+             * @default false
+             */
+            mom_above_ma: boolean;
+            /**
+             * Vol Adjust
+             * @default false
+             */
+            vol_adjust: boolean;
+            /**
+             * Min Headlines
+             * @default 3
+             */
+            min_headlines: number;
+            /**
+             * Boost Sectors
+             * @default true
+             */
+            boost_sectors: boolean;
+            /**
+             * Short Squeeze
+             * @default false
+             */
+            short_squeeze: boolean;
+            /**
+             * Sector Neutral
+             * @default true
+             */
+            sector_neutral: boolean;
+            /**
+             * Max Pe
+             * @default 0
+             */
+            max_pe: number;
+            /**
+             * Max De
+             * @default 0
+             */
+            max_de: number;
+            /**
+             * Positive Fcf
+             * @default false
+             */
+            positive_fcf: boolean;
+            /**
+             * Size
+             * @default 10
+             */
+            size: number;
+            /**
+             * Max Sector
+             * @default 3
+             */
+            max_sector: number;
+            /**
+             * Agree
+             * @default 3
+             */
+            agree: number;
+            /**
+             * Mode
+             * @default weighted
+             * @enum {string}
+             */
+            mode: "weighted" | "consensus" | "hybrid";
+        };
+        /** RegisterRequest */
+        RegisterRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+        };
+        /** Replay */
+        Replay: {
+            settings?: components["schemas"]["RankSettings"];
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /**
+             * Months
+             * @default 12
+             * @enum {integer}
+             */
+            months: 3 | 6 | 12 | 24 | 36;
+            /**
+             * Rebalance
+             * @default monthly
+             * @enum {string}
+             */
+            rebalance: "weekly" | "monthly";
+            /**
+             * Portfolio
+             * @default long_short
+             * @enum {string}
+             */
+            portfolio: "long_short" | "long_only" | "130_30";
+            /**
+             * Universe
+             * @default historical
+             * @enum {string}
+             */
+            universe: "historical" | "current_cohort";
+            /**
+             * Weighting
+             * @default equal
+             * @enum {string}
+             */
+            weighting: "equal" | "score" | "inverse_vol";
+            /**
+             * Cost Bps
+             * @default 10
+             */
+            cost_bps: number;
+        };
+        /** ResetPasswordRequest */
+        ResetPasswordRequest: {
+            /**
+             * Token
+             * Format: password
+             */
+            token: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+        };
+        /** Screen */
+        Screen: {
+            /** Below High Pct */
+            below_high_pct?: number | null;
+            /** Above Low Pct */
+            above_low_pct?: number | null;
+            /**
+             * Ema Fast
+             * @default 9
+             */
+            ema_fast: number;
+            /**
+             * Ema Slow
+             * @default 21
+             */
+            ema_slow: number;
+            /**
+             * Ema Rule
+             * @default any
+             * @enum {string}
+             */
+            ema_rule: "any" | "above" | "below" | "cross_up" | "cross_down";
+            /**
+             * Ema Sessions Ago
+             * @default 0
+             */
+            ema_sessions_ago: number;
+            /**
+             * Macd Fast
+             * @default 12
+             */
+            macd_fast: number;
+            /**
+             * Macd Slow
+             * @default 26
+             */
+            macd_slow: number;
+            /**
+             * Macd Signal
+             * @default 9
+             */
+            macd_signal: number;
+            /**
+             * Macd Rule
+             * @default any
+             * @enum {string}
+             */
+            macd_rule: "any" | "above" | "below" | "cross_up" | "cross_down";
+            /**
+             * Macd Sessions Ago
+             * @default 0
+             */
+            macd_sessions_ago: number;
+        };
+        /** ScreenResult */
+        ScreenResult: {
+            /** Asof */
+            asof: string | null;
+            /** Ema Date */
+            ema_date: string | null;
+            /** Macd Date */
+            macd_date: string | null;
+            /** Members */
+            members: number;
+            /** Priced */
+            priced: number;
+            /** Range Coverage */
+            range_coverage: number;
+            /** Rows */
+            rows: components["schemas"]["ScreenRow"][];
+        };
+        /** ScreenRow */
+        ScreenRow: {
+            /** Ticker */
+            ticker: string;
+            /** Close */
+            close: number | null;
+            /** High 52W */
+            high_52w: number | null;
+            /** Low 52W */
+            low_52w: number | null;
+            /** Below High Pct */
+            below_high_pct: number | null;
+            /** Above Low Pct */
+            above_low_pct: number | null;
+            /** Ema Fast */
+            ema_fast: number | null;
+            /** Ema Slow */
+            ema_slow: number | null;
+            /** Ema Cross */
+            ema_cross: ("up" | "down" | "none") | null;
+            /** Macd */
+            macd: number | null;
+            /** Macd Signal */
+            macd_signal: number | null;
+            /** Macd Hist */
+            macd_hist: number | null;
+            /** Macd Cross */
+            macd_cross: ("up" | "down" | "none") | null;
+        };
         /** SentimentDay */
         SentimentDay: {
             /**
@@ -608,6 +1122,11 @@ export interface components {
              * @default false
              */
             is_admin: boolean;
+            /**
+             * Email Verified
+             * @default true
+             */
+            email_verified: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -734,6 +1253,204 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    register_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_verification_resend_verification_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_email_verify_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forgot_password_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_password_reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_change_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -883,7 +1600,60 @@ export interface operations {
             };
         };
     };
+    live_health_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
     health_health_get: {
+        parameters: {
+            query?: {
+                include_stats?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deep_health_health_deep_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -899,6 +1669,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+        };
+    };
+    run_screen_screener_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Screen"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreenResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    default_snapshot_ranker_snapshot_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tuned_snapshot_ranker_snapshot_post: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RankSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    latest_replay_ranker_latest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    start_replay_ranker_backtest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Replay"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestJobRef"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

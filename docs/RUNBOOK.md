@@ -1,32 +1,14 @@
-# Runbook
+# Local operations
 
-Day-to-day operations. Expanded as phases land.
+Follow [Local startup](../DEPLOY.md) for installation, native service commands
+and verification. PostgreSQL holds the operational warehouse for the API,
+CLI, scheduled ingestion, scoring and backtests.
 
-See [PostgreSQL cutover](MIGRATIONS.md) for the operational warehouse and
-local Compose setup. See [Authentication](AUTHENTICATION.md) for account
-bootstrap and deployment. See [Jobs and scheduler](JOBS.md) for operating RQ.
-See [Next.js frontend](FRONTEND.md) for the web app and its API gateway.
-See [Observability and CI](OBSERVABILITY.md) for health checks, traces, metrics, and CI.
-See [Production deployment](../DEPLOY.md) for staging, cutover, and rollback.
-The API, CLI, scheduled ingestion, scoring and backtests use PostgreSQL.
-Set `DATABASE_URL` in `.env` before running these commands.
-
-## First-time setup
-
-```
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-pip install -e .
-cp .env.example .env     # fill in keys
-make test
-```
-
-## Initialize the warehouse
-
-```
-python -m stock_agents.cli init-db
-```
+- [Database migrations and legacy imports](MIGRATIONS.md)
+- [Authentication and account recovery](AUTHENTICATION.md)
+- [RQ jobs and scheduling](JOBS.md)
+- [Next.js frontend](FRONTEND.md)
+- [Readiness, traces, metrics and CI](OBSERVABILITY.md)
 
 ## Phase-1 probes
 

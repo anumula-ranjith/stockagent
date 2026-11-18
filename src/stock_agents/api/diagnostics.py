@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import Awaitable
+from contextlib import asynccontextmanager
 from datetime import date, timedelta
 from hmac import compare_digest
 from typing import Any
@@ -25,20 +26,21 @@ from stock_agents.common.telemetry import dependency_ready, tracer
 from stock_agents.jobs.queue import redis_url
 from stock_agents.sources.eodhd import EODHDClient
 from stock_agents.storage import s3
-from stock_agents.storage.postgres import JobMetric, session_factory
+from stock_agents.storage.postgres import JobMetric, get_session
 
 router = APIRouter()
 log = structlog.get_logger(__name__)
 FACTSET_FORMULA = "https://api.factset.com/formula-api/v1/time-series"
+open_session = asynccontextmanager(get_session)
 
 
 async def postgres_check() -> None:
-    async with session_factory()() as session:
+    async with open_session() as session:
         await session.execute(text("SELECT 1"))
 
 
 async def warehouse_counts() -> dict[str, int]:
-    async with session_factory()() as session:
+    async with open_session() as session:
         result = await session.execute(text(
             """SELECT (SELECT COUNT(*) FROM symbology WHERE active = TRUE),
                       COUNT(*), COUNT(DISTINCT ticker) FROM prices_daily"""
@@ -163,7 +165,7 @@ class JobMetricsCollector:
 
 async def job_metric_rows() -> list[Any]:
     table = JobMetric.__table__
-    async with session_factory()() as session:
+    async with open_session() as session:
         return list((await session.execute(select(table))).all())
 
 

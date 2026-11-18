@@ -1,5 +1,4 @@
-# Production dependencies (used by Dockerfile + any cloud host).
-# Dev deps (pytest, ruff, black) stay in pyproject.toml extras.
+# Dependencies for the native API, worker and scheduler.
 
 # --- core app ---------------------------------------------------------------
 fastapi>=0.115
@@ -27,7 +26,6 @@ a2wsgi>=1.10
 
 # --- scheduler --------------------------------------------------------------
 apscheduler>=3.10,<4
-# For a managed UI: `pip install prefect` (optional, not pinned here).
 
 # --- object storage ---------------------------------------------------------
 boto3>=1.35            # S3 + MinIO (use endpoint_url override for MinIO)

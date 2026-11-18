@@ -2,28 +2,22 @@
 
 ## 1. Start the services
 
-Configure a PostgreSQL warehouse, Redis and a private S3-compatible bucket.
-Use `S3_ENDPOINT` for the worker's internal connection and
-`S3_PUBLIC_ENDPOINT` for the hostname users can reach when downloading a
-signed artifact. On AWS S3, the normal AWS credential chain works when
-the explicit key variables are unset.
+Start PostgreSQL, Redis, the private local artifact store and the API using
+the [local startup guide](../DEPLOY.md). With the project virtual
+environment active, run each command in its own terminal:
 
 ```powershell
-docker compose up -d --build --wait
+python -m scripts.local worker
+python -m scripts.local scheduler
 ```
 
-For a native development install, start the API, Redis and the object
-store, then run these commands in separate terminals with the same
-`DATABASE_URL` and `REDIS_URL`. The worker needs PostgreSQL and object-store configuration. The scheduler needs PostgreSQL and Redis.
-
-```powershell
-python -m stock_agents.jobs.worker
-python -m scripts.schedule_daily
-```
+The scheduler reconciles PostgreSQL jobs with Redis. To run queued backtests
+while leaving scheduled vendor ingestion disabled, set
+`SCHEDULER_RUN_MARKET_JOBS=false` in the root `.env` and restart the scheduler.
 
 ## 2. Submit and inspect a backtest
 
-Sign in as an administrator and open [Backtest](http://127.0.0.1:8701/backtest).
+Sign in as an administrator and open [Backtest](http://localhost:3001/backtest).
 The API records the job and audit event together in PostgreSQL and returns
 HTTP 202 with the job ID. The scheduler reconciles undelivered jobs with
 Redis. The worker computes the report against PostgreSQL and uploads it to the
@@ -31,7 +25,7 @@ private bucket. The page displays the chart and a five-minute signed JSON
 download. The job endpoint checks ownership or administrator access before
 signing a new URL.
 
-Open [Job queues](http://127.0.0.1:8701/_admin/rq/) from the signed-in admin
+Open [Job queues](http://localhost:3001/_admin/rq/) from the signed-in admin
 navigation. The dashboard shows queue depth, workers, failures and retries.
 A retry retains the original job ID and adds an audit entry. PostgreSQL
 keeps the job history and backs the latest-report endpoint.

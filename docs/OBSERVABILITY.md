@@ -2,7 +2,9 @@
 
 ## 1. Start the stack
 
-Run `docker compose up -d --build --wait` from the project root. The API container applies Alembic migrations and ensures the private S3 bucket exists before starting. For native or managed services, run `python -m alembic upgrade head` once before starting the updated API, RQ worker, and scheduler. Revision `0003_observability` adds request correlation fields and a table for cumulative job metrics.
+Follow [Local startup](../DEPLOY.md). Run `python -m scripts.local prepare`
+before starting a new version to apply Alembic migrations and ensure the
+configured local artifact bucket exists.
 
 ## 2. Check readiness
 
@@ -19,12 +21,19 @@ Use `/health?include_stats=true` to request exact warehouse row counts. The defa
 
 ## 3. Find a request or job
 
-Run `docker compose logs -f api worker scheduler`. The services emit JSON logs with `request_id`, `trace_id`, and `span_id` where available. The API returns `X-Request-ID` on responses, and the Next.js proxy forwards it. For a queued operation, search for the request ID or the job ID returned by the API. Scheduled jobs generate their own request IDs.
+Read the API, worker and scheduler terminals. The services emit JSON logs with `request_id`, `trace_id`, and `span_id` where available. The API returns `X-Request-ID` on responses, and the Next.js proxy forwards it. For a queued operation, search for the request ID or the job ID returned by the API. Scheduled jobs generate their own request IDs.
 
-Compose sends traces to Tempo at `http://tempo:4318`. Its query API is available on loopback port 3200. For example, query `/api/traces/<trace-id>` to see API, database, and RQ spans for a queued request. To export to a Collector or hosted backend, set `OTEL_EXPORTER_OTLP_ENDPOINT` to the OTLP/HTTP base URL or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to the full trace endpoint. Use `OTEL_EXPORTER_OTLP_HEADERS` for collector credentials.
+To collect local traces, start Tempo with `config/tempo.yaml` and set
+`OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318` in the root `.env`.
+The local receiver exposes trace lookup at `http://127.0.0.1:3200/api/traces/<trace-id>`.
+Set `OTEL_EXPORTER_OTLP_HEADERS` if your receiver requires credentials.
 
 The `stock_agents_http_request_duration_seconds` histogram has bounded labels for route template, HTTP method, and status. Job execution counters and duration sums are stored in PostgreSQL so worker restarts preserve them. They cover RQ jobs and direct end-of-day refreshes recorded after Phase 5. A refresh waiting for the exchange to publish its data is counted as `deferred`.
 
 ## 4. Run CI
 
-The GitHub Actions workflow runs for pull requests, pushes to `main`, and manual dispatch. It checks Python with Ruff, mypy, and pytest against TimescaleDB, builds and checks Next.js with pnpm, and starts a fresh Compose stack to smoke-test readiness, metrics, and the deep-health authentication guard.
+CI runs Ruff, mypy and pytest against native PostgreSQL. An isolated API,
+Redis, RQ worker, scheduler and SeaweedFS instance exercise readiness,
+authentication, a queued backtest and a private signed artifact download.
+A separate job lints, builds and type-checks the Next.js app. Run the local
+verification commands in [Local startup](../DEPLOY.md) to check your install.

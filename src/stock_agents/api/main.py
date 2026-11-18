@@ -39,7 +39,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.concurrency import run_in_threadpool
 
-from stock_agents.api import auth, diagnostics, job_routes
+from stock_agents.api import account, auth, diagnostics, job_routes, ranker, screener
 from stock_agents.api.auth import AdminUser, CurrentUser
 from stock_agents.api.rq_dashboard import admin_dashboard
 from stock_agents.api.schemas import (
@@ -78,8 +78,11 @@ app = FastAPI(title="stock-agents", version="0.3.0", lifespan=lifespan)
 app.state.limiter = auth.limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(auth.router)
+app.include_router(account.router)
 app.include_router(job_routes.router)
 app.include_router(diagnostics.router)
+app.include_router(screener.router)
+app.include_router(ranker.router)
 OperationalDB = Annotated[ReadConnection, Depends(get_conn)]
 
 CLASSIFICATION = """

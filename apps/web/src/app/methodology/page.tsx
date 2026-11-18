@@ -17,19 +17,19 @@ export default function MethodologyPage() {
       </nav>
       <article className="method-content">
         <section id="universe"><h2 className="section-title">Universe and scoring</h2>
-          <p>The research universe is seeded from Nifty 200 constituents on NSE India. EODHD symbols use the <code>.NSE</code> suffix. Factor inputs are ranked across the universe and agent scores are expressed on a 0–100 scale. The combiner uses a neutral score of 50 for missing agent values.</p>
+          <p>The screener uses active constituents in the locally recorded official Nifty 500 membership. The wider stock directory also includes NSE derivatives names. The four-agent dashboard ranks eligible constituents using the observations available for the chosen date.</p>
         </section>
         <section id="agents"><h2 className="section-title">The four agents</h2>
           <h3>Technical</h3><p>Price trends combine trailing returns, annualized volatility, moving averages, and RSI.</p>
           <h3>Momentum</h3><p>Relative performance captures three-month and six-month returns and the 12–1 month momentum signal.</p>
           <h3>Sentiment</h3><p>Headline polarity and news coverage help distinguish the level and breadth of sentiment.</p>
-          <h3>Fundamental</h3><p>The model defines value, quality, growth, balance-sheet health, and shareholder yield. The current fundamental agent uses a neutral score until the vendor fundamentals pipeline supplies its inputs.</p>
+          <h3>Fundamental</h3><p>EODHD and entitled FactSet inputs support value, quality, growth, balance-sheet health and shareholder yield. Adjust the pillar weights and select individual factors on the dashboard. Coverage varies by company and reporting date.</p>
         </section>
         <section id="combiner"><h2 className="section-title">Ranking methods</h2>
           <ul>
             <li><strong>Weighted composite.</strong> An average of the four agents using normalized weights.</li>
-            <li><strong>Consensus.</strong> An equal-weight average of the four scores in the current engine.</li>
-            <li><strong>Hybrid.</strong> A 70% weighted composite and 30% weakest-agent score.</li>
+            <li><strong>Consensus.</strong> Require agreement across a chosen number of agents.</li>
+            <li><strong>Hybrid.</strong> Apply agreement thresholds alongside the composite ranking.</li>
           </ul>
           <p>The ranking book applies the configured sector cap to each side. Use the <Link href="/dashboard" className="text-link">dashboard</Link> to compare dates and weights.</p>
         </section>
@@ -37,8 +37,7 @@ export default function MethodologyPage() {
           <p><code>effective_date</code> records the period a fact describes. <code>known_date</code> records when the fact was available. Point-in-time factor queries use the known date to avoid using information before it became available.</p>
         </section>
         <section id="backtests"><h2 className="section-title">Backtests</h2>
-          <p>The current research backtest ranks technical and momentum scores at monthly rebalance dates and simulates equal-weight long and short positions using adjusted prices. The report shows trading days, equity, drawdown, return, volatility, and the final holdings.</p>
-          <p>Slippage, fees, short borrow, and execution assumptions belong to the configured strategy model. The current prototype simulation does not apply all of them to realized returns.</p>
+          <p>The dashboard portfolio tab replays the chosen settings. Historical membership mode uses observations known at each rebalance. Current-cohort mode studies today’s constituents over stored price history and is subject to survivorship bias and later price adjustments. Periods with insufficient point-in-time coverage can yield no eligible portfolio. The backtest page also provides the existing research strategy and stored reports.</p>
         </section>
         <section id="sources"><h2 className="section-title">Data sources</h2>
           <ul><li>EODHD supplies NSE prices, corporate actions, headlines, and sentiment where available.</li>

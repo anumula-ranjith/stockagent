@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, EmailStr, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
 
 # ------------------------------------------------------------------ core
@@ -186,3 +186,32 @@ class UserOut(BaseModel):
     id: str
     email: str
     is_admin: bool = False
+    email_verified: bool = True
+
+
+class EmailRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: EmailStr
+
+
+class RegisterRequest(EmailRequest):
+    password: SecretStr = Field(min_length=12, max_length=256)
+
+
+class EmailTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: SecretStr = Field(min_length=32, max_length=256)
+
+
+class ResetPasswordRequest(EmailTokenRequest):
+    password: SecretStr = Field(min_length=12, max_length=256)
+
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: SecretStr = Field(min_length=1, max_length=256)
+    password: SecretStr = Field(min_length=12, max_length=256)
+
+
+class AuthMessage(BaseModel):
+    message: str

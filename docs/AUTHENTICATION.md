@@ -1,10 +1,36 @@
-# Phase 2 authentication
+# Authentication
+
+## Public accounts and password recovery
+
+The Next.js app exposes `/signup`, `/login`, `/verify-email`, `/forgot-password`,
+`/reset-password`, and `/account`. Public registration creates a regular user.
+Email verification is required before signing in. The existing `/signup` API
+continues to support administrator provisioning and the first-admin bootstrap.
+The public signup form calls `POST /register`.
+
+Configure `EMAIL_HOST`, `EMAIL_PORT` (587 for STARTTLS or 465 for TLS), `EMAIL`,
+and `EMAIL_PASSWORD` in `.env`. Gmail requires an app password. Configure
+`FRONTEND_URL` as the trusted browser origin used in account emails, such as
+`http://localhost:3001` locally or your HTTPS frontend origin in production.
+Restart the API after changing these settings.
+
+Verification links expire after one hour and reset links after 30 minutes.
+Each link is single-use. The database stores token hashes. Links place the
+token in a URL fragment that the browser consumes without sending it in the
+page request. Users explicitly submit verification or a new password.
+Password changes revoke previous sessions on every device.
+
+Account email requests have IP limits and a 60-second per-account resend
+cooldown. Signup and recovery responses avoid disclosing existing accounts.
+SMTP delivery errors return a retryable message and roll back the pending
+registration or token replacement. Existing accounts remain verified when
+the migration is applied.
 
 ## 1. Apply the database revision
 
 Run `python -m alembic upgrade head` against the existing PostgreSQL database.
-Compose runs this on API startup. Use `python -m alembic check` to check schema
-drift and keep the DuckDB research warehouse mounted at the configured path.
+The local prepare command also applies pending revisions. Use
+`python -m alembic check` to check schema drift.
 
 ## 2. Create the first administrator
 

@@ -1,4 +1,4 @@
-"""Exercise the isolated Docker Compose stack from the CI runner."""
+"""Exercise an isolated native stack with an empty account database."""
 
 import json
 import os
@@ -7,13 +7,13 @@ from time import monotonic, sleep
 from urllib.error import HTTPError
 from urllib.request import HTTPCookieProcessor, Request, build_opener, urlopen
 
-BASE = "http://127.0.0.1:8701"
+BASE = os.getenv("SMOKE_API_ORIGIN", "http://127.0.0.1:8701").rstrip("/")
 DAY = "2025-01-03"
 
 
 def main() -> None:
     client = build_opener(HTTPCookieProcessor(CookieJar()))
-    credentials = {"email": "compose-smoke@example.com", "password": "isolated CI account password"}
+    credentials = {"email": "native-smoke@example.com", "password": "isolated CI account password"}
     body = json.dumps(credentials).encode()
     headers = {"Content-Type": "application/json", "X-Stock-Agents-Request": "1"}
     bootstrap = {**headers, "X-Bootstrap-Signup-Token": os.environ["SMOKE_BOOTSTRAP_TOKEN"]}
@@ -27,7 +27,7 @@ def main() -> None:
         assert response.status == 200
 
     path = f"/backtest/run?start={DAY}&end={DAY}&n=3"
-    headers["X-Request-ID"] = "compose-smoke-backtest"
+    headers["X-Request-ID"] = "native-smoke-backtest"
     with client.open(Request(BASE + path, data=b"", headers=headers), timeout=10) as response:
         assert response.status == 202 and response.headers["X-Request-ID"] == headers["X-Request-ID"]
         job_id = json.load(response)["job_id"]
@@ -38,13 +38,13 @@ def main() -> None:
         if job["status"] == "finished":
             break
         if job["status"] == "failed":
-            raise RuntimeError("The Compose backtest failed")
+            raise RuntimeError("The backtest failed")
         sleep(1)
     else:
-        raise TimeoutError("The Compose backtest did not finish within 60 seconds")
+        raise TimeoutError("The backtest did not finish within 60 seconds")
 
     artifact_url = job["result_url"]
-    assert artifact_url.startswith("http://127.0.0.1:9000/")
+    assert artifact_url.startswith(os.environ["S3_PUBLIC_ENDPOINT"].rstrip("/") + "/")
     with urlopen(artifact_url, timeout=10) as response:
         assert json.load(response)["n_days"] == 1
     try:
@@ -54,7 +54,7 @@ def main() -> None:
         assert error.code in {401, 403}
     with urlopen(f"{BASE}/metrics", timeout=10) as response:
         assert b'stock_agents_jobs_completed_total{job_type="backtest",outcome="success"} 1.0' in response.read()
-    print("Compose sign-in, admin dashboard, backtest, signed artifact, and metrics passed.")
+    print("Native sign-in, admin dashboard, backtest, signed artifact, and metrics passed.")
 
 
 if __name__ == "__main__":

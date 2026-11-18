@@ -68,10 +68,10 @@ def unauthorized() -> HTTPException:
 
 
 def _user_out(user: User) -> UserOut:
-    return UserOut(id=str(user.id), email=user.email, is_admin=bool(user.is_admin))
+    return UserOut(id=str(user.id), email=user.email, is_admin=bool(user.is_admin), email_verified=user.email_verified)
 
 
-def make_token(user_id: str) -> TokenResponse:
+def make_token(user_id: str, session_version: int = 0) -> TokenResponse:
     now = datetime.now(UTC)
     token = jwt.encode(
         {
@@ -81,6 +81,7 @@ def make_token(user_id: str) -> TokenResponse:
             "iat": now,
             "nbf": now,
             "exp": now + timedelta(seconds=ACCESS_TTL_SECONDS),
+            "ver": session_version,
         },
         _secret(),
         algorithm="HS256",
@@ -88,7 +89,7 @@ def make_token(user_id: str) -> TokenResponse:
     return TokenResponse(access_token=token, expires_in=ACCESS_TTL_SECONDS)
 
 
-def _verify_local(token: str) -> str:
+def _verify_local(token: str) -> tuple[str, int]:
     claims = jwt.decode(
         token,
         _secret(),
@@ -97,7 +98,7 @@ def _verify_local(token: str) -> str:
         audience=AUDIENCE,
         options={"require": ["sub", "iss", "aud", "iat", "nbf", "exp"]},
     )
-    return str(UUID(claims["sub"]))
+    return str(UUID(claims["sub"])), claims.get("ver", 0)
 
 
 async def _authenticate(
@@ -119,7 +120,8 @@ async def _authenticate(
             subject = await run_in_threadpool(verify_clerk_jwt, token)
             query = select(User).where(User.clerk_subject == subject)
         else:
-            query = select(User).where(User.id == _verify_local(token))
+            user_id, version = _verify_local(token)
+            query = select(User).where(User.id == user_id, User.session_version == version, User.email_verified.is_(True))
     except jwt.PyJWKClientConnectionError as exc:
         raise HTTPException(503, "Identity provider unavailable") from exc
     except (jwt.PyJWTError, ValueError) as exc:
@@ -190,7 +192,7 @@ async def login(request: Request, response: Response, body: LoginRequest, sessio
     password = body.password.get_secret_value()
     if len(password) > 256:
         raise unauthorized()
-    user = await session.scalar(select(User).where(func.lower(User.email) == body.email.lower()))
+    user = await session.scalar(select(User).where(func.lower(User.email) == body.email.lower()).with_for_update())
     stored_hash = user.hashed_pwd if user and user.hashed_pwd else dummy_hash
     try:
         valid, replacement = await run_in_threadpool(
@@ -200,10 +202,12 @@ async def login(request: Request, response: Response, body: LoginRequest, sessio
         raise unauthorized() from None
     if not user or not user.hashed_pwd or not valid:
         raise unauthorized()
+    if not user.email_verified:
+        raise HTTPException(403, "Verify your email before signing in. You can request a new verification link.")
     if replacement:
         user.hashed_pwd = replacement
         await session.commit()
-    token = make_token(str(user.id))
+    token = make_token(str(user.id), user.session_version)
     response.set_cookie(
         COOKIE,
         token.access_token,

@@ -9,19 +9,18 @@ set up the web app with Node.js 24 and pnpm.
 ```powershell
 Set-Location apps/web
 pnpm install --frozen-lockfile
-pnpm gen:api
 pnpm dev --hostname 127.0.0.1 --port 3001
 ```
 
-The current Windows preview uses port 3001 because another service is on
-3000. The FastAPI HTML app remains available on 8701 during rollout.
+The Windows preview uses port 3001. Run `pnpm gen:api` after changing the
+API schema with the updated FastAPI process listening on 8701.
 
 ## 2. Verify the production build
 
 ```powershell
 pnpm lint
-pnpm typecheck
 pnpm build
+pnpm typecheck
 pnpm start --hostname 127.0.0.1 --port 3001
 ```
 

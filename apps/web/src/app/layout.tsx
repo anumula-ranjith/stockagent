@@ -8,7 +8,7 @@ import { Footer, Header } from "@/components/shell";
 
 export const metadata: Metadata = {
   title: { default: "Stock Agents | NSE equity research", template: "%s | Stock Agents" },
-  description: "Explore the Nifty 200, compare four ranking signals, and run point-in-time equity backtests.",
+  description: "Screen the Nifty 500, compare four ranking signals, and run point-in-time equity backtests.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

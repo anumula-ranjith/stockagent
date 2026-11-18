@@ -12,7 +12,7 @@ import { Button } from "./ui/button";
 
 const ClerkSignOut = dynamic(() => import("./clerk-sign-out"), { ssr: false });
 const links = [
-  ["/", "Home"], ["/dashboard", "Dashboard"], ["/stocks", "Stocks"],
+  ["/", "Home"], ["/dashboard", "Dashboard"], ["/screener", "Screener"], ["/stocks", "Stocks"],
   ["/backtest", "Backtest"], ["/methodology", "Methodology"],
 ] as const;
 
@@ -44,6 +44,7 @@ export function Header() {
       <div className="top-actions">
         <span className="market-chip"><i/>NSE India</span>
         <button className="icon-button" type="button" aria-label="Toggle color theme" onClick={switchTheme}><SunMoon size={19}/></button>
+        {session.data && !usesClerk && <Link className="text-link" href="/account">Account</Link>}
         {session.data
           ? usesClerk ? <ClerkSignOut/> : <Button variant="ghost" onClick={logout} disabled={signingOut}>Sign out</Button>
           : <Button variant="secondary" asChild><Link href={"/login?next=" + encodeURIComponent(pathname)}>Sign in</Link></Button>}

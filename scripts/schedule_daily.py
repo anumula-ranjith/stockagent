@@ -34,6 +34,14 @@ def refresh_due_eod() -> None:
     run_refresh(due_date(datetime.now(MARKET_TZ)), due=True)
 
 
+def refresh_due_provider_inputs() -> None:
+    from stock_agents.ingest.provider_inputs import refresh_provider_inputs
+
+    result = refresh_provider_inputs(due=True)
+    if result["status"] == "partial":
+        log.warning("provider.inputs.partial", date=result["date"])
+
+
 def enqueue_daily(kind: str, run_date: date | None = None) -> str | None:
     run_date = run_date or datetime.now(MARKET_TZ).date()
     calendar = calendars.get_calendar(config.load_settings().market_calendar)
@@ -88,6 +96,10 @@ def build_scheduler(*, market_jobs: bool = True) -> BlockingScheduler:
         return scheduler
     scheduler.add_job(
         refresh_due_eod, "interval", minutes=15, id="eod-catchup",
+        next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1,
+    )
+    scheduler.add_job(
+        refresh_due_provider_inputs, "interval", minutes=15, id="nifty-provider-inputs",
         next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1,
     )
     for kind, hour, minute in SCHEDULE:

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
@@ -30,9 +30,13 @@ log = get_logger(__name__)
 BASE = "https://eodhistoricaldata.com/api"
 
 
+class EODHDAccountError(RuntimeError):
+    """Authentication, entitlement, or quota failure for this account."""
+
+
 @dataclass(frozen=True)
 class EODHDClient:
-    api_key: str
+    api_key: str = field(repr=False)
     timeout: int = 30
     max_retries: int = 3
     backoff_s: float = 1.5
@@ -59,6 +63,8 @@ class EODHDClient:
                     continue
                 if r.status_code == 404:
                     return None
+                if r.status_code in (401, 402, 403):
+                    raise EODHDAccountError(f"EODHD HTTP {r.status_code}")
                 r.raise_for_status()
                 ctype = r.headers.get("content-type", "")
                 return r.json() if "json" in ctype else r.text
@@ -97,6 +103,15 @@ class EODHDClient:
 
     def fundamentals(self, symbol: str) -> dict[str, Any] | None:
         return self._get(f"/fundamentals/{symbol}")
+
+    def ranking_fundamentals(self, symbol: str) -> dict[str, Any] | None:
+        return self._get(f"/fundamentals/{symbol}", {
+            "filter": "General,Highlights,Valuation,Earnings::Trend,Earnings::History",
+        })
+
+    def remaining_calls(self) -> int:
+        account = self._get("/user")
+        return max(0, int(account["dailyRateLimit"]) - int(account["apiRequests"]))
 
     def news(self, symbol: str, limit: int = 50) -> list[dict[str, Any]]:
         return self._get("/news", {"s": symbol, "limit": limit}) or []

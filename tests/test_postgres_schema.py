@@ -19,6 +19,7 @@ def test_postgres_metadata_covers_warehouse():
         "job_runs",
         "audit_log",
         "job_metrics",
+        "account_tokens",
     }
 
 

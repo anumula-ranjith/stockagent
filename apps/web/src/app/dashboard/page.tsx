@@ -1,11 +1,9 @@
-import { PageTitle } from "@/components/presentation";
+import { Suspense } from "react";
+import { State } from "@/components/presentation";
 import { Tuner } from "./tuner";
 
-export const metadata = { title: "Dashboard" };
+export const metadata = { title: "Four-agent stock ranker" };
 
 export default function DashboardPage() {
-  return <div className="shell workspace">
-    <PageTitle section="Rankings" title="Four-agent dashboard">Change the signal weights and compare the long and short books.</PageTitle>
-    <Tuner/>
-  </div>;
+  return <Suspense fallback={<State>Loading the stock ranker…</State>}><Tuner/></Suspense>;
 }

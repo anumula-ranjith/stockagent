@@ -112,6 +112,7 @@ async def backtest_latest(_user: CurrentUser, session: Session):
             JobRun.job_type == "backtest",
             JobRun.status == "finished",
             JobRun.result_data.is_not(None),
+            JobRun.payload["ranker"].is_(None),
         )
         .order_by(JobRun.finished_at.desc(), JobRun.id)
         .limit(1)
