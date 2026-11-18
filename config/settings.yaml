@@ -3,7 +3,6 @@
 paths:
   data_dir: data
   raw_dir:  data/raw          # gzipped raw API payloads, keyed by {source}/{endpoint}/{date}
-  duckdb:   data/market.duckdb
   backtests_dir: backtests
   log_dir:  logs
   fixtures_dir: tests/fixtures
@@ -15,14 +14,14 @@ base_currency: INR
 
 schedule:
   # All times in IST. NSE trades 09:15–15:30 IST.
-  daily_data_et:         "17:00"   # after NSE close + settlement window
-  daily_signals_et:      "18:00"
+  daily_data_et:         "18:30"   # IST, final exchange file required
+  daily_signals_et:      "19:30"
   execute_orders_et:     "09:10"   # pre-open on next trading day
   mark_to_market_et:     "15:45"
   weekly_fundamentals_et:
     day: Saturday
     time: "09:00"
-  retry_data_until_et:   "20:00"
+  # EOD retries continue until complete, including catch-up after downtime.
   retry_interval_min:    15
 
 costs:
@@ -32,10 +31,10 @@ costs:
   min_trade_size_usd: 100.0
 
 universe:
-  mode: seed_csv               # seed_csv | factset_constituents
-  benchmark_constituents: "NIFTY200"
+  mode: nse_daily              # official Nifty 500 + NSE stock F&O membership
+  benchmark_constituents: "NIFTY500"
   seed_csv: config/universe_seed.csv
-  rebalance_check: monthly
+  rebalance_check: daily
 
 data:
   price_lookback_years: 10

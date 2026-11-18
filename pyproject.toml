@@ -11,7 +11,6 @@ dependencies = [
   "pandas>=2.1",
   "numpy>=1.26",
   "pandas-ta>=0.3.14b",
-  "duckdb>=1.0",
   "pyarrow>=15",
   "pyyaml>=6",
   "pydantic>=2.5",
@@ -19,10 +18,25 @@ dependencies = [
   "requests>=2.31",
   "tenacity>=8.2",
   "pandas_market_calendars>=4.4",
-  "apscheduler>=3.10",
+  "apscheduler>=3.10,<4",
   "fastapi>=0.110",
+  "sqlalchemy[asyncio]>=2.0",
+  "asyncpg>=0.30",
+  "psycopg2-binary>=2.9",
+  "pyjwt[crypto]>=2.10",
+  "pwdlib[argon2,bcrypt]>=0.2",
+  "email-validator>=2.0",
+  "slowapi>=0.1.9",
+  "redis>=5.2",
+  "rq>=2.8,<4",
+  "rq-dashboard>=0.9.1,<1",
+  "a2wsgi>=1.10",
+  "boto3>=1.35",
+  "structlog>=24.4",
+  "prometheus-client>=0.21",
+  "opentelemetry-sdk>=1.31",
+  "opentelemetry-exporter-otlp-proto-http>=1.31",
   "uvicorn>=0.27",
-  "streamlit>=1.31",
   "plotly>=5.18",
   "matplotlib>=3.8",
   # External brokers / vendors (optional at import time; see sources/*.py):
@@ -48,6 +62,18 @@ ignore = ["E501"]  # black handles line length
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+
+[tool.mypy]
+files = [
+  "src/stock_agents/common/logging.py",
+  "src/stock_agents/common/telemetry.py",
+  "src/stock_agents/storage/tracing.py",
+  "src/stock_agents/storage/metrics.py",
+  "src/stock_agents/api/diagnostics.py",
+]
+follow_imports = "silent"
+ignore_missing_imports = true
+check_untyped_defs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

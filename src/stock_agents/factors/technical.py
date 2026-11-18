@@ -9,12 +9,13 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-import duckdb
 import pandas as pd
+
+from stock_agents.storage.warehouse import Warehouse
 
 
 def _prices_pivot(
-    conn: duckdb.DuckDBPyConnection, asof: date, lookback_days: int = 400
+    conn: Warehouse, asof: date, lookback_days: int = 400
 ) -> pd.DataFrame:
     """Return wide DataFrame: index=date, columns=ticker, values=adj_close.
 
@@ -72,7 +73,7 @@ def ma_distance(prices: pd.DataFrame, window: int = 50) -> pd.Series:
 
 
 def compute_technical_factors(
-    conn: duckdb.DuckDBPyConnection, asof: date | None = None
+    conn: Warehouse, asof: date | None = None
 ) -> pd.DataFrame:
     """One row per ticker, columns = factor values."""
     asof = asof or date.today()

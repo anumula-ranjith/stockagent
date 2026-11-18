@@ -76,7 +76,13 @@ async function boot(){
     document.getElementById("univMetrics").innerHTML =
       `<div class="m"><small>Tickers</small><strong>${u.length}</strong></div>
        <div class="m"><small>Sectors</small><strong>${sectors.size}</strong></div>`;
-    const c = await (await fetch("/combine?n=5")).json();
+    const rankings = await fetch("/combine?n=5");
+    if (rankings.status === 401) {
+      signInNotice("heroVisual", "Sign in to view rankings");
+      signInNotice("homeLongs", "Sign in to view the current book");
+      return;
+    }
+    const c = await rankings.json();
     if(c.longs && c.longs.length){
       document.getElementById("homeLongs").innerHTML = renderTable(c.longs, "pos");
       document.getElementById("homeShorts").innerHTML = renderTable(c.shorts, "neg");

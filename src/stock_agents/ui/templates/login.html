@@ -1,0 +1,79 @@
+<main class="page">
+  <div class="card" style="max-width:460px;margin:24px auto">
+    <h1>Sign in</h1>
+    <form id="loginForm" method="post" action="/login">
+      <label class="field">Email
+        <input name="email" type="email" autocomplete="username" required>
+      </label>
+      <label class="field">Password
+        <input name="password" type="password" autocomplete="current-password" required maxlength="256">
+      </label>
+      <button class="btn primary" type="submit">Sign in</button>
+    </form>
+    <p id="loginStatus" role="status" class="note"></p>
+    <details>
+      <summary>Set up the first administrator</summary>
+      <form id="signupForm" method="post" action="/signup" style="margin-top:12px">
+        <label class="field">Email
+          <input name="email" type="email" autocomplete="username" required>
+        </label>
+        <label class="field">Password
+          <input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="256">
+        </label>
+        <label class="field">Bootstrap token
+          <input name="bootstrap" type="password" autocomplete="off" required>
+        </label>
+        <button class="btn" type="submit">Create administrator</button>
+      </form>
+    </details>
+  </div>
+</main>
+<script>
+  const loginStatus = document.getElementById("loginStatus");
+  function loginDestination(){
+    try {
+      const url = new URL(new URLSearchParams(location.search).get("next") || "/dashboard", location.origin);
+      if (url.origin === location.origin && url.pathname !== "/login") {
+        return url.origin + url.pathname + url.search + url.hash;
+      }
+    } catch {}
+    return "/dashboard";
+  }
+  async function submitCredentials(event, signup){
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button");
+    const fields = new FormData(form);
+    const headers = {"Content-Type":"application/json", "X-Stock-Agents-Request":"1"};
+    if (signup) headers["X-Bootstrap-Signup-Token"] = fields.get("bootstrap");
+    button.disabled = true;
+    loginStatus.textContent = "";
+    try {
+      const response = await fetch(signup ? "/signup" : "/login", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({email: fields.get("email"), password: fields.get("password")}),
+      });
+      if (response.ok && !signup) {
+        location.replace(loginDestination());
+        return;
+      }
+      const data = await response.json();
+      if (response.ok) {
+        form.reset();
+        form.closest("details").open = false;
+        document.getElementById("loginForm").elements.email.value = data.email;
+        loginStatus.textContent = "Administrator created. Sign in with your password.";
+      } else {
+        loginStatus.textContent = response.status === 429 ? "Too many attempts. Try again later."
+          : typeof data.detail === "string" ? data.detail : "Check the fields and try again.";
+      }
+    } catch {
+      loginStatus.textContent = "The sign-in service is unavailable. Try again later.";
+    } finally {
+      button.disabled = false;
+    }
+  }
+  document.getElementById("loginForm").addEventListener("submit", event => submitCredentials(event, false));
+  document.getElementById("signupForm").addEventListener("submit", event => submitCredentials(event, true));
+</script>

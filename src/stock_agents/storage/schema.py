@@ -14,6 +14,7 @@ import duckdb
 
 from stock_agents.common import config as _config
 from stock_agents.common.logging import get_logger
+from stock_agents.storage.tracing import connect_duckdb
 
 log = get_logger(__name__)
 
@@ -447,7 +448,7 @@ def connect(path: str | None = None) -> duckdb.DuckDBPyConnection:
     """Open the warehouse. Defaults to settings.paths.duckdb."""
     if path is None:
         path = str(_config.load_settings().paths.duckdb)
-    return duckdb.connect(path)
+    return connect_duckdb(path)
 
 
 def init_schema(conn: duckdb.DuckDBPyConnection) -> None:

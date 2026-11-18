@@ -7,7 +7,7 @@ from datetime import date
 
 from stock_agents.common import config as _config
 from stock_agents.common.logging import configure, get_logger
-from stock_agents.storage import schema
+from stock_agents.storage.warehouse import connect
 
 
 def _init_logging():
@@ -18,29 +18,21 @@ def _init_logging():
 
 def _cmd_init_db(_args: argparse.Namespace) -> None:
     s, log = _init_logging()
-    log.info("initializing warehouse at %s", s.paths.duckdb)
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
-        tables = schema.list_tables(conn)
-        log.info("done: %d tables", len(tables))
-        print(f"Warehouse ready: {len(tables)} tables at {s.paths.duckdb}")
-    finally:
-        conn.close()
+    from stock_agents.storage.postgres import Base
+
+    with connect() as conn:
+        Base.metadata.create_all(conn.connection)
+    print("PostgreSQL warehouse ready")
 
 
 def _cmd_load_universe(_args: argparse.Namespace) -> None:
     from stock_agents.ingest.universe import load_universe
 
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         seed = _config.project_root() / s.universe_seed_csv
         n = load_universe(conn, seed, s.exchange_suffix)
         print(f"Loaded {n} tickers from {seed}")
-    finally:
-        conn.close()
 
 
 def _cmd_ingest_prices(args: argparse.Namespace) -> None:
@@ -48,15 +40,11 @@ def _cmd_ingest_prices(args: argparse.Namespace) -> None:
     from stock_agents.sources.eodhd import EODHDClient
 
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         client = EODHDClient.from_env()
         tickers = args.tickers.split(",") if args.tickers else None
         n = backfill_prices(conn, client, years=args.years, tickers=tickers)
         print(f"Price backfill done: {n} rows")
-    finally:
-        conn.close()
 
 
 def _cmd_ingest_corp(args: argparse.Namespace) -> None:
@@ -64,15 +52,11 @@ def _cmd_ingest_corp(args: argparse.Namespace) -> None:
     from stock_agents.sources.eodhd import EODHDClient
 
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         client = EODHDClient.from_env()
         tickers = args.tickers.split(",") if args.tickers else None
         n = ingest_corporate_actions(conn, client, tickers=tickers)
         print(f"Corporate actions written: {n}")
-    finally:
-        conn.close()
 
 
 def _cmd_ingest_bulk(args: argparse.Namespace) -> None:
@@ -80,16 +64,12 @@ def _cmd_ingest_bulk(args: argparse.Namespace) -> None:
     from stock_agents.sources.eodhd import EODHDClient
 
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         client = EODHDClient.from_env()
         td = date.fromisoformat(args.date) if args.date else None
         exch = args.exchange or s.exchange_suffix.lstrip(".")
         n = ingest_bulk_last_day(conn, client, exchange=exch, trade_date=td)
         print(f"Bulk ingest: {n} rows for {exch} ({td or 'latest'})")
-    finally:
-        conn.close()
 
 
 def _cmd_ingest_news(args: argparse.Namespace) -> None:
@@ -97,54 +77,41 @@ def _cmd_ingest_news(args: argparse.Namespace) -> None:
     from stock_agents.sources.eodhd import EODHDClient
 
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         client = EODHDClient.from_env()
         tickers = args.tickers.split(",") if args.tickers else None
         n1 = ingest_news(conn, client, tickers=tickers, limit_per_ticker=args.limit)
         n2 = ingest_sentiment_daily(conn, client, tickers=tickers)
         print(f"News: {n1} rows, sentiment_daily: {n2} rows")
-    finally:
-        conn.close()
 
 
 def _cmd_compute_scores(args: argparse.Namespace) -> None:
     from stock_agents.engine.scores import compute_and_store
 
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         asof = date.fromisoformat(args.asof) if args.asof else None
         counts = compute_and_store(conn, asof=asof)
         for name, n in counts.items():
             print(f"  {name}: {n} tickers scored")
-    finally:
-        conn.close()
 
 
 def _cmd_combine(args: argparse.Namespace) -> None:
-    from stock_agents.engine.combiner import combine_latest
     import json as _json
 
+    from stock_agents.engine.combiner import combine_latest
+
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         out = combine_latest(conn, asof=args.asof, n_per_side=args.n, mode=args.mode)
         print(_json.dumps(out, indent=2, default=str))
-    finally:
-        conn.close()
 
 
 def _cmd_backtest(args: argparse.Namespace) -> None:
     from stock_agents.engine.backtest import run_backtest
 
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         out = run_backtest(
             conn,
             start=date.fromisoformat(args.start),
@@ -159,15 +126,11 @@ def _cmd_backtest(args: argparse.Namespace) -> None:
             f"  sharpe:         {out.get('sharpe', 0):.2f}\n"
             f"  max drawdown:   {out.get('max_drawdown', 0) * 100:.2f}%"
         )
-    finally:
-        conn.close()
 
 
 def _cmd_status(_args: argparse.Namespace) -> None:
     s, log = _init_logging()
-    conn = schema.connect()
-    try:
-        schema.init_schema(conn)
+    with connect() as conn:
         tickers = conn.execute("SELECT COUNT(*) FROM symbology WHERE active = TRUE").fetchone()[0]
         prows = conn.execute("SELECT COUNT(*) FROM prices_daily").fetchone()[0]
         pmin, pmax = conn.execute("SELECT MIN(date), MAX(date) FROM prices_daily").fetchone()
@@ -177,8 +140,6 @@ def _cmd_status(_args: argparse.Namespace) -> None:
         print(f"Prices:     {prows:,} rows, {pmin} to {pmax}")
         print(f"Corp act.:  {corp:,}")
         print(f"News:       {news:,}")
-    finally:
-        conn.close()
 
 
 def _build_parser() -> argparse.ArgumentParser:
