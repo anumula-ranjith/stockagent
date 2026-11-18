@@ -15,6 +15,8 @@ docker compose up -d --wait postgres redis object-store
 docker compose exec postgres psql -U stockagents -d stockagents -c "SELECT hypertable_name FROM timescaledb_information.hypertables;"
 ```
 
+Compose uses SeaweedFS for its local S3 endpoint. To retain artifacts from an older MinIO volume, copy the objects through the S3 API before retiring that volume.
+
 Use the configured database user and name if they differ from the development
 defaults. Expect `prices_daily` in the result. A new volume applies
 `scripts/sql/init.sql` followed by `scripts/sql/timescale.sql`. For an
