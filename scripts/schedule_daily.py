@@ -15,6 +15,7 @@ from sqlalchemy.dialects.postgresql import insert
 from stock_agents.common import config
 from stock_agents.common.logging import configure
 from stock_agents.common.telemetry import setup_tracing, trace_headers, tracer
+from stock_agents.ingest.screen_indices import refresh_screen_indices
 from stock_agents.jobs.queue import dispatch, reconcile_jobs, sync_engine
 from stock_agents.storage.postgres import JobRun
 
@@ -35,9 +36,12 @@ def refresh_due_eod() -> None:
 
 
 def refresh_due_provider_inputs() -> None:
+    from scripts.derive_peg import derive_peg
     from stock_agents.ingest.provider_inputs import refresh_provider_inputs
 
     result = refresh_provider_inputs(due=True)
+    if result.get("date"):
+        derive_peg(date.fromisoformat(result["date"]))
     if result["status"] == "partial":
         log.warning("provider.inputs.partial", date=result["date"])
 
@@ -94,6 +98,8 @@ def build_scheduler(*, market_jobs: bool = True) -> BlockingScheduler:
     )
     if not market_jobs:
         return scheduler
+    scheduler.add_job(refresh_screen_indices, "interval", hours=12, id="nifty-screen-indices",
+                      next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1)
     scheduler.add_job(
         refresh_due_eod, "interval", minutes=15, id="eod-catchup",
         next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1,

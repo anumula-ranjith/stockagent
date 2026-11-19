@@ -28,7 +28,7 @@ export class ApiError extends Error {
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.method === "POST") headers.set("X-Stock-Agents-Request", "1");
+  if (init.method && !["GET", "HEAD"].includes(init.method.toUpperCase())) headers.set("X-Stock-Agents-Request", "1");
   if (typeof init.body === "string") headers.set("Content-Type", "application/json");
   const base = (process.env.NEXT_PUBLIC_API_BASE || "/backend").replace(/\/$/, "");
   const response = await fetch(base + path, {

@@ -15,9 +15,9 @@ export default function HomePage() {
     <section className="market-hero">
       <div className="hero-photo"><Image src="/market-district.webp" alt="" fill priority sizes="(max-width: 780px) 100vw, 70vw"/></div>
       <div className="shell hero-inner">
-        <p className="eyebrow">Nifty 500 · Equity research</p>
-        <h1>Four signals.<br/>One market view.</h1>
-        <p className="hero-copy">Rank NSE equities by technicals, sentiment, momentum, and fundamentals. Follow each signal from screen to backtest.</p>
+        <p className="eyebrow">QUANTORA · Advanced Equity Intelligence &amp; Quantitative Research</p>
+        <h1>Invest Smarter.<br/>Think Quant.</h1>
+        <p className="hero-copy">Research NSE equities through technical, sentiment, momentum, and fundamental signals. Follow each idea from screen to backtest.</p>
         <div className="hero-actions">
           <Button asChild><Link href="/dashboard">Open dashboard <ArrowRight size={17}/></Link></Button>
           <Button variant="secondary" asChild><Link href="/screener">Open screener</Link></Button>

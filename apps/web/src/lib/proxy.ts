@@ -2,8 +2,8 @@ import type { NextRequest } from "next/server";
 import { isIP } from "node:net";
 
 const origin = new URL(process.env.API_ORIGIN || "http://127.0.0.1:8701");
-const reads = /^(health|me|universe|combine|ranker\/(?:snapshot|latest)|backtest\/latest|(?:prices|news|scores|agents|sentiment|jobs)\/[^/]+)$/;
-const writes = /^(login|logout|signup|register|verify-email|resend-verification|forgot-password|reset-password|change-password|backtest\/run|screener\/run|ranker\/(?:snapshot|backtest))$/;
+const reads = /^(health|me|universe|combine|ranker\/(?:snapshot|latest)|backtest\/latest|(?:prices|news|scores|agents|sentiment|jobs|stock-profile)\/[^/]+|portfolios(?:\/[^/]+)?|watchlists(?:\/[^/]+)?|brokers\/angel-one\/snapshot)$/;
+const writes = /^(login|logout|signup|register|verify-email|resend-verification|forgot-password|reset-password|change-password|backtest\/run|screener\/run|ranker\/(?:snapshot|backtest)|(?:ranker|screener)\/stock\/[^/]+|portfolios(?:\/[^/]+(?:\/entries(?:\/[^/]+)?)?)?|watchlists(?:\/[^/]+(?:\/items\/[^/]+)?)?|brokers\/angel-one\/(?:sync|snapshot))$/;
 
 export async function proxy(request: NextRequest, segments: string[], operations = false) {
   if (segments.some(segment => !segment || segment === "." || segment === ".." || /[\/\\]/.test(segment))) {
@@ -64,7 +64,7 @@ export async function proxy(request: NextRequest, segments: string[], operations
       body: read ? undefined : await request.text(),
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(path === "brokers/angel-one/sync" ? 45000 : 30000),
     });
   } catch {
     return Response.json({ detail: "The research API is unavailable" }, {

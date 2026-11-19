@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -11,13 +11,16 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import type { components } from "@/lib/api-types";
 import styles from "./screener.module.css";
+import { stockHref, type ChartRules } from "@/lib/stock-context";
 
 const defaults = {
   below_high_pct: null as number | null, above_low_pct: null as number | null,
-  ema_fast: 9, ema_slow: 21, ema_rule: "any", ema_sessions_ago: 0,
-  macd_fast: 12, macd_slow: 26, macd_signal: 9, macd_rule: "any", macd_sessions_ago: 0,
+  ema_fast: 9, ema_slow: 21, ema_rule: "any" as ChartRules["ema_rule"], ema_sessions_ago: 0,
+  macd_fast: 12, macd_slow: 26, macd_signal: 9, macd_rule: "any" as ChartRules["macd_rule"], macd_sessions_ago: 0,
 };
 type Filter = typeof defaults;
+const allStocks = {index_code: "NIFTY500", cap: "", industry: "", fo_only: false};
+const capLabels: Record<string, string> = {large: "Large cap", mid: "Mid cap", small: "Small cap"};
 type Row = components["schemas"]["ScreenRow"];
 type Result = components["schemas"]["ScreenResult"];
 const number = new Intl.NumberFormat("en-IN", {maximumFractionDigits: 2});
@@ -32,7 +35,9 @@ function resultsColumns(q: Filter): ColumnDef<Row>[] {
     ["macd_signal", "Signal"], ["macd_hist", "Histogram"], ["macd_cross", "MACD cross"],
   ];
   return [{accessorKey: "ticker", header: "Ticker", cell: ({row}) =>
-    <Link className="text-link" href={"/stocks/" + encodeURIComponent(row.original.ticker)}>{row.original.ticker}</Link>},
+    <Link className="text-link" href={stockHref(row.original.ticker, {periods: q, rules: q})}>{row.original.ticker}</Link>},
+    {accessorKey: "cap", header: "Cap segment", cell: ({row}) => capLabels[row.original.cap ?? ""] ?? "—"},
+    {accessorKey: "industry", header: "Industry", cell: ({row}) => row.original.industry ?? "—"},
   ...values.map(([key, header]) => ({accessorKey: key, header, cell: ({row}: {row: {original: Row}}) => {
     const v = row.original[key];
     if (v == null) return <span title="Insufficient price history">—</span>;
@@ -68,10 +73,17 @@ export function Screener() {
   const session = useSession();
   const [draft, setDraft] = useState(defaults);
   const [applied, apply] = useState(defaults);
+  const [universe, setUniverse] = useState(allStocks);
+  const chooseUniverse = (patch: Partial<typeof allStocks>) => {
+    setUniverse(previous => ({...previous, ...patch}));
+    setSearch("");
+  };
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const query = useQuery({queryKey: ["nifty-screen", session.data?.id, applied], enabled: !!session.data,
-    queryFn: ({signal}) => api<Result>("/screener/run", {method: "POST", body: JSON.stringify(applied), signal})});
+  const query = useQuery({queryKey: ["nifty-screen", session.data?.id, universe, applied], enabled: !!session.data,
+    placeholderData: keepPreviousData,
+    queryFn: ({signal}) => api<Result>("/screener/run", {method: "POST", signal,
+      body: JSON.stringify({...applied, ...universe, cap: universe.cap || null, industry: universe.industry || null})})});
   function submit(e: FormEvent) {
     e.preventDefault();
     if (draft.ema_fast >= draft.ema_slow || draft.macd_fast >= draft.macd_slow) {
@@ -88,6 +100,30 @@ export function Screener() {
   if (session.error) return <State error>{session.error.message}</State>;
   if (!session.data) return <SignInNotice next="/screener">Sign in to screen the locally stored market data.</SignInNotice>;
   return <div className={styles.layout}>
+    <section className={styles.universe} aria-label="Universe filters">
+      <label className="field">Nifty index
+        <select value={universe.index_code} onChange={e => chooseUniverse({index_code: e.target.value})}>
+          {Object.entries(data?.index_options ?? {NIFTY500: "Nifty 500"}).map(([code, label]) =>
+            <option key={code} value={code}>{label}</option>)}
+        </select>
+      </label>
+      <label className="field">Market-cap segment
+        <select value={universe.cap} onChange={e => chooseUniverse({cap: e.target.value})}>
+          <option value="">All sizes</option>
+          <option value="large">Large cap · Nifty 100</option>
+          <option value="mid">Mid cap · Midcap 150</option>
+          <option value="small">Small cap · Smallcap 250</option>
+        </select>
+      </label>
+      <label className="field">Industry
+        <select value={universe.industry} onChange={e => chooseUniverse({industry: e.target.value})}>
+          <option value="">All industries</option>
+          {data?.industries.map(value => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label className={styles.eligible}><input type="checkbox" checked={universe.fo_only}
+        onChange={e => chooseUniverse({fo_only: e.target.checked})}/>F&amp;O eligible only</label>
+    </section>
     <form onSubmit={submit} className={styles.filter}>
       <h2>Screen filters</h2>
       <fieldset><legend>52-week range</legend>
@@ -99,13 +135,13 @@ export function Screener() {
       <p className={styles.note}>0 selects the latest stored session. 1 selects the preceding trading session.</p>
       {error && <p role="alert">{error}</p>}
       <div className={styles.actions}><Button type="submit" disabled={query.isFetching}>Run screen</Button>
-        <Button type="button" variant="ghost" onClick={() => {setDraft(defaults); apply(defaults); setError(""); setSearch("");}}>Reset</Button></div>
+        <Button type="button" variant="ghost" onClick={() => {setDraft(defaults); apply(defaults); setUniverse(allStocks); setError(""); setSearch("");}}>Reset</Button></div>
     </form>
     <section className={styles.results} aria-label="Screen results">
-      {query.isError ? <State error>{query.error.message}</State> : !data ? <State>Reading Nifty price history…</State> : <>
+      {query.isError ? <State error>{query.error.message}</State> : !data || query.isPlaceholderData ? <State>Screening the selected universe…</State> : <>
         <div className={styles.stats}>
           <div><span>Latest price session</span><strong>{day(data.asof)}</strong></div>
-          <div><span>Current constituents</span><strong>{data.members}</strong></div>
+          <div><span>Selected constituents</span><strong>{data.members}</strong></div>
           <div><span>Adjusted closes</span><strong>{data.priced}</strong></div>
           <div><span>52-week range coverage</span><strong>{data.range_coverage}</strong></div>
         </div>

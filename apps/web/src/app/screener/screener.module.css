@@ -1,4 +1,9 @@
 .layout { display:grid; grid-template-columns:minmax(230px,275px) minmax(0,1fr); gap:20px; align-items:start; }
+.universe { grid-column:1 / -1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) auto; align-items:end; gap:18px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
+.universe select { width:100%; min-width:0; }
+.eligible { display:flex; align-items:center; gap:8px; min-height:40px; font-weight:600; }
+@media (max-width:900px) { .universe { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:500px) { .universe { grid-template-columns:minmax(0,1fr); gap:10px; } }
 .filter,.stats>div { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
 .layout h2 { font-size:17px; font-weight:680; letter-spacing:-.025em; }
 .filter fieldset { border:0; border-top:1px solid var(--line); padding:8px 0; margin:14px 0 0; }

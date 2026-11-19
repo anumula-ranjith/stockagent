@@ -20,6 +20,12 @@ def test_postgres_metadata_covers_warehouse():
         "audit_log",
         "job_metrics",
         "account_tokens",
+        "company_reference",
+        "portfolio_accounts",
+        "portfolio_entries",
+        "watchlists",
+        "watchlist_items",
+        "broker_snapshots",
     }
 
 

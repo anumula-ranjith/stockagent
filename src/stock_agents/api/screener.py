@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from threading import Lock
 from time import monotonic
@@ -10,28 +10,25 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from stock_agents.api.auth import CurrentUser
+from stock_agents.ingest.screen_indices import CAP_INDEX, INDEX_FILES
 from stock_agents.storage.warehouse import connect
 
 router = APIRouter(tags=["screener"])
 Rule = Literal["any", "above", "below", "cross_up", "cross_down"]
 
 
-class Screen(BaseModel):
+class IndicatorPeriods(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    below_high_pct: float | None = Field(None, ge=0, le=100)
-    above_low_pct: float | None = Field(None, ge=0, le=10000)
     ema_fast: int = Field(9, ge=1, le=199)
     ema_slow: int = Field(21, ge=2, le=200)
-    ema_rule: Rule = "any"
     ema_sessions_ago: int = Field(0, ge=0, le=20)
     macd_fast: int = Field(12, ge=1, le=199)
     macd_slow: int = Field(26, ge=2, le=200)
     macd_signal: int = Field(9, ge=1, le=100)
-    macd_rule: Rule = "any"
     macd_sessions_ago: int = Field(0, ge=0, le=20)
 
     @model_validator(mode="after")
@@ -41,8 +38,27 @@ class Screen(BaseModel):
         return self
 
 
+class Screen(IndicatorPeriods):
+    index_code: str = "NIFTY500"
+    cap: Literal["large", "mid", "small"] | None = None
+    industry: str | None = Field(None, min_length=1, max_length=150)
+    fo_only: bool = False
+    below_high_pct: float | None = Field(None, ge=0, le=100)
+    above_low_pct: float | None = Field(None, ge=0, le=10000)
+    ema_rule: Rule = "any"
+    macd_rule: Rule = "any"
+
+    @model_validator(mode="after")
+    def known_index(self):
+        if self.index_code != "NIFTY500" and self.index_code not in INDEX_FILES:
+            raise ValueError("Unknown Nifty index")
+        return self
+
+
 class ScreenRow(BaseModel):
     ticker: str
+    industry: str | None
+    cap: str | None
     close: float | None
     high_52w: float | None
     low_52w: float | None
@@ -64,7 +80,17 @@ class ScreenResult(BaseModel):
     members: int
     priced: int
     range_coverage: int
+    index_options: dict[str, str]
+    industries: list[str]
     rows: list[ScreenRow]
+
+
+class StockIndicators(BaseModel):
+    asof: date | None
+    ema_date: date | None
+    macd_date: date | None
+    values: ScreenRow | None
+    matches_filters: bool
 
 
 @dataclass
@@ -74,6 +100,8 @@ class History:
     high: pd.DataFrame
     low: pd.DataFrame
     raw: pd.DataFrame
+    groups: dict[str, set[str]] = field(default_factory=dict)
+    industries: dict[str, str] = field(default_factory=dict)
 
 
 def load_history() -> History:
@@ -90,23 +118,43 @@ def load_history() -> History:
             .all(),
             name="ticker",
         )
+        groups: dict[str, set[str]] = {}
+        for code, ticker in db.execute(
+            """SELECT index_code,ticker FROM index_membership WHERE left_on IS NULL
+               AND known_on <= ? AND joined_on <= ? AND index_code = ANY(?)""",
+            [today, today, [*INDEX_FILES, "NSE_FO"]],
+        ):
+            groups.setdefault(code, set()).add(ticker)
+        industries = dict(db.execute(
+            """SELECT DISTINCT ON (ticker) ticker, industry FROM classification
+               WHERE ticker = ANY(?) AND source='nse_indices' AND known_date <= ?
+               AND effective_date <= ? AND NULLIF(TRIM(industry),'') IS NOT NULL
+               ORDER BY ticker, effective_date DESC, known_date DESC""",
+            [members.tolist(), today, today],
+        ).all())
+        active = pd.Index(db.execute("SELECT ticker FROM symbology WHERE active").scalars().all(),
+                          name="ticker")
         rows = db.execute(
             """SELECT DISTINCT ON (ticker,date) ticker,date,close,high,low,adj_close
                FROM prices_daily WHERE ticker = ANY(?) AND date BETWEEN ? AND ?
                  AND known_date <= ? AND volume > 0 AND source IN ('eodhd','nse_bhavcopy')
                ORDER BY ticker,date,(adj_close IS NULL), (source='eodhd') DESC""",
-            [members.tolist(), today - timedelta(days=1100), today, today],
+            [active.tolist(), today - timedelta(days=1100), today, today],
         ).all()
     data = pd.DataFrame(rows, columns=["ticker", "date", "close", "high", "low", "adj_close"])
     data["date"] = pd.to_datetime(data["date"])
 
     def wide(field: str):
-        frame = data.pivot(index="date", columns="ticker", values=field).reindex(columns=members)
+        frame = data.pivot(index="date", columns="ticker", values=field).reindex(columns=active)
         return frame.astype(float).where(lambda values: values.gt(0) & np.isfinite(values))
 
     raw, adjusted = wide("close"), wide("adj_close")
+    # Keep the screener's Nifty session calendar when including directory-only names.
+    sessions = data.loc[data.ticker.isin(members), "date"].unique() if len(members) else raw.index
+    raw, adjusted = raw.loc[raw.index.isin(sessions)], adjusted.loc[adjusted.index.isin(sessions)]
     scale = adjusted / raw
-    return History(members, adjusted, wide("high") * scale, wide("low") * scale, raw)
+    return History(members, adjusted, wide("high").loc[raw.index] * scale,
+                   wide("low").loc[raw.index] * scale, raw, groups, industries)
 
 
 _lock = Lock()
@@ -144,7 +192,21 @@ def signal(diff: pd.DataFrame, ago: int, rule: Rule):
 
 
 def evaluate(h: History, q: Screen) -> dict:
-    close = h.close
+    members = h.members
+    group_codes = []
+    if q.index_code != "NIFTY500":
+        group_codes.append(q.index_code)
+    if q.cap:
+        group_codes.append(CAP_INDEX[q.cap])
+    if q.fo_only:
+        group_codes.append("NSE_FO")
+    for code in group_codes:
+        if code not in h.groups:
+            raise HTTPException(503, f"Membership for {code} has not been loaded.")
+        members = members[members.isin(h.groups[code])]
+    if q.industry:
+        members = members[members.map(h.industries.get) == q.industry]
+    close = h.close[members]
     dates = close.index
     asof = dates[-1] if len(dates) else None
 
@@ -153,19 +215,23 @@ def evaluate(h: History, q: Screen) -> dict:
 
     result = dict(
         asof=session(0),
-        members=len(h.members),
+        members=len(members),
+        index_options={"NIFTY500": "Nifty 500", **{
+            code: details[0] for code, details in INDEX_FILES.items() if code in h.groups
+        }},
+        industries=sorted(set(h.industries.values())),
         priced=0,
         range_coverage=0,
         ema_date=session(q.ema_sessions_ago),
         macd_date=session(q.macd_sessions_ago),
         rows=[],
     )
-    if asof is None:
+    if asof is None or members.empty:
         return result
     last = close.iloc[-1]
     cutoff = asof - pd.Timedelta(weeks=52)
     in_year = dates > cutoff
-    highs, lows = h.high.loc[in_year], h.low.loc[in_year]
+    highs, lows = h.high.loc[in_year, members], h.low.loc[in_year, members]
     # Suspensions and missing vendor sessions can interrupt otherwise seasoned listings.
     # Exclude short histories and material gaps before calculating an observed range.
     valid = highs.notna() & lows.notna()
@@ -184,11 +250,12 @@ def evaluate(h: History, q: Screen) -> dict:
     if q.above_low_pct is not None:
         selected &= above.between(-1e-8, q.above_low_pct + 1e-8)
     # Express adjusted indicators in latest traded-price units.
-    scale = h.raw.iloc[-1] / last
+    raw = h.raw.loc[asof, members]
+    scale = raw / last
     frame = (
         pd.DataFrame(
             {
-                "close": h.raw.iloc[-1],
+                "close": raw,
                 "high_52w": high * scale,
                 "low_52w": low * scale,
                 "below_high_pct": below,
@@ -205,7 +272,12 @@ def evaluate(h: History, q: Screen) -> dict:
         .loc[selected]
         .round(4)
     )
-    frame = frame.rename_axis("ticker").reset_index().astype(object)
+    frame = frame.rename_axis("ticker").reset_index()
+    cap_by_ticker = {ticker: cap for cap, code in CAP_INDEX.items()
+                     for ticker in h.groups.get(code, set())}
+    frame["cap"] = frame["ticker"].map(cap_by_ticker)
+    frame["industry"] = frame["ticker"].map(h.industries)
+    frame = frame.astype(object)
     result.update(
         priced=int(last.notna().sum()),
         range_coverage=int(covered.sum()),
@@ -217,3 +289,19 @@ def evaluate(h: History, q: Screen) -> dict:
 @router.post("/screener/run", response_model=ScreenResult)
 def run_screen(query: Screen, _user: CurrentUser):
     return evaluate(cached_history(), query)
+
+
+@router.post("/screener/stock/{ticker}", response_model=StockIndicators)
+def stock_indicators(ticker: str, periods: Screen, _user: CurrentUser):
+    history = cached_history()
+    ticker = ticker.upper()
+    if ticker not in history.raw.columns:
+        raise HTTPException(404, "No active listing for this ticker.")
+    single = replace(history, members=pd.Index([ticker], name="ticker"))
+    filters = periods if isinstance(periods, Screen) else Screen(**periods.model_dump())
+    unfiltered = filters.model_copy(update={"below_high_pct": None, "above_low_pct": None,
+                                            "ema_rule": "any", "macd_rule": "any"})
+    result = evaluate(single, unfiltered)
+    filtered = evaluate(single, filters)
+    return {"asof": result["asof"], "ema_date": result["ema_date"], "macd_date": result["macd_date"],
+            "values": next(iter(result["rows"]), None), "matches_filters": bool(filtered["rows"])}

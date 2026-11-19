@@ -15,7 +15,7 @@ export function Providers({ children }: { children: ReactNode }) {
     defaultOptions: { queries: { staleTime: 45_000, retry: false } },
   }));
   const app = <QueryClientProvider client={client}><NuqsAdapter>{children}</NuqsAdapter></QueryClientProvider>;
-  return <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem>
+  return <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem disableTransitionOnChange>
     {usesClerk ? <ClerkShell>{app}</ClerkShell> : app}
   </ThemeProvider>;
 }

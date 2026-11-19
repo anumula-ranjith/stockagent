@@ -39,7 +39,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.concurrency import run_in_threadpool
 
-from stock_agents.api import account, auth, diagnostics, job_routes, ranker, screener
+from stock_agents.api import account, auth, broker, diagnostics, job_routes, personal, ranker, screener, stock_profile
 from stock_agents.api.auth import AdminUser, CurrentUser
 from stock_agents.api.rq_dashboard import admin_dashboard
 from stock_agents.api.schemas import (
@@ -83,6 +83,9 @@ app.include_router(job_routes.router)
 app.include_router(diagnostics.router)
 app.include_router(screener.router)
 app.include_router(ranker.router)
+app.include_router(stock_profile.router)
+app.include_router(personal.router)
+app.include_router(broker.router)
 OperationalDB = Annotated[ReadConnection, Depends(get_conn)]
 
 CLASSIFICATION = """
@@ -159,12 +162,14 @@ async def prices(
     ticker: str, db: OperationalDB, days: int = Query(90, ge=1, le=3650)
 ) -> list[dict[str, Any]]:
     rows = await db.fetch(
-        """SELECT date, open, high, low, close, adj_close, volume
+        """SELECT DISTINCT ON (date) date, open, high, low, close, adj_close, volume
            FROM prices_daily
-           WHERE ticker = :ticker AND date >= :cutoff AND LOWER(TRIM(source)) NOT LIKE 'factset%'
-           ORDER BY date, source""",
+           WHERE ticker = :ticker AND date BETWEEN :cutoff AND :today AND known_date <= :today
+             AND (volume > 0 OR volume IS NULL) AND LOWER(TRIM(source)) NOT LIKE 'factset%'
+           ORDER BY date, (source='eodhd') DESC, known_date DESC, source""",
         ticker=ticker.upper(),
         cutoff=date.today() - timedelta(days=days),
+        today=date.today(),
     )
     if not rows:
         raise HTTPException(404, f"no prices for {ticker}")
@@ -255,12 +260,13 @@ async def score_history(
 ) -> list[dict[str, Any]]:
     today = date.today()
     rows = await db.fetch(
-        """SELECT date, agent, score FROM agent_scores
+        """SELECT date, agent, score, passes FROM agent_scores
            WHERE ticker = :ticker AND date BETWEEN :start AND :end
            ORDER BY date, agent""",
         ticker=ticker.upper(), start=today - timedelta(days=days), end=today,
     )
-    return [{"date": day, "agent": agent, "score": score} for day, agent, score in rows]
+    return [{"date": day, "agent": agent, "score": score, "imputed": passes is False}
+            for day, agent, score, passes in rows]
 
 
 @app.get("/combine", response_model=CombineOut, response_model_exclude_unset=True)

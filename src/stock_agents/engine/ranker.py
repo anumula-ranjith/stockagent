@@ -1,5 +1,6 @@
 """Configurable agent and portfolio selection shared by the dashboard and historical replay."""
 
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Annotated, Literal
 
@@ -111,28 +112,56 @@ def feature(frame, key):
     ).replace([np.inf, -np.inf], np.nan)
 
 
-def rank(values, sectors=None):
+def rank(values, sectors=None, comparison_subject=None):
+    if comparison_subject is not None:
+        # Preserve the benchmark's scores. Only the subject gets an insertion
+        # percentile, including itself in its tie group and denominator.
+        reference = values.drop(comparison_subject)
+        reference_sectors = None if sectors is None else sectors.loc[reference.index]
+        ranked = rank(reference, reference_sectors).reindex(values.index)
+        if sectors is not None:
+            reference = reference.loc[reference_sectors == sectors.at[comparison_subject]]
+        peers = reference.dropna()
+        subject = values.at[comparison_subject]
+        if len(peers) and pd.notna(subject):
+            ranked.at[comparison_subject] = (
+                100
+                * ((peers < subject).sum() + 0.5 * ((peers == subject).sum() + 1))
+                / (len(peers) + 1)
+            )
+        return ranked
     grouped = values if sectors is None else values.groupby(sectors)
     counts = values.count() if sectors is None else grouped.transform("count")
     return (100 * (grouped.rank() - 0.5) / counts).where(values.notna())
 
 
+def observed_weights(frame, weights):
+    """Configured positive weights with observations in the cross-section."""
+    return {k: v for k, v in weights.items() if v > 0 and k in frame and frame[k].notna().any()}
+
+
 def blend(frame, weights):
     """Neutral 50 for individual gaps. A wholly missing signal stays unavailable."""
-    valid = {k: v for k, v in weights.items() if v > 0 and k in frame}
+    valid = observed_weights(frame, weights)
     if not valid:
         return pd.Series(np.nan, index=frame.index)
     factors = frame[list(valid)]
-    # Unavailable factors contribute no evidence across the universe.
-    valid = {k: v for k, v in valid.items() if factors[k].notna().any()}
-    if not valid:
-        return pd.Series(np.nan, index=frame.index)
-    return (
-        factors[list(valid)].fillna(50).mul(pd.Series(valid)).sum(axis=1) / sum(valid.values())
-    ).where(factors[list(valid)].notna().any(axis=1))
+    return (factors.fillna(50).mul(pd.Series(valid)).sum(axis=1) / sum(valid.values())).where(
+        factors.notna().any(axis=1)
+    )
 
 
-def score_book(raw, cfg: RankSettings):
+@dataclass
+class ScoreEvidence:
+    """Optional intermediates from the same pass that selects the candidate books."""
+
+    factor_ranks: dict[str, pd.DataFrame] = field(default_factory=dict)
+    pillars: pd.DataFrame = field(default_factory=pd.DataFrame)
+    long_filters: pd.DataFrame = field(default_factory=pd.DataFrame)
+    sentiment_bonus: pd.Series = field(default_factory=lambda: pd.Series(dtype=float))
+
+
+def score_book(raw, cfg: RankSettings, *, evidence: ScoreEvidence | None = None):
     frame = raw.copy()
     sector = frame.get("sector", pd.Series(index=frame.index, dtype=str)).fillna("Unclassified")
     scores = pd.DataFrame(index=frame.index)
@@ -155,20 +184,30 @@ def score_book(raw, cfg: RankSettings):
             if agent == "momentum" and cfg.vol_adjust:
                 value = value / feature(frame, "volatility").where(lambda s: s > 0)
             ranks[key] = rank(
-                value, sector if agent == "fundamental" and cfg.sector_neutral else None
+                value,
+                sector if agent == "fundamental" and cfg.sector_neutral else None,
+                raw.attrs.get("comparison_subject"),
             )
         ranked = pd.DataFrame(ranks, index=frame.index)
+        if evidence is not None:
+            evidence.factor_ranks[agent] = ranked
         if agent == "fundamental":
             pillars = {
                 p: blend(ranked, {k: cfg.factors.get(k, 0) for k in items})
                 for p, items in PILLARS.items()
             }
-            scores[agent] = blend(pd.DataFrame(pillars, index=frame.index), cfg.pillars)
+            pillar_frame = pd.DataFrame(pillars, index=frame.index)
+            scores[agent] = blend(pillar_frame, cfg.pillars)
+            if evidence is not None:
+                evidence.pillars = pillar_frame
         else:
             scores[agent] = blend(ranked, {k: cfg.factors.get(k, 0) for k in keys})
     hot = feature(frame, "hot_sector").groupby(sector).first().dropna().nlargest(3).index
     if cfg.boost_sectors:
+        original = scores["sentiment"].copy() if evidence is not None else None
         scores["sentiment"] = (scores.sentiment + 10 * sector.isin(hot)).clip(upper=100)
+        if evidence is not None:
+            evidence.sentiment_bonus = scores["sentiment"] - original
     passes["technical"] = pd.Series(True, index=frame.index)
     if cfg.rsi_min > 0 or cfg.rsi_max < 100:
         passes["technical"] &= feature(frame, "rsi14").between(cfg.rsi_min, cfg.rsi_max)
@@ -193,6 +232,7 @@ def score_book(raw, cfg: RankSettings):
         frame[key] = scores[key]
 
     books = {}
+    book_member = frame.index != raw.attrs.get("comparison_subject")
 
     def select(key, mask_long, mask_short, cap=0):
         def pick(ascending, mask, exclude, limit):
@@ -216,9 +256,9 @@ def score_book(raw, cfg: RankSettings):
 
         # Reserve room for both sides in small universes. Long-list filters
         # apply before taking the highest-scoring eligible names.
-        long_limit = min(cfg.size, (int(frame[key].count()) + 1) // 2)
-        longs = pick(False, mask_long, set(), long_limit)
-        shorts = pick(True, mask_short, set(longs), cfg.size)
+        long_limit = min(cfg.size, (int(frame.loc[book_member, key].count()) + 1) // 2)
+        longs = pick(False, mask_long & book_member, set(), long_limit)
+        shorts = pick(True, mask_short & book_member, set(longs), cfg.size)
         return {"longs": longs, "shorts": shorts}
 
     allowed = pd.Series(True, index=frame.index)
@@ -226,14 +266,20 @@ def score_book(raw, cfg: RankSettings):
         books[agent] = select(agent, passes[agent], allowed)
     active = [a for a in AGENTS if cfg.agents.get(a, 0) > 0 and scores[a].notna().any()]
     eligible = pd.DataFrame(passes, index=frame.index)
+    if evidence is not None:
+        evidence.long_filters = eligible
     # A name with an observed failing agent cannot enter the combined long book
     # on that agent's vote. Other eligible agents may still support it.
     supported = scores[active].where(eligible[active])
     long_ok = supported.notna().any(axis=1)
     short_ok = scores[active].notna().any(axis=1)
     if cfg.mode == "consensus":
-        long_ok &= (supported.rank(ascending=False, method="min") <= 20).sum(axis=1) >= cfg.agree
-        short_ok &= (scores[active].rank(method="min") <= 20).sum(axis=1) >= cfg.agree
+        long_ok &= (supported.loc[book_member].rank(ascending=False, method="min") <= 20).sum(
+            axis=1
+        ) >= cfg.agree
+        short_ok &= (scores.loc[book_member, active].rank(method="min") <= 20).sum(
+            axis=1
+        ) >= cfg.agree
     elif cfg.mode == "hybrid":
         long_ok &= ((scores[active] >= 40) & eligible[active]).all(axis=1)
         short_ok &= (scores[active] <= 60).all(axis=1)
@@ -255,7 +301,9 @@ def to_payload(raw, cfg, asof: date, price_date):
             "values": {
                 k: round(float(row[k]), 6)
                 for k in visible & set(row.index)
-                if pd.notna(row[k]) and np.isfinite(row[k]) and ticker not in protected.get(k, set())
+                if pd.notna(row[k])
+                and np.isfinite(row[k])
+                and ticker not in protected.get(k, set())
             },
         }
     sectors = (

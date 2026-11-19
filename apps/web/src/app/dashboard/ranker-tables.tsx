@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { agentLabels, agents, type Agent } from "@/lib/api";
-import { columns, display, type Snapshot, type Tab } from "./ranker-model";
+import { columns, display, type Settings, type Snapshot, type Tab } from "./ranker-model";
+import { stockHref } from "@/lib/stock-context";
 import s from "./ranker.module.css";
 
 export function Heat({data,boost}:{data:Snapshot["heat"];boost:boolean}) {
@@ -19,7 +20,7 @@ function Bars({values,short}:{values:Record<string,number>;short:boolean}) {
   return <span className={s.bars} aria-hidden="true">{agents.map(a=><i key={a}
     style={{height:values[a]==null?1:Math.max(2,values[a]*.23),background:short?"var(--rk-down)":"var(--rk-up)"}}/>)}</span>;
 }
-export function Candidates({tab,data,side,size}:{tab:Exclude<Tab,"portfolio">;data:Snapshot;side:"longs"|"shorts";size:number}) {
+export function Candidates({tab,data,side,size,settings}:{tab:Exclude<Tab,"portfolio">;data:Snapshot;side:"longs"|"shorts";size:number;settings:Settings}) {
   const short = side==="shorts";
   const combined = tab==="combined";
   const names = data.books[tab][side];
@@ -30,7 +31,7 @@ export function Candidates({tab,data,side,size}:{tab:Exclude<Tab,"portfolio">;da
       <thead><tr><th>#</th><th>Ticker</th><th>Sector</th>{fields.map(([key,label])=><th key={key}>{label}</th>)}{combined && <><th>Agents</th><th>Composite</th></>}</tr></thead>
       <tbody>{names.map((ticker,index)=>{
         const row = data.rows[ticker];
-        return <tr key={ticker}><td>{index+1}</td><td><Link href={"/stocks/"+encodeURIComponent(ticker)}>{ticker}</Link></td>
+        return <tr key={ticker}><td>{index+1}</td><td><Link href={stockHref(ticker,{settings,asof:data.asof})}>{ticker}</Link></td>
           <td className={s.sector} title={row.sector}>{row.sector}</td>{fields.map(([key,,kind])=>{
             const val = row.values[key];
             return <td key={key} className={kind==="percent" && val!=null ? val<0?s.down:s.up:undefined}>{display(val,kind)}</td>;

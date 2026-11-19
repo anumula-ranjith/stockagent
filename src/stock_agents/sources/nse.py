@@ -210,6 +210,13 @@ class NSEClient:
             raise ValueError("Nifty 500 snapshot size is outside the expected range")
         return members
 
+    def index_constituents(self, suffix: str, minimum: int) -> dict[str, dict]:
+        url = f"https://www.niftyindices.com/IndexConstituent/ind_nifty{suffix}list.csv"
+        members = parse_nifty500(self._get(url).content.decode("utf-8-sig"))
+        if len(members) < minimum:
+            raise ValueError(f"Incomplete constituent file for Nifty {suffix}")
+        return members
+
     def fo_stocks(self) -> dict[str, str]:
         members = parse_fo_tickers(self._get(NSE_LOT_SIZES).content.decode("utf-8-sig"))
         if not 100 <= len(members) <= 500:

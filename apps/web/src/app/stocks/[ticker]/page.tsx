@@ -3,18 +3,25 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageTitle } from "@/components/presentation";
 import { StockDetail } from "./detail";
+import { stockContext, type StockQuery } from "@/lib/stock-context";
 
-type Props = { params: Promise<{ ticker: string }> };
+type Props = { params: Promise<{ ticker: string }>; searchParams: Promise<StockQuery> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return { title: (await params).ticker.toUpperCase() };
+function listingSymbol(segment: string) {
+  try { return decodeURIComponent(segment).toUpperCase(); }
+  catch { return segment.toUpperCase(); }
 }
 
-export default async function TickerPage({ params }: Props) {
-  const ticker = (await params).ticker.toUpperCase();
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  return { title: listingSymbol((await params).ticker) };
+}
+
+export default async function TickerPage({ params, searchParams }: Props) {
+  const ticker = listingSymbol((await params).ticker);
+  const context = stockContext(await searchParams);
   return <div className="shell workspace">
     <Link href="/stocks" className="text-link mb-4"><ArrowLeft size={16}/> Stocks</Link>
-    <PageTitle title={ticker}>NSE equity · Prices, agent scores, and headlines</PageTitle>
-    <StockDetail ticker={ticker}/>
+    <PageTitle title={ticker}>NSE equity research</PageTitle>
+    <StockDetail key={ticker} ticker={ticker} {...context}/>
   </div>;
 }

@@ -327,6 +327,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/screener/stock/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stock Indicators */
+        post: operations["stock_indicators_screener_stock__ticker__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ranker/snapshot": {
         parameters: {
             query?: never;
@@ -339,6 +356,23 @@ export interface paths {
         put?: never;
         /** Tuned Snapshot */
         post: operations["tuned_snapshot_ranker_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ranker/stock/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stock Agent Analysis */
+        post: operations["stock_agent_analysis_ranker_stock__ticker__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -373,6 +407,23 @@ export interface paths {
         put?: never;
         /** Start Replay */
         post: operations["start_replay_ranker_backtest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock-profile/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock Profile */
+        get: operations["stock_profile_stock_profile__ticker__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -502,6 +553,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Action */
+        Action: {
+            /** Kind */
+            kind: string;
+            /**
+             * Ex Date
+             * Format: date
+             */
+            ex_date: string;
+            /** Value */
+            value: number | null;
+            /** Unit */
+            unit: string;
+            /** Source */
+            source: string;
+            /**
+             * Known On
+             * Format: date
+             */
+            known_on: string;
+        };
         /** AgentHistoryPoint */
         AgentHistoryPoint: {
             /**
@@ -513,6 +585,11 @@ export interface components {
             agent: string;
             /** Score */
             score: number | null;
+            /**
+             * Imputed
+             * @default false
+             */
+            imputed: boolean;
         };
         /** AgentScoreRow */
         AgentScoreRow: {
@@ -661,6 +738,29 @@ export interface components {
              */
             fundamental: number;
         };
+        /** Earnings */
+        Earnings: {
+            /** Fiscal Period */
+            fiscal_period: string;
+            /** Reported */
+            reported: number | null;
+            /** Estimate */
+            estimate: number | null;
+            /** Surprise Pct */
+            surprise_pct: number | null;
+            /**
+             * Report Date
+             * Format: date
+             */
+            report_date: string;
+            /**
+             * Known On
+             * Format: date
+             */
+            known_on: string;
+            /** Source */
+            source: string;
+        };
         /** EmailRequest */
         EmailRequest: {
             /**
@@ -712,6 +812,44 @@ export interface components {
                 [key: string]: "ok" | "unavailable" | "unconfigured";
             } | null;
         };
+        /** IndicatorPeriods */
+        IndicatorPeriods: {
+            /**
+             * Ema Fast
+             * @default 9
+             */
+            ema_fast: number;
+            /**
+             * Ema Slow
+             * @default 21
+             */
+            ema_slow: number;
+            /**
+             * Ema Sessions Ago
+             * @default 0
+             */
+            ema_sessions_ago: number;
+            /**
+             * Macd Fast
+             * @default 12
+             */
+            macd_fast: number;
+            /**
+             * Macd Slow
+             * @default 26
+             */
+            macd_slow: number;
+            /**
+             * Macd Signal
+             * @default 9
+             */
+            macd_signal: number;
+            /**
+             * Macd Sessions Ago
+             * @default 0
+             */
+            macd_sessions_ago: number;
+        };
         /** JobStatusOut */
         JobStatusOut: {
             /** Job Id */
@@ -741,6 +879,44 @@ export interface components {
              * Format: password
              */
             password: string;
+        };
+        /** Membership */
+        Membership: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /**
+             * Observed On
+             * Format: date
+             */
+            observed_on: string;
+        };
+        /** Metric */
+        Metric: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Value */
+            value: number;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "INR" | "INR/share" | "fraction" | "multiple" | "count" | "rating";
+            /** Source */
+            source: string;
+            /**
+             * Asof
+             * Format: date
+             */
+            asof: string;
+            /**
+             * Known On
+             * Format: date
+             */
+            known_on: string;
         };
         /** NewsItem */
         NewsItem: {
@@ -783,6 +959,81 @@ export interface components {
             adj_close?: number | null;
             /** Volume */
             volume?: number | null;
+        };
+        /** Profile */
+        Profile: {
+            /** Ticker */
+            ticker: string;
+            /** Company Name */
+            company_name: string | null;
+            /** Isin */
+            isin: string | null;
+            /** Venue */
+            venue: string | null;
+            /** Series */
+            series: string | null;
+            /** Active */
+            active: boolean;
+            /** Identity Source */
+            identity_source: string | null;
+            /** Identity Date */
+            identity_date: string | null;
+            /** Sector */
+            sector: string | null;
+            /** Industry */
+            industry: string | null;
+            /** Classification Source */
+            classification_source: string | null;
+            /** Classification Date */
+            classification_date: string | null;
+            /** Cap Segment */
+            cap_segment: string | null;
+            /** Memberships */
+            memberships: components["schemas"]["Membership"][];
+            quote: components["schemas"]["Quote"] | null;
+            /** Fundamentals */
+            fundamentals: components["schemas"]["Metric"][];
+            /** Analyst */
+            analyst: components["schemas"]["Metric"][];
+            /** Earnings */
+            earnings: components["schemas"]["Earnings"][];
+            /** Actions */
+            actions: components["schemas"]["Action"][];
+        };
+        /** Quote */
+        Quote: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Known On
+             * Format: date
+             */
+            known_on: string;
+            /** Source */
+            source: string;
+            /** Open */
+            open: number | null;
+            /** High */
+            high: number | null;
+            /** Low */
+            low: number | null;
+            /** Close */
+            close: number;
+            /** Adjusted Close */
+            adjusted_close: number | null;
+            /** Volume */
+            volume: number;
+            /** Previous Date */
+            previous_date: string | null;
+            /** Previous Close */
+            previous_close: number | null;
+            /** Change */
+            change: number | null;
+            /** Change Pct */
+            change_pct: number | null;
         };
         /** RankSettings */
         RankSettings: {
@@ -957,10 +1208,6 @@ export interface components {
         };
         /** Screen */
         Screen: {
-            /** Below High Pct */
-            below_high_pct?: number | null;
-            /** Above Low Pct */
-            above_low_pct?: number | null;
             /**
              * Ema Fast
              * @default 9
@@ -971,12 +1218,6 @@ export interface components {
              * @default 21
              */
             ema_slow: number;
-            /**
-             * Ema Rule
-             * @default any
-             * @enum {string}
-             */
-            ema_rule: "any" | "above" | "below" | "cross_up" | "cross_down";
             /**
              * Ema Sessions Ago
              * @default 0
@@ -998,16 +1239,40 @@ export interface components {
              */
             macd_signal: number;
             /**
+             * Macd Sessions Ago
+             * @default 0
+             */
+            macd_sessions_ago: number;
+            /**
+             * Index Code
+             * @default NIFTY500
+             */
+            index_code: string;
+            /** Cap */
+            cap?: ("large" | "mid" | "small") | null;
+            /** Industry */
+            industry?: string | null;
+            /**
+             * Fo Only
+             * @default false
+             */
+            fo_only: boolean;
+            /** Below High Pct */
+            below_high_pct?: number | null;
+            /** Above Low Pct */
+            above_low_pct?: number | null;
+            /**
+             * Ema Rule
+             * @default any
+             * @enum {string}
+             */
+            ema_rule: "any" | "above" | "below" | "cross_up" | "cross_down";
+            /**
              * Macd Rule
              * @default any
              * @enum {string}
              */
             macd_rule: "any" | "above" | "below" | "cross_up" | "cross_down";
-            /**
-             * Macd Sessions Ago
-             * @default 0
-             */
-            macd_sessions_ago: number;
         };
         /** ScreenResult */
         ScreenResult: {
@@ -1023,6 +1288,12 @@ export interface components {
             priced: number;
             /** Range Coverage */
             range_coverage: number;
+            /** Index Options */
+            index_options: {
+                [key: string]: string;
+            };
+            /** Industries */
+            industries: string[];
             /** Rows */
             rows: components["schemas"]["ScreenRow"][];
         };
@@ -1030,6 +1301,10 @@ export interface components {
         ScreenRow: {
             /** Ticker */
             ticker: string;
+            /** Industry */
+            industry: string | null;
+            /** Cap */
+            cap: string | null;
             /** Close */
             close: number | null;
             /** High 52W */
@@ -1083,6 +1358,16 @@ export interface components {
              * @default false
              */
             is_admin: boolean;
+        };
+        /** StockIndicators */
+        StockIndicators: {
+            /** Asof */
+            asof: string | null;
+            /** Ema Date */
+            ema_date: string | null;
+            /** Macd Date */
+            macd_date: string | null;
+            values: components["schemas"]["ScreenRow"] | null;
         };
         /** TokenResponse */
         TokenResponse: {
@@ -1706,6 +1991,41 @@ export interface operations {
             };
         };
     };
+    stock_indicators_screener_stock__ticker__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndicatorPeriods"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockIndicators"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     default_snapshot_ranker_snapshot_get: {
         parameters: {
             query?: {
@@ -1744,6 +2064,43 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RankSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stock_agent_analysis_ranker_stock__ticker__post: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -1812,6 +2169,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BacktestJobRef"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stock_profile_stock_profile__ticker__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
                 };
             };
             /** @description Validation Error */

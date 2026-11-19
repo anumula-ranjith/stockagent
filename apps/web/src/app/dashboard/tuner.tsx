@@ -31,7 +31,7 @@ export function Tuner() {
   const [debounced,setDebounced] = useState(config);
   useEffect(()=>{const t=window.setTimeout(()=>setDebounced(config),230);return()=>window.clearTimeout(t);},[config]);
   const snapshot = useQuery({queryKey:["ranker",session.data?.id,date,debounced],enabled:!!session.data,
-    queryFn:({signal})=>api<Snapshot>("/ranker/snapshot"+(date?"?asof="+date:""),{method:"POST",signal,body:JSON.stringify(debounced)}),
+    queryFn:async ({signal})=>({...await api<Snapshot>("/ranker/snapshot"+(date?"?asof="+date:""),{method:"POST",signal,body:JSON.stringify(debounced)}),settings:debounced}),
     placeholderData:keepPreviousData});
   const data = snapshot.data;
   return <div className={s.workspace}><div className={s.inner}>
@@ -51,7 +51,7 @@ export function Tuner() {
           {snapshot.isError ? <p role="alert" className={s.error}>{snapshot.error.message} <button onClick={()=>void snapshot.refetch()}>Retry</button></p>
             : !data ? <div className={s.card}><p role="status" className={s.hint}>Loading Nifty 500 observations…</p></div>
             : <>{tab==="sentiment" && <Heat data={data.heat} boost={config.boost_sectors}/>}
-              <div className={tab==="combined"?s.stacked:s.books}>{(["longs","shorts"] as const).map(side=><Candidates key={side} tab={tab} side={side} size={debounced.size} data={data}/>)}</div>
+              <div className={tab==="combined"?s.stacked:s.books}>{(["longs","shorts"] as const).map(side=><Candidates key={side} tab={tab} side={side} size={data.settings.size} data={data} settings={data.settings}/>)}</div>
               <p className={s.hint} role="status">{snapshot.isFetching?"Updating rankings…":data.universe+" constituents · "+(tab==="fundamental"?"Raw licensed or unavailable values appear as a dash.":"Only observed signals contribute to a candidate’s rank.")}</p></>}
         </section></div>}
   </div></div>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, SunMoon, Menu, X } from "lucide-react";
+import { ArrowUpRight, Moon, Sun, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -13,17 +13,18 @@ import { Button } from "./ui/button";
 const ClerkSignOut = dynamic(() => import("./clerk-sign-out"), { ssr: false });
 const links = [
   ["/", "Home"], ["/dashboard", "Dashboard"], ["/screener", "Screener"], ["/stocks", "Stocks"],
-  ["/backtest", "Backtest"], ["/methodology", "Methodology"],
+  ["/portfolio", "Portfolio"], ["/watchlist", "Watchlists"],
+  ["/backtest", "Backtest"],
 ] as const;
 
 export function Header() {
   const pathname = usePathname();
   const session = useSession();
-  const { setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [menu, setMenu] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [sessionError, setSessionError] = useState(false);
-  const switchTheme = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+  const switchTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
   async function logout() {
     setSigningOut(true);
     try { await api("/logout", { method: "POST" }); window.location.assign("/"); }
@@ -31,8 +32,8 @@ export function Header() {
   }
   return <header className="topbar">
     <div className="shell topbar-inner">
-      <Link href="/" className="wordmark" aria-label="Stock Agents home">
-        <span className="brand-mark" aria-hidden="true"><i/><i/><i/></span>stock-agents
+      <Link href="/" className="wordmark" aria-label="QUANTORA home">
+        <span className="brand-mark" aria-hidden="true">Q</span>QUANTORA
       </Link>
       <nav className={menu ? "main-nav is-open" : "main-nav"} aria-label="Main navigation">
         {links.map(([href, label]) => <Link key={href} href={href} onClick={() => setMenu(false)}
@@ -43,7 +44,7 @@ export function Header() {
       </nav>
       <div className="top-actions">
         <span className="market-chip"><i/>NSE India</span>
-        <button className="icon-button" type="button" aria-label="Toggle color theme" onClick={switchTheme}><SunMoon size={19}/></button>
+        <button className="icon-button" type="button" aria-label={resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme"} title={resolvedTheme === "dark" ? "Light theme" : "Dark theme"} onClick={switchTheme}>{resolvedTheme === "dark" ? <Sun size={19}/> : <Moon size={19}/>}</button>
         {session.data && !usesClerk && <Link className="text-link" href="/account">Account</Link>}
         {session.data
           ? usesClerk ? <ClerkSignOut/> : <Button variant="ghost" onClick={logout} disabled={signingOut}>Sign out</Button>
@@ -58,8 +59,8 @@ export function Header() {
 
 export function Footer() {
   return <footer className="footer"><div className="shell footer-inner">
-    <Link href="/" className="wordmark">stock-agents</Link>
-    <span>Equity research for the NSE. For research and education.</span>
-    <Link href="/methodology">Methodology <ArrowUpRight size={14}/></Link>
+    <div><Link href="/" className="wordmark">QUANTORA</Link><p>Invest Smarter. Think Quant.</p></div>
+    <nav aria-label="Footer navigation"><Link href="/dashboard">Dashboard</Link><Link href="/screener">Screener</Link><Link href="/methodology">Methodology</Link><Link href="/assistant">AI Assistant</Link></nav>
+    <small>© {new Date().getFullYear()} QUANTORA · Research tools for NSE equities.</small>
   </div></footer>;
 }

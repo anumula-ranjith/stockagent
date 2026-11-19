@@ -103,7 +103,7 @@ Both checks should report `ok` for PostgreSQL, Redis and S3. Append `?include_st
 
 ## Screen the Nifty 500
 
-1. Sign in and open the [screener](http://localhost:3001/screener). The latest session, constituent count, adjusted-price coverage and 52-week coverage appear above the results.
+1. Sign in and open the [screener](http://localhost:3001/screener). Use the top row to choose a Nifty index, market-cap segment, NSE industry or F&O eligibility. These filters apply immediately within the active Nifty 500 universe. Large, mid and small cap use Nifty 100, Nifty Midcap 150 and Nifty Smallcap 250 membership respectively. The scheduler refreshes index lists at startup and every 12 hours. Run `python -m stock_agents.ingest.screen_indices` for a manual refresh.
 2. For stocks within 10% of their yearly high, enter `10` under **Within % below high** and select **Run screen**. Use **Within % above low** to measure distance from the yearly low.
 3. For a bullish EMA crossover yesterday, choose periods `9` and `21`, select **Crossed above**, and set **Trading sessions ago** to `1`. Clear the range field first to search the whole index. With multiple conditions enabled, every condition must match.
 4. For MACD, set the fast, slow and signal periods and choose a line relationship or crossover. Each indicator has its own session selector. Click a ticker for its price chart and stock detail.
@@ -111,6 +111,8 @@ Both checks should report `ok` for PostgreSQL, Redis and S3. Append `?include_st
 The screener uses positive-volume NSE sessions from the local warehouse. The range uses adjusted intraday highs and lows over 52 calendar weeks and requires coverage of at least 95% of observed sessions. EMA and MACD use adjusted closes. Values in rupees use the latest closing-price units.
 
 ## Tune the research dashboard
+
+Click a ticker in the screener, dashboard, or stock directory to open its research page. The overview shows the latest stored company, quote and financial data with observation dates. The four agent readings show peer scores, factor evidence and long/short selection for the chosen ranking date. Dashboard links carry the weights and rules used for the displayed result. Screener links carry the applied EMA and MACD periods and crossover sessions. Use **Calculate indicators** on the stock page to try different periods against the latest stored session.
 
 Open the [four-agent dashboard](http://localhost:3001/dashboard). Select an agent, adjust its weights and inspect the long and short candidates. **Combined** controls portfolio selection. **Portfolio & Backtest** replays those settings through the local worker. The current-cohort option uses end-date constituents and revised prices. Historical membership mode requires observations recorded by each signal date.
 

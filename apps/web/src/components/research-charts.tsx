@@ -36,13 +36,13 @@ export function HistoryChart({ points }: { points: HistoryPoint[] }) {
   const available = new Set<string>();
   for (const point of points) {
     const agent = agents.find(name => name === point.agent);
-    if (!agent || point.score == null) continue;
+    if (!agent) continue;
     const row = rows.get(point.date) ?? { date: point.date };
-    rows.set(point.date, { ...row, [agent]: point.score });
-    available.add(agent);
+    rows.set(point.date, { ...row, [agent]: point.imputed ? null : point.score });
+    if (!point.imputed && point.score != null) available.add(agent);
   }
   const data = Array.from(rows.values()).sort((a,b) => a.date.localeCompare(b.date));
-  if (!data.length) return <State>No score history is stored for this ticker.</State>;
+  if (!available.size) return <State>No observed historical scores are available for this ticker.</State>;
   return <div className="chart-area" role="img" aria-label="Agent scores over time from zero to one hundred">
     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
       <LineChart data={data} margin={{ top: 12, right: 12, bottom: 4, left: 1 }}>
@@ -52,7 +52,7 @@ export function HistoryChart({ points }: { points: HistoryPoint[] }) {
         <Tooltip labelFormatter={value => dateLabel(String(value))} contentStyle={labelStyle}/>
         <Legend/>
         {agents.map((agent,i) => available.has(agent) && <Line key={agent} dataKey={agent} name={agentLabels[agent]}
-          stroke={palette[i]} strokeWidth={2} dot={data.length <= 7} connectNulls isAnimationActive={false}/>)}
+          stroke={palette[i]} strokeWidth={2} dot={data.length <= 7} isAnimationActive={false}/>)}
       </LineChart>
     </ResponsiveContainer>
   </div>;

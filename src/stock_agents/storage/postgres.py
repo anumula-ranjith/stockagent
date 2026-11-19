@@ -19,6 +19,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     PrimaryKeyConstraint,
     String,
     Table,
@@ -55,6 +56,17 @@ class Symbology(Base):
     cusip = Column(String)
     active = Column(Boolean, server_default=text("true"), nullable=False)
     updated_at = Column(DateTime(timezone=True))
+
+
+class CompanyReference(Base):
+    __tablename__ = "company_reference"
+    ticker = Column(String, ForeignKey("symbology.ticker"), primary_key=True)
+    company_name = Column(String, nullable=False)
+    isin = Column(String)
+    venue = Column(String, nullable=False)
+    series = Column(String)
+    source = Column(String, nullable=False)
+    observed_on = Column(Date, nullable=False)
 
 
 class Classification(Base):
@@ -179,6 +191,57 @@ class AccountToken(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
     consumed_at = Column(DateTime(timezone=True))
+
+
+class PortfolioAccount(Base):
+    __tablename__ = "portfolio_accounts"
+    id = Column(Uuid(as_uuid=False), primary_key=True, server_default=text("gen_random_uuid()"))
+    user_id = Column(Uuid(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(80), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
+
+
+class PortfolioEntry(Base):
+    __tablename__ = "portfolio_entries"
+    id = Column(Uuid(as_uuid=False), primary_key=True, server_default=text("gen_random_uuid()"))
+    portfolio_id = Column(Uuid(as_uuid=False), ForeignKey("portfolio_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String(12), nullable=False)
+    ticker = Column(String, ForeignKey("symbology.ticker"))
+    quantity = Column(Numeric(20, 6))
+    price = Column(Numeric(20, 4))
+    fees = Column(Numeric(20, 4), nullable=False, server_default=text("0"))
+    amount = Column(Numeric(20, 4))
+    trade_date = Column(Date, nullable=False)
+    note = Column(String(500))
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
+
+
+class Watchlist(Base):
+    __tablename__ = "watchlists"
+    id = Column(Uuid(as_uuid=False), primary_key=True, server_default=text("gen_random_uuid()"))
+    user_id = Column(Uuid(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(80), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
+
+
+class WatchlistItem(Base):
+    __tablename__ = "watchlist_items"
+    watchlist_id = Column(Uuid(as_uuid=False), ForeignKey("watchlists.id", ondelete="CASCADE"), primary_key=True)
+    ticker = Column(String, ForeignKey("symbology.ticker"), primary_key=True)
+    note = Column(String(500))
+    target_above = Column(Numeric(20, 4))
+    target_below = Column(Numeric(20, 4))
+    added_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
+
+
+class BrokerSnapshot(Base):
+    __tablename__ = "broker_snapshots"
+    user_id = Column(Uuid(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    broker = Column(String(30), primary_key=True)
+    account_mask = Column(String(12), nullable=False)
+    holdings = Column(JSONB, nullable=False)
+    trades = Column(JSONB, nullable=False)
+    fetched_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
 
 
 class JobRun(Base):

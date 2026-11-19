@@ -110,6 +110,7 @@ def replay(conn, cfg: Replay):
     target_by_day = {}
     current_period = None
     last_book = {"longs": [], "shorts": []}
+    target_scores = {}
     for i, day in enumerate(dates[:-2]):
         period = day.isocalendar()[:2] if cfg.rebalance == "weekly" else (day.year, day.month)
         if period == current_period:
@@ -124,6 +125,7 @@ def replay(conn, cfg: Replay):
         tradable = prices.loc[execution].dropna().index
         target = _targets(ranked, book, cfg, tradable).reindex(prices.columns, fill_value=0.0)
         target_by_day[execution] = target
+        target_scores[execution] = ranked["composite"].to_dict()
         last_book = {
             "longs": target[target > 0].index.tolist(),
             "shorts": target[target < 0].index.tolist(),
@@ -138,6 +140,9 @@ def replay(conn, cfg: Replay):
     levels, bench = [1.0], [1.0]
     weights = pd.Series(0.0, index=prices.columns)
     changes = []
+    trade_log = []
+    last_holdings = []
+    last_rebalance = None
     # Retain the last mark across a missing quote and realize the move when trading resumes.
     returns = prices.ffill().pct_change(fill_method=None).fillna(0.0)
     benchmark_weights = pd.Series(0.0, index=prices.columns)
@@ -166,6 +171,37 @@ def replay(conn, cfg: Replay):
             turnover = float((target - drift).abs().sum())
             changes.append(turnover)
             cost = turnover * cfg.cost_bps / 10000
+            scores = target_scores[day]
+            for ticker in target.index[(target - drift).abs() > 1e-9]:
+                previous, next_weight = float(drift[ticker]), float(target[ticker])
+                if previous > 0 and next_weight < 0:
+                    actions = ("Sell", "Short")
+                elif previous < 0 and next_weight > 0:
+                    actions = ("Cover", "Buy")
+                elif previous >= 0 and next_weight > previous:
+                    action = "Buy"
+                    actions = (action,)
+                elif previous > 0 and next_weight <= 0:
+                    action = "Sell"
+                    actions = (action,)
+                elif previous <= 0 and next_weight < previous:
+                    action = "Short"
+                    actions = (action,)
+                else:
+                    action = "Cover"
+                    actions = (action,)
+                score = scores.get(ticker)
+                for action in actions:
+                    trade_log.append({"date": str(day), "ticker": ticker, "action": action,
+                                      "composite": round(float(score), 1) if pd.notna(score) else None})
+            last_holdings = sorted(({
+                "ticker": ticker, "side": "Long" if weight > 0 else "Short",
+                "weight": round(float(weight), 6),
+                "composite": round(float(scores[ticker]), 1) if pd.notna(scores.get(ticker)) else None,
+            } for ticker, weight in target.items() if abs(weight) > 1e-9),
+                key=lambda holding: (holding["side"] == "Short", -abs(holding["weight"]),
+                                     holding["ticker"]))
+            last_rebalance = str(day)
             drift = target
         levels.append(levels[-1] * (1 + move) * (1 - cost))
         weights = drift
@@ -188,6 +224,9 @@ def replay(conn, cfg: Replay):
         "rebalances": len(changes),
         "longs_last": last_book["longs"],
         "shorts_last": last_book["shorts"],
+        "holdings_last": last_holdings,
+        "holdings_date": last_rebalance,
+        "trades_latest": list(reversed(trade_log[-40:])),
         "settings": cfg.model_dump(mode="json"),
         "equity_curve": [
             {

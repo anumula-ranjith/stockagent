@@ -7,12 +7,25 @@ from fastapi.testclient import TestClient
 from stock_agents.api.auth import make_token
 from stock_agents.api.main import app
 from stock_agents.engine.ranker import RankSettings, score_book, to_payload
-from stock_agents.engine.ranker_inputs import snapshot_inputs
+from stock_agents.engine.ranker_inputs import price_factors, snapshot_inputs
 from stock_agents.engine.ranker_replay import Replay, replay
 from stock_agents.storage.postgres import JobRun, User
 from stock_agents.storage.schema import connect, init_schema
 
 
+def test_price_factors_use_each_stocks_trading_sessions():
+    dates = pd.bdate_range("2026-01-01", periods=75)
+    rows = []
+    for ticker in ("A", "B"):
+        for i, day in enumerate(dates):
+            if ticker == "B" and i == 65:
+                continue  # A partial special session cannot break B's RSI.
+            close = 100 + i + i % 3
+            rows.append(dict(ticker=ticker, date=day.date(), adj_close=close,
+                             close=close, high=close + 2, low=close - 2, volume=1000))
+    factors = price_factors(pd.DataFrame(rows), pd.Index(["A", "B"], name="ticker"))
+    assert pd.notna(factors.loc["B", "rsi14"])
+    assert pd.notna(factors.loc["B", "vs_sma50"])
 def test_tuning_changes_selection_and_withholds_licensed_raw_values():
     raw = pd.DataFrame(
         {
@@ -85,6 +98,11 @@ def test_dated_membership_and_knowledge_separate_a_cohort_replay():
         assert report["rebalances"] >= 2 and report["total_return"] > 0
         assert str(holiday) not in {p["date"] for p in report["equity_curve"]}
         assert report["longs_last"] == ["D"] and report["shorts_last"] == ["A"]
+        assert report["holdings_date"] is not None
+        assert {row["ticker"] for row in report["holdings_last"]} == {"A", "D"}
+        assert {row["side"] for row in report["holdings_last"]} == {"Long", "Short"}
+        assert report["trades_latest"] and len(report["trades_latest"]) <= 40
+        assert {row["action"] for row in report["trades_latest"]} <= {"Buy", "Sell", "Short", "Cover"}
         assert "error" in replay(conn, cfg.model_copy(update={"universe": "historical"}))
         assert (
             replay(conn, cfg.model_copy(update={"cost_bps": 100}))["total_return"]

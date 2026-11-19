@@ -13,12 +13,21 @@ import s from "./ranker.module.css";
 type Metrics = { annual_return:number; sharpe:number; sortino:number|null; max_drawdown:number; annual_vol:number;
   calmar:number|null; up_days:number; total_return:number };
 type Report = Metrics & {benchmark:Metrics; start:string; end:string; beta:number|null; turnover:number; rebalances:number;
-  settings:{universe:string; portfolio:string; cost_bps:number; rebalance:string}; equity_curve:{date:string; equity:number; benchmark:number}[]};
+  settings:{universe:string; portfolio:string; cost_bps:number; rebalance:string}; equity_curve:{date:string; equity:number; benchmark:number}[];
+  holdings_date?:string|null; holdings_last?:{ticker:string;side:"Long"|"Short";weight:number;composite:number|null}[];
+  trades_latest?:{date:string;ticker:string;action:"Buy"|"Sell"|"Short"|"Cover";composite:number|null}[]};
 const pct = (v:number) => (100*v).toFixed(1)+"%";
 const number = (v:number) => v.toFixed(2);
 const finish = (value?:string)=>["finished","failed","canceled","stopped"].includes(value??"");
 
 function ReplayResults({result}:{result:Report}) {
+  const holdings = result.holdings_last ?? [];
+  const trades = result.trades_latest ?? [];
+  let peak = 0;
+  const curve = result.equity_curve.map(point => {
+    peak = Math.max(peak, point.equity);
+    return {...point, drawdown: peak ? point.equity / peak - 1 : 0};
+  });
   const stats: [keyof Metrics,string,(v:number)=>string][] = [
     ["annual_return","CAGR",pct],["sharpe","Sharpe",number],["sortino","Sortino",number],
     ["max_drawdown","Max drawdown",pct],["annual_vol","Volatility",pct],["calmar","Calmar",number],["up_days","Up days",pct],
@@ -30,12 +39,31 @@ function ReplayResults({result}:{result:Report}) {
       <div><small>Beta / turnover</small><strong>{result.beta==null?"—":number(result.beta)} / {pct(result.turnover)}</strong><small>Per rebalance</small></div></div>
     <section className={s.card}><h2>Growth of ₹1</h2><div className={s.chart} role="img" aria-label="Growth of one rupee for the strategy and equal-weight benchmark">
       <ResponsiveContainer width="100%" height="100%" minWidth={0}><LineChart data={result.equity_curve} margin={{top:10,right:12,left:0,bottom:2}}>
-        <CartesianGrid vertical={false} stroke="#29333f"/><XAxis dataKey="date" minTickGap={70} tick={{fill:"#9baabc",fontSize:11}}/>
-        <YAxis domain={["auto","auto"]} width={54} tickFormatter={v=>"₹"+Number(v).toFixed(2)} tick={{fill:"#9baabc",fontSize:11}}/>
-        <Tooltip contentStyle={{background:"#1b222c",borderColor:"#344253",color:"#f0f4fa"}} formatter={v=>Number(v).toFixed(4)}/><Legend align="left" iconType="plainline" wrapperStyle={{fontSize:12}}/>
-        <Line dataKey="equity" name="Strategy" stroke="#91b3df" strokeWidth={2} dot={false} isAnimationActive={false}/>
-        <Line dataKey="benchmark" name="Equal-weight benchmark" stroke="#8090a2" strokeWidth={1.5} dot={false} isAnimationActive={false}/>
+        <CartesianGrid vertical={false} stroke="var(--line)"/><XAxis dataKey="date" minTickGap={70} tick={{fill:"var(--muted)",fontSize:11}}/>
+        <YAxis domain={["auto","auto"]} width={54} tickFormatter={v=>"₹"+Number(v).toFixed(2)} tick={{fill:"var(--muted)",fontSize:11}}/>
+        <Tooltip contentStyle={{background:"var(--panel)",borderColor:"var(--line)",color:"var(--ink)"}} formatter={v=>Number(v).toFixed(4)}/><Legend align="left" iconType="plainline" wrapperStyle={{fontSize:12}}/>
+        <Line dataKey="equity" name="Strategy" stroke="var(--accent)" strokeWidth={2} dot={false} isAnimationActive={false}/>
+        <Line dataKey="benchmark" name="Equal-weight benchmark" stroke="var(--bench)" strokeWidth={1.5} dot={false} isAnimationActive={false}/>
       </LineChart></ResponsiveContainer></div></section>
+    <section className={s.card}><h2>Drawdown</h2><div className={s.chart} role="img" aria-label="Strategy drawdown from its previous peak">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}><LineChart data={curve} margin={{top:10,right:12,left:0,bottom:2}}>
+        <CartesianGrid vertical={false} stroke="var(--line)"/><XAxis dataKey="date" minTickGap={70} tick={{fill:"var(--muted)",fontSize:11}}/>
+        <YAxis domain={["auto",0]} width={54} tickFormatter={v=>pct(Number(v))} tick={{fill:"var(--muted)",fontSize:11}}/>
+        <Tooltip contentStyle={{background:"var(--panel)",borderColor:"var(--line)",color:"var(--ink)"}} formatter={v=>pct(Number(v))}/>
+        <Line dataKey="drawdown" name="Drawdown" stroke="var(--short)" strokeWidth={1.5} dot={false} isAnimationActive={false}/>
+      </LineChart></ResponsiveContainer></div></section>
+    <div className={s.books}>
+      <section className={s.card}><h2>Holdings after last rebalance{result.holdings_date ? ", "+result.holdings_date : ""}</h2>
+        <div className={s.scroll}><table><thead><tr><th>#</th><th>Ticker</th><th>Side</th><th>Weight</th><th>Composite</th></tr></thead>
+          <tbody>{holdings.map((row,index)=><tr key={row.ticker}><td>{index+1}</td><td><Link href={"/stocks/"+encodeURIComponent(row.ticker)}>{row.ticker}</Link></td>
+            <td className={row.side==="Long"?s.up:s.down}>{row.side}</td><td>{pct(row.weight)}</td><td>{row.composite==null?"—":<span className={s.score}><i><b style={{width:row.composite+"%"}}/></i>{row.composite.toFixed(0)}</span>}</td></tr>)}
+          </tbody></table>{!holdings.length&&<p className={s.empty}>Holdings are unavailable for this report.</p>}</div></section>
+      <section className={s.card}><h2>Trade log, latest 40</h2>
+        <div className={s.scroll}><table><thead><tr><th>Date</th><th>Ticker</th><th>Action</th><th>Composite</th></tr></thead>
+          <tbody>{trades.map((row,index)=><tr key={row.date+row.ticker+row.action+index}><td>{row.date}</td><td><Link href={"/stocks/"+encodeURIComponent(row.ticker)}>{row.ticker}</Link></td>
+            <td className={row.action==="Buy"||row.action==="Cover"?s.up:s.down}>{row.action}</td><td>{row.composite==null?"—":row.composite.toFixed(0)}</td></tr>)}</tbody></table>
+          {!trades.length&&<p className={s.empty}>Trades are unavailable for this report.</p>}</div></section>
+    </div>
     <p className={s.hint}>{result.settings.universe==="current_cohort"?"Current-cohort retrospective · Uses end-date constituents, classifications and revised adjusted prices. Survivorship bias applies.":"Historical membership · Signals use observations known on each rebalance date."} {result.rebalances} rebalances · {result.settings.cost_bps} bps per side.</p>
   </>;
 }
@@ -76,3 +104,4 @@ export function Portfolio({config,end,admin,user}:{config:Settings;end:string;ad
         : <div className={s.card}><h2>Portfolio results</h2><p className={s.hint}>{!job && latest.isPending?"Loading the latest report…":"Run a backtest to compare the strategy with its equal-weight benchmark."}</p></div>}
     </section></div>;
 }
+

@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from stock_agents.common.config import load_settings
 from stock_agents.ingest.adjustments import refresh_adjustments
+from stock_agents.ingest.company_reference import store_names
 from stock_agents.sources.eodhd import EODHDClient
 from stock_agents.sources.nse import EODNotReady, NSEClient
 from stock_agents.storage.postgres import Base
@@ -299,6 +300,7 @@ def refresh_eod(target, trade_date: date | None = None, *, nse=None, client=None
                 isin=member.get("isin") or final.get(ticker, {}).get("isin"),
                 active=ticker not in placeholders, updated_at=datetime.now(UTC)))
         _upsert(target, "symbology", references)
+        store_names(target, nifty, fo, known)
         _membership(target, groups, known)
         cls = Base.metadata.tables["classification"]
         sectors = dict(target.execute(select(cls.c.ticker, cls.c.sector).where(

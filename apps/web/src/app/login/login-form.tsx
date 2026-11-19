@@ -49,6 +49,6 @@ export function LoginForm() {
     </form>
     {message && <p className="state-error mt-3" role="alert">{message}</p>}
     {needsVerification && <Link className="text-link mt-3" href="/verify-email">Resend verification email</Link>}
-    <p className="mt-5">New to Stock Agents? <Link className="text-link" href="/signup">Create an account</Link></p>
+    <p className="mt-5">New to QUANTORA? <Link className="text-link" href="/signup">Create an account</Link></p>
   </div>;
 }

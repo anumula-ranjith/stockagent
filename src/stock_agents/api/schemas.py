@@ -75,6 +75,7 @@ class AgentHistoryPoint(BaseModel):
     date: date
     agent: str
     score: float | None
+    imputed: bool = False
 
 
 # ---------------------------------------------------------------- combine

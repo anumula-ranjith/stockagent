@@ -13,6 +13,7 @@ from stock_agents.api.schemas import BacktestJobRef
 from stock_agents.engine.ranker import RankSettings, to_payload
 from stock_agents.engine.ranker_inputs import snapshot_inputs
 from stock_agents.engine.ranker_replay import Replay
+from stock_agents.engine.stock_analysis import stock_analysis
 from stock_agents.storage.postgres import JobRun
 from stock_agents.storage.warehouse import connect
 
@@ -20,10 +21,10 @@ router = APIRouter(prefix="/ranker")
 
 
 @lru_cache(maxsize=4)
-def _cached_inputs(asof: date, generation: int):
+def _cached_inputs(asof: date, generation: int, subject: str | None = None):
     # Reuse immutable observations across slider changes; refresh within two minutes of a load.
     with connect(read_only=True) as conn:
-        return snapshot_inputs(conn, asof)
+        return snapshot_inputs(conn, asof, subject=subject)
 
 
 @router.get("/snapshot")
@@ -31,13 +32,33 @@ def default_snapshot(_user: CurrentUser, asof: date | None = None):
     return tuned_snapshot(RankSettings(), _user, asof)
 
 
-@router.post("/snapshot")
-def tuned_snapshot(settings: RankSettings, _user: CurrentUser, asof: date | None = None):
+def _snapshot_date(asof: date | None):
     asof = asof or date.today()
     if asof > date.today():
         raise HTTPException(422, "Select a ranking date on or before today.")
+    return asof
+
+
+@router.post("/snapshot")
+def tuned_snapshot(settings: RankSettings, _user: CurrentUser, asof: date | None = None):
+    asof = _snapshot_date(asof)
     raw, price_date = _cached_inputs(asof, int(monotonic() // 120))
     return to_payload(raw, settings, asof, price_date)
+
+
+@router.post("/stock/{ticker}")
+def stock_agent_analysis(
+    ticker: str, settings: RankSettings, _user: CurrentUser, asof: date | None = None
+):
+    asof = _snapshot_date(asof)
+    generation = int(monotonic() // 120)
+    raw, price_date = _cached_inputs(asof, generation)
+    ticker = ticker.strip().upper()
+    if not raw.empty and ticker not in raw.index:
+        comparison, comparison_date = _cached_inputs(asof, generation, ticker)
+        if ticker in comparison.index:
+            raw, price_date = comparison, comparison_date
+    return stock_analysis(raw, settings, asof, price_date, ticker)
 
 
 @router.get("/latest")

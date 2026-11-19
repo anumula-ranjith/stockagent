@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 
 from stock_agents.common.logging import get_logger
@@ -34,12 +35,18 @@ def ingest_news(
     today = date.today()
     inserted = 0
     failures = 0
-    for ticker, symbol in univ:
+    def fetch(member):
+        ticker, symbol = member
         try:
-            items = client.news(symbol, limit=limit_per_ticker)
+            return ticker, client.news(symbol, limit=limit_per_ticker), None
         except Exception as e:
+            return ticker, [], type(e).__name__
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+      for ticker, items, error in pool.map(fetch, univ):
+        if error:
             failures += 1
-            log.warning("news ingest skipped %s (%s)", ticker, type(e).__name__)
+            log.warning("news ingest skipped %s (%s)", ticker, error)
             continue
         rows = []
         for n in items:

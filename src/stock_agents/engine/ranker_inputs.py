@@ -19,7 +19,29 @@ def _frame(conn, query, args, columns):
 
 
 def price_factors(bars: pd.DataFrame, tickers: pd.Index) -> pd.DataFrame:
-    """Compute indicators from adjusted OHLC. Require complete lookback windows."""
+    """Compute each security on its own trading sessions.
+
+    A special trading session may have bars for only part of the universe.
+    Pivoting all securities onto one date index would turn that legitimate
+    absence into a missing observation in every rolling window.
+    """
+    if bars.empty:
+        return pd.DataFrame(index=tickers)
+    latest_session = bars.date.max()
+    frames = [
+        _price_factors_aligned(group, pd.Index([ticker], name=tickers.name))
+        for ticker, group in bars.groupby("ticker", sort=False)
+    ]
+    out = pd.concat(frames).reindex(tickers)
+    # Do not score a stock whose latest bar predates the universe's close.
+    current = set(bars.loc[bars.date == latest_session, "ticker"])
+    out.loc[~out.index.isin(current), :] = np.nan
+    out["rel_str"] = out["ret_3m"] - out["ret_3m"].mean()
+    return out
+
+
+def _price_factors_aligned(bars: pd.DataFrame, tickers: pd.Index) -> pd.DataFrame:
+    """Calculate factors for bars sharing one session calendar."""
     out = pd.DataFrame(index=tickers)
     if bars.empty:
         return out
@@ -86,25 +108,50 @@ def price_factors(bars: pd.DataFrame, tickers: pd.Index) -> pd.DataFrame:
     return out.replace([np.inf, -np.inf], np.nan)
 
 
-def snapshot_inputs(conn: Warehouse, asof: date, *, cohort_date: date | None = None):
+def snapshot_inputs(
+    conn: Warehouse, asof: date, *, cohort_date: date | None = None, subject: str | None = None
+):
     observed = cohort_date or asof
     members = [r[0] for r in conn.execute(MEMBERS, [observed] * 3).fetchall()]
     names = pd.Index(sorted(members), name="ticker")
     if not members:
         return pd.DataFrame(index=names), None
+    pool_query = MEMBERS
+    pool_args = [observed] * 3
+    comparison_subject = None
+    if subject and subject not in names:
+        directory = conn.execute(
+            """SELECT s.ticker FROM symbology s WHERE s.ticker=? AND s.ticker NOT LIKE 'DUMMY%'
+               AND (s.active=TRUE OR EXISTS (SELECT 1 FROM index_membership m
+                  WHERE m.ticker=s.ticker AND m.index_code='NSE_FO' AND m.known_on<=?
+                  AND m.joined_on<=? AND (m.left_on IS NULL OR m.left_on>?)))""",
+            [subject, observed, observed, observed],
+        ).fetchone()
+        if not directory:
+            return pd.DataFrame(index=pd.Index([], name="ticker")), None
+        comparison_subject = subject
+        names = pd.Index(sorted([*members, subject]), name="ticker")
+        pool_query += " UNION SELECT ticker FROM symbology WHERE ticker=?"
+        pool_args.append(subject)
     bars = _frame(
         conn,
-        f"""WITH members AS ({MEMBERS})
+        f"""WITH members AS ({pool_query})
             SELECT date,ticker,adj_close,close,high,low,volume FROM (
               SELECT p.*, ROW_NUMBER() OVER (PARTITION BY p.ticker, date
                 ORDER BY CASE WHEN source='eodhd' THEN 0 ELSE 1 END,known_date DESC,source) rn
               FROM prices_daily p JOIN members USING(ticker)
               WHERE date BETWEEN ? AND ? AND known_date<=? AND adj_close>0 AND volume>0 AND {PUBLIC_SOURCE}
             ) chosen WHERE rn=1""",
-        [observed] * 3 + [asof - timedelta(days=420), asof, observed],
+        pool_args + [asof - timedelta(days=420), asof, observed],
         ["date", "ticker", "adj_close", "close", "high", "low", "volume"],
     )
+    if comparison_subject and not bars.empty:
+        reference_sessions = bars.loc[bars.ticker != comparison_subject, "date"]
+        if not reference_sessions.empty:
+            bars = bars[bars.date.isin(reference_sessions)]
     frame = price_factors(bars, names)
+    if comparison_subject and "ret_3m" in frame:
+        frame["rel_str"] = frame["ret_3m"] - frame.loc[members, "ret_3m"].mean()
 
     def latest(
         table, cols, effective="effective_date", partition="ticker", licensed=False, cutoff=asof
@@ -225,6 +272,9 @@ def snapshot_inputs(conn: Warehouse, asof: date, *, cohort_date: date | None = N
     )
     frame["eps_surprise"] = surprise["surprise_pct"] / 100
     if "ret_20d" in frame:
-        frame["hot_sector"] = frame.groupby("sector")["ret_20d"].transform("mean")
+        sector_returns = frame.loc[members].groupby("sector")["ret_20d"].mean()
+        frame["hot_sector"] = frame["sector"].map(sector_returns)
     frame.attrs["protected"] = protected
+    if comparison_subject:
+        frame.attrs["comparison_subject"] = comparison_subject
     return frame, None if bars.empty else bars.date.max()

@@ -1,15 +1,14 @@
 .workspace {
-  --rk-bg:#12171f; --rk-card:#1a212b; --rk-line:#2e3846; --rk-grid:#252e3a;
-  --rk-text:#e9eef5; --rk-muted:#9aaabc; --rk-blue:#95b7e2; --rk-up:#54c795; --rk-down:#ed8876;
-  --accent:var(--rk-blue); --panel:var(--rk-card); --muted:var(--rk-muted); --ink:var(--rk-text); --line:var(--rk-line);
-  color-scheme:dark; background:var(--rk-bg); color:var(--rk-text); min-height:calc(100svh - 60px);
+  --rk-bg:var(--bg); --rk-card:var(--panel); --rk-line:var(--line); --rk-grid:var(--soft);
+  --rk-text:var(--ink); --rk-muted:var(--muted); --rk-blue:var(--accent); --rk-up:var(--long); --rk-down:var(--short);
+  background:var(--rk-bg); color:var(--rk-text); min-height:calc(100svh - 60px);
   font-size:14px; line-height:1.45; font-variant-numeric:tabular-nums;
 }
 .inner { width:min(1272px,calc(100% - 52px)); margin:0 auto; padding:25px 0 52px; }
 .header { display:flex; justify-content:space-between; gap:15px; align-items:center; margin-bottom:12px; }
 .header h1 { font-size:27px; line-height:1.2; font-weight:740; letter-spacing:-.045em; }
 .header p { color:var(--rk-muted); margin:7px 0 5px; }
-.source { display:inline-flex; align-items:center; gap:6px; color:#a2d6c1; border:1px solid #36564c; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:650; }
+.source { display:inline-flex; align-items:center; gap:6px; color:var(--rk-up); border:1px solid var(--rk-line); border-radius:4px; padding:2px 7px; font-size:11px; font-weight:650; }
 .source i,.dot { width:8px; height:8px; border-radius:50%; display:inline-block; background:var(--rk-up); }
 .source i { width:5px; height:5px; }
 .date { display:grid; gap:4px; font-size:12px; color:var(--rk-muted); }
@@ -23,7 +22,7 @@
 .grid { display:grid; grid-template-columns:300px minmax(0,1fr); gap:20px; align-items:start; }
 .panel,.card,.metrics>div { border:1px solid var(--rk-line); border-radius:8px; background:var(--rk-card); min-width:0; }
 .panel { padding:15px 16px 18px; font-size:13px; }
-.pillars { max-height:calc(100svh - 100px); overflow:auto; scrollbar-color:#687585 var(--rk-card); }
+.pillars { max-height:calc(100svh - 100px); overflow:auto; scrollbar-color:var(--rk-muted) var(--rk-card); }
 .panel h2,.card h2 { font-weight:730; font-size:15px; line-height:1.45; letter-spacing:-.025em; }
 .panel h3 { color:var(--rk-muted); font-size:13px; font-weight:660; margin:20px 0 9px; }
 .hint { color:var(--rk-muted); font-size:12px; line-height:1.55; }
@@ -46,14 +45,14 @@
 .card h2 { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .dot { height:9px; width:9px; flex:none; }
 .summary { max-width:88ch; }
-.scroll { overflow:auto; scrollbar-color:#6a7482 #242b33; }
+.scroll { overflow:auto; scrollbar-color:var(--rk-muted) var(--rk-card); }
 .scroll table { width:100%; border-collapse:collapse; font-size:13px; }
 .scroll th,.scroll td { padding:5px 7px; text-align:right; border-bottom:1px solid var(--rk-grid); white-space:nowrap; }
 .scroll th { color:var(--rk-muted); font-size:12px; font-weight:650; background:transparent; border-color:var(--rk-line); }
 .scroll td:nth-child(-n+2),.scroll th:nth-child(-n+2) { text-align:left; }
 .scroll td a { color:var(--rk-text); font-weight:740; }
 .scroll td a:hover { color:var(--rk-blue); }
-.scroll tr:hover { background:#202934; }
+.scroll tr:hover { background:var(--rk-grid); }
 .scroll tr:last-child td { border-bottom:0; }
 .scroll .combined td { padding-block:8px; }
 .sector { color:var(--rk-muted); max-width:165px; overflow:hidden; text-overflow:ellipsis; }
@@ -73,7 +72,7 @@
 .heatTrack { height:8px; }
 .heatTrack i { position:absolute; top:0; border-radius:5px; }
 .heat+.hint { margin-top:12px; }
-.primary { background:var(--rk-blue); color:#132437; font-weight:650; padding:7px 11px; border-radius:5px; margin:7px 0; }
+.primary { background:var(--rk-blue); color:var(--accent-ink); font-weight:650; padding:7px 11px; border-radius:5px; margin:7px 0; }
 .primary:disabled { opacity:.55; }
 .link,.status button,.error button { color:var(--rk-blue); }
 .status { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; padding:9px 12px; border:1px solid var(--rk-line); border-radius:5px; }
