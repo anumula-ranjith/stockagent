@@ -32,6 +32,7 @@ SENT = {
     "social_buzz": 0,
     "insider_activity": 3,
     "short_interest": 3,
+    "nse_short_selling_activity": 0,
 }
 MOM = {"ret_1m": 3, "ret_3m": 6, "ret_6m": 7, "ret_12_1": 9, "rel_str": 3, "accel": 2}
 PILLARS = {
@@ -60,6 +61,7 @@ PILLAR_WEIGHTS = {"value": 25, "quality": 25, "growth": 25, "health": 15, "share
 AGENTS = ["technical", "sentiment", "momentum", "fundamental"]
 LOWER = {
     "atr_pct",
+    "nse_short_selling_activity",
     "pe_ttm",
     "forward_pe",
     "price_to_book",

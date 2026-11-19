@@ -2,9 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState, type FormEvent } from "react";
 import { SignInNotice, State } from "@/components/presentation";
+import { StockTicker } from "@/components/stock-ticker";
+import { TickerPicker } from "@/components/ticker-picker";
 import { useSession } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -25,13 +27,14 @@ export function PortfolioWorkspace() {
   const [openingDate, setOpeningDate] = useState(today);
   const [kind, setKind] = useState<"deposit"|"withdrawal"|"buy"|"sell">("buy");
   const [ticker, setTicker] = useState("");
+  const [linkedTicker] = useQueryState("ticker", parseAsString);
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [fees, setFees] = useState("0");
   const [tradeAmount, setTradeAmount] = useState("");
   const [tradeDate, setTradeDate] = useState(today);
   const [note, setNote] = useState("");
-  useEffect(() => { const query = new URLSearchParams(location.search); setTicker(query.get("ticker")?.toUpperCase() ?? ""); }, []);
+  useEffect(() => { if (linkedTicker) setTicker(linkedTicker.toUpperCase()); }, [linkedTicker]);
   const accounts = useQuery({queryKey:["my-portfolios",session.data?.id],enabled:!!session.data,
     queryFn:({signal})=>api<PortfolioRow[]>("/portfolios",{signal})});
   useEffect(() => { if (accounts.data?.length && !selected) setSelected(accounts.data[0].id); }, [accounts.data,selected]);
@@ -92,7 +95,7 @@ export function PortfolioWorkspace() {
         {report.unpriced_count>0 && <p className={s.warning} role="status">{report.unpriced_count} holding(s) have no stored close. Equity and P&amp;L exclude their market value.</p>}
         <section className="surface"><div className="surface-top"><h2 className="section-title">Holdings</h2><span className="subtle">Latest stored closes, not live quotes</span></div>
           <div className="table-scroll"><table><thead><tr><th>Stock</th><th>Quantity</th><th>Avg cost</th><th>Last close</th><th>Price date</th><th>Market value</th><th>Unrealized P&amp;L</th><th>Weight</th></tr></thead>
-            <tbody>{report.holdings.map(row=><tr key={row.ticker}><td><Link href={`/stocks/${encodeURIComponent(row.ticker)}`}>{row.ticker}</Link></td>
+            <tbody>{report.holdings.map(row=><tr key={row.ticker}><td><StockTicker ticker={row.ticker}/></td>
               <td>{row.quantity.toLocaleString("en-IN")}</td><td>{inr.format(row.average_cost)}</td><td>{amount(row.close)}</td><td>{row.price_date??"—"}</td>
               <td>{amount(row.market_value)}</td><td className={(row.unrealized_pnl??0)>=0?s.up:s.down}>{row.unrealized_pnl==null?"—":signed(row.unrealized_pnl)}</td>
               <td>{row.weight_pct==null?"—":<span className={s.weight}><i style={{width:pct(row.weight_pct)}}/>{pct(row.weight_pct)}</span>}</td></tr>)}</tbody></table>
@@ -103,7 +106,7 @@ export function PortfolioWorkspace() {
               <option value="buy">Buy</option><option value="sell">Sell</option><option value="deposit">Deposit cash</option><option value="withdrawal">Withdraw cash</option></select></label>
             <label className="field">Date<input type="date" required max={today()} value={tradeDate} onChange={e=>setTradeDate(e.target.value)}/></label>
             {kind==="buy"||kind==="sell" ? <>
-              <label className="field">NSE ticker<input required placeholder="RELIANCE" value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase())}/></label>
+              <TickerPicker required value={ticker} onChange={setTicker}/>
               <label className="field">Shares<input required type="number" min="0.000001" step="any" value={quantity} onChange={e=>setQuantity(e.target.value)}/></label>
               <label className="field">Price per share · ₹<input required type="number" min="0.0001" step="any" value={price} onChange={e=>setPrice(e.target.value)}/></label>
               <label className="field">Fees · ₹<input required type="number" min="0" step="any" value={fees} onChange={e=>setFees(e.target.value)}/></label>
@@ -115,7 +118,7 @@ export function PortfolioWorkspace() {
         <section className="surface"><div className="surface-top"><h2 className="section-title">Activity ledger</h2><span className="subtle">{report.entries.length} entries · newest first</span></div>
           <div className="table-scroll"><table><thead><tr><th>Date</th><th>Type</th><th>Ticker</th><th>Quantity</th><th>Price</th><th>Fees</th><th>Cash amount</th><th>Note</th><th/></tr></thead>
             <tbody>{report.entries.map(row=><tr key={row.id}><td>{row.trade_date}</td><td className={s.kind}>{row.kind}</td>
-              <td>{row.ticker?<Link href={`/stocks/${encodeURIComponent(row.ticker)}`}>{row.ticker}</Link>:"—"}</td>
+              <td>{row.ticker?<StockTicker ticker={row.ticker}/>:"—"}</td>
               <td>{row.quantity??"—"}</td><td>{amount(row.price)}</td><td>{row.fees?inr.format(row.fees):"—"}</td><td>{amount(row.amount)}</td>
               <td className={s.noteCell}>{row.note||"—"}</td><td><button className={s.icon} aria-label={`Delete ${row.kind} entry from ${row.trade_date}`}
                 disabled={remove.isPending} onClick={()=>{if(confirm("Delete this ledger entry? Later entries must remain valid.")) remove.mutate(row.id);}}><Trash2 size={15}/></button></td></tr>)}</tbody></table>

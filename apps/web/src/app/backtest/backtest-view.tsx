@@ -4,11 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download, Play } from "lucide-react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { DataTable } from "@/components/data-table";
+import { StockTicker } from "@/components/stock-ticker";
 import { SignInNotice, State } from "@/components/presentation";
 import { useSession } from "@/components/providers";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ const inputSchema = z.object({ start: z.iso.date(), end: z.iso.date(), n: z.numb
 const percentage = new Intl.NumberFormat("en-IN", { style: "percent", maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const bookColumns: ColumnDef<{ ticker: string }>[] = [
   { id: "rank", header: "#", enableSorting: false, cell: ({ row }) => row.index + 1 },
-  { accessorKey: "ticker", header: "Ticker", cell: ({ row }) => <Link href={"/stocks/" + encodeURIComponent(row.original.ticker)}>{row.original.ticker}</Link> },
+  { accessorKey: "ticker", header: "Ticker", cell: ({ row }) => <StockTicker ticker={row.original.ticker}/> },
 ];
 const terminal = (status?: string) => !!status && ["finished", "failed", "stopped", "canceled"].includes(status);
 

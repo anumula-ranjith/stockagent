@@ -22,7 +22,8 @@ def test_rq_dashboard_rejects_anonymous_requests():
         assert response.headers["www-authenticate"] == "Bearer"
 
 
-def test_market_schedule_has_the_expected_ist_times():
+def test_market_schedule_has_the_expected_ist_times(monkeypatch):
+    monkeypatch.setenv("MARKET_PRICE_PROVIDER", "eodhd")
     morning = datetime(2025, 2, 3, 8, tzinfo=MARKET_TZ)
     jobs = {job.id: job for job in build_scheduler().get_jobs()}
     expected = {"ingest": (18, 30), "news": (19, 0), "sentiment": (19, 0), "recompute": (19, 30)}

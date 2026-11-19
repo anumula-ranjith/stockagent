@@ -3,6 +3,7 @@
 from alembic import context
 from sqlalchemy import create_engine, pool
 
+from stock_agents.jobs import pipeline_models  # noqa: F401 (register the operational tables)
 from stock_agents.storage.postgres import Base, database_url
 
 

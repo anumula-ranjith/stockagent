@@ -7,6 +7,11 @@ from sqlalchemy import delete, select
 from stock_agents.sources.nse import parse_bhavcopy, parse_fo_tickers, parse_nifty500
 
 
+@pytest.fixture(autouse=True)
+def use_eodhd_market_feed(monkeypatch):
+    monkeypatch.setenv("MARKET_PRICE_PROVIDER", "eodhd")
+
+
 def test_fo_members_exclude_index_contracts():
     text = "Underlying,Symbol,Nov\nNifty 50,NIFTY,65\nDerivatives on Individual Securities,Symbol,Nov\nAlpha Ltd,ALPHA,100\n"
     assert parse_fo_tickers(text) == {"ALPHA": "Alpha Ltd"}

@@ -80,12 +80,16 @@ def _data(response: httpx.Response, label: str):
     return payload.get("data")
 
 
-async def fetch_snapshot(api_key: str, client_code: str, password: str, totp: str,
-                         *, transport: httpx.AsyncBaseTransport | None = None) -> tuple[list[dict], list[dict]]:
+def smartapi_headers(api_key: str) -> dict[str, str]:
     mac = ":".join(f"{(getnode() >> shift) & 255:02x}" for shift in (40, 32, 24, 16, 8, 0))
-    headers = {"Content-Type": "application/json", "Accept": "application/json", "X-PrivateKey": api_key,
+    return {"Content-Type": "application/json", "Accept": "application/json", "X-PrivateKey": api_key,
         "X-UserType": "USER", "X-SourceID": "WEB", "X-ClientLocalIP": "127.0.0.1",
         "X-ClientPublicIP": os.getenv("ANGEL_ONE_PUBLIC_IP", "127.0.0.1"), "X-MACAddress": mac}
+
+
+async def fetch_snapshot(api_key: str, client_code: str, password: str, totp: str,
+                         *, transport: httpx.AsyncBaseTransport | None = None) -> tuple[list[dict], list[dict]]:
+    headers = smartapi_headers(api_key)
     try:
         async with httpx.AsyncClient(base_url=BASE, headers=headers, timeout=12.0,
                                      follow_redirects=False, transport=transport) as client:

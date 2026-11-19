@@ -1,4 +1,5 @@
 import { defaults, type Settings } from "@/app/dashboard/ranker-model";
+import { parseScreen, type ScreenFilters } from "./screen-filters";
 
 export const standardPeriods = {
   ema_fast: 9, ema_slow: 21, ema_sessions_ago: 0,
@@ -11,8 +12,9 @@ export const standardRules: ChartRules = {ema_rule: "any", macd_rule: "any"};
 export type StockQuery = Record<string, string | string[] | undefined>;
 export const periodKeys = Object.keys(standardPeriods) as (keyof Periods)[];
 
-export function stockHref(ticker: string, context: {periods?: Periods; rules?: ChartRules; settings?: Settings; asof?: string} = {}) {
+export function stockHref(ticker: string, context: {periods?: Periods; rules?: ChartRules; settings?: Settings; asof?: string; screen?: ScreenFilters} = {}) {
   const query = new URLSearchParams();
+  if (context.screen) query.set("screen", JSON.stringify(context.screen));
   if (context.asof) query.set("asof", context.asof);
   if (context.periods) {
     for (const key of periodKeys) {
@@ -57,5 +59,6 @@ export function stockContext(query: StockQuery) {
     } catch { /* Malformed external links open with the dashboard defaults. */ }
   }
   const asof = typeof query.asof === "string" && /^\d{4}-\d{2}-\d{2}$/.test(query.asof) ? query.asof : undefined;
-  return {periods, rules, settings, asof};
+  const screen = typeof query.screen === "string" ? parseScreen(query.screen) : undefined;
+  return {periods, rules, settings, asof, screen};
 }

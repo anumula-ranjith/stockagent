@@ -137,8 +137,9 @@ def load_profile(db, ticker: str, today: date) -> Profile:
         db.execute(
             """SELECT sector,industry,source,known_date FROM classification
         WHERE ticker=? AND effective_date<=? AND known_date<=?
-          AND source IN ('nse_indices','seed_csv','eodhd')
-        ORDER BY effective_date DESC,known_date DESC,(source='nse_indices') DESC,source LIMIT 1""",
+          AND source IN ('nse_indices','seed_csv','eodhd','industry_sector_map')
+        ORDER BY effective_date DESC,known_date DESC,
+          (NULLIF(TRIM(sector),'') IS NOT NULL) DESC,(source='nse_indices') DESC,source LIMIT 1""",
             params,
         )
         .mappings()
@@ -159,8 +160,8 @@ def load_profile(db, ticker: str, today: date) -> Profile:
     # listing or one recent trade still gets its exact previous observation.
     quote_sql = """SELECT DISTINCT ON (date) date,open,high,low,close,adj_close,volume,source,known_date
         FROM prices_daily WHERE ticker=? AND date<=? AND known_date<=? AND volume>0
-        AND close>0 AND close<'Infinity'::double precision AND source IN ('eodhd','nse_bhavcopy')
-        {window} ORDER BY date DESC,(source='eodhd') DESC,known_date DESC LIMIT 2"""
+        AND close>0 AND close<'Infinity'::double precision AND source IN ('angel_one','eodhd','nse_bhavcopy')
+        {window} ORDER BY date DESC,(source='angel_one') DESC,(source='eodhd') DESC,known_date DESC LIMIT 2"""
     cutoff = today - timedelta(days=14)
     prices = db.execute(quote_sql.format(window="AND date>=?"), [*params, cutoff]).mappings().all()
     if len(prices) < 2:

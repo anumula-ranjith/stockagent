@@ -27,6 +27,7 @@ FORMULAS = {
     "eps_fy1": ("FE_ESTIMATE(EPS,MEAN,ANN,+1,0,INR)", 1),
     "eps_fy2": ("FE_ESTIMATE(EPS,MEAN,ANN,+2,0,INR)", 1),
     "rating_mean": ("FE_RATING(MEAN)", 1),
+    "recommendation_count": ("FE_RATING(NUMEST)", 1),
     "_previous_rating": ("FE_RATING(MEAN,NOTE,-1M)", 1),
     "target_mean": ("FE_ESTIMATE(PRICE_TGT,MEAN,0)", 1),
 }

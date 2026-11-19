@@ -13,7 +13,8 @@ def test_due_date_uses_ist_and_catches_up_before_evening():
     assert due_date(datetime(2026, 11, 19, 0, 0, tzinfo=UTC)) == date(2026, 11, 18)
 
 
-def test_ingest_checks_for_special_weekend_trading():
+def test_ingest_checks_for_special_weekend_trading(monkeypatch):
+    monkeypatch.setenv("MARKET_PRICE_PROVIDER", "eodhd")
     sunday = datetime(2026, 11, 8, 8, tzinfo=MARKET_TZ)
     job = next(job for job in build_scheduler().get_jobs() if job.id == "ingest")
     assert job.trigger.get_next_fire_time(None, sunday) == sunday.replace(hour=18, minute=30)

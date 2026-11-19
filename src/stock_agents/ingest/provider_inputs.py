@@ -122,7 +122,7 @@ def _load_provider(connection, name, members, observed):
         if previous
         else dict(complete=[], no_data=[], errors={}, inserted=0)
     )
-    revision = 2 if name == "factset_formula" else 1
+    revision = 3 if name == "factset_formula" else 1
     if state.get("revision", 1) != revision:
         state.update(complete=[], no_data=[], errors={})
     state["revision"] = revision

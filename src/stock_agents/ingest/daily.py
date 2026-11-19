@@ -14,9 +14,11 @@ from sqlalchemy.dialects.postgresql import insert
 from stock_agents.common.config import load_settings
 from stock_agents.ingest.adjustments import refresh_adjustments
 from stock_agents.ingest.company_reference import store_names
+from stock_agents.ingest.price_provider import angel_capture_result, price_provider
+from stock_agents.ingest.sectors import fill_missing_sectors, sector_for
 from stock_agents.sources.eodhd import EODHDClient
 from stock_agents.sources.nse import EODNotReady, NSEClient
-from stock_agents.storage.postgres import Base
+from stock_agents.storage.postgres import Base, Symbology
 
 MARKET_TZ = ZoneInfo("Asia/Kolkata")
 
@@ -117,6 +119,7 @@ def _write_prices(target, records: list[dict]) -> int:
         keys = values(column("ticker", String), column("date", Date), name="fallback").data(fallback_keys)
         existing = target.execute(select(table).where(
             table.c.ticker == keys.c.ticker, table.c.date == keys.c.date,
+            table.c.date.between(min(day for _, day in fallback_keys), max(day for _, day in fallback_keys)),
             table.c.source.in_(("eodhd", "nse_bhavcopy")), table.c.adj_close.is_not(None),
         )).mappings().all()
         covered = {(r["ticker"], r["date"]): r for r in existing}
@@ -143,6 +146,8 @@ def _write_prices(target, records: list[dict]) -> int:
                       name="incoming").data([(r["ticker"], r["date"], r["source"]) for r in batch])
         target.execute(delete(table).where(
             table.c.ticker == keys.c.ticker, table.c.date == keys.c.date,
+            # Explicit bounds permit Timescale chunk pruning for VALUES joins.
+            table.c.date.between(min(r["date"] for r in batch), max(r["date"] for r in batch)),
             table.c.source != keys.c.source, table.c.source.in_(("eodhd", "nse_bhavcopy")),
         ))
     return _upsert(target, "prices_daily", records)
@@ -167,7 +172,10 @@ def _retry_selection(target, traded: set[str], trade_date: date, final: dict, su
     ).scalars())
     failed = {error["ticker"] for error in result.get("vendor_errors", []) if "ticker" in error}
     prices = Base.metadata.tables["prices_daily"]
-    rows = target.execute(select(prices).where(
+    # Reused legacy bars must have the same columns as freshly fetched bars.
+    # The exchange trade timestamp belongs to the Angel quote source.
+    bar_columns = ("ticker", "date", "open", "high", "low", "close", "adj_close", "volume", "source", "known_date")
+    rows = target.execute(select(*(prices.c[name] for name in bar_columns)).where(
         prices.c.ticker.in_(traded), prices.c.date == trade_date,
         prices.c.source.in_(("eodhd", "nse_bhavcopy")),
     ).order_by(prices.c.source.desc())).mappings().all()
@@ -185,6 +193,43 @@ def _retry_selection(target, traded: set[str], trade_date: date, final: dict, su
     return traded - reusable.keys(), reusable
 
 
+def _store_primary_reference(target, nifty, fo, known, final, *, include_seed=False):
+    groups = {"NIFTY500": set(nifty), "NSE_FO": set(fo)}
+    members = groups["NIFTY500"] | groups["NSE_FO"]
+    observed_isins = dict(target.execute(select(Symbology.ticker, Symbology.isin).where(
+        Symbology.ticker.in_(members)
+    )).all())
+    references = []
+    for ticker in sorted(members):
+        member = nifty.get(ticker, {})
+        references.append(dict(ticker=ticker,
+            eodhd_symbol=ticker + ".NSE" if not ticker.startswith("DUMMY") else None,
+            isin=member.get("isin") or final.get(ticker, {}).get("isin") or observed_isins.get(ticker),
+            active=not ticker.startswith("DUMMY"), updated_at=datetime.now(UTC)))
+    _upsert(target, "symbology", references)
+    names = store_names(target, nifty, fo, known, include_seed=include_seed)
+    _membership(target, groups, known)
+    cls = Base.metadata.tables["classification"]
+    sectors = dict(target.execute(select(cls.c.ticker, cls.c.sector).where(
+        cls.c.ticker.in_(nifty), cls.c.sector.is_not(None), cls.c.known_date <= known,
+    ).distinct(cls.c.ticker).order_by(cls.c.ticker, cls.c.effective_date.desc(), cls.c.known_date.desc())).all())
+    classifications = [dict(ticker=t, effective_date=known, known_date=known,
+                            sector=sector_for(m["industry"], sectors.get(t)), industry=m["industry"], source="nse_indices")
+                       for t, m in nifty.items()]
+    _upsert(target, "classification", classifications)
+    return {"names": names, **fill_missing_sectors(target, known)}
+
+
+def refresh_primary_reference(target):
+    """Update current membership and classifications independently of price availability."""
+    nse = NSEClient()
+    try:
+        nifty, fo = nse.nifty500(), nse.fo_stocks()
+    finally:
+        nse.close()
+    return _store_primary_reference(target, nifty, fo, datetime.now(MARKET_TZ).date(), {}, include_seed=True)
+
+
 def refresh_eod(target, trade_date: date | None = None, *, nse=None, client=None) -> dict:
     """Run inside the caller's transaction. Raise on incomplete exchange coverage.
 
@@ -196,6 +241,10 @@ def refresh_eod(target, trade_date: date | None = None, *, nse=None, client=None
     trade_date = trade_date or known
     if trade_date > known:
         raise ValueError("A future EOD date cannot be loaded")
+    if price_provider() == "angel_one":
+        # Live quotes can only be sampled at the scheduled time. Evening and
+        # morning workflows consume the committed snapshot for their trade date.
+        return angel_capture_result(target, trade_date)
     started = datetime.now(UTC).replace(tzinfo=None)
     own_nse = nse is None
     nse = nse or NSEClient()
@@ -292,24 +341,7 @@ def refresh_eod(target, trade_date: date | None = None, *, nse=None, client=None
                     prices[ticker][day]["known_date"] = known
                     fallback_count += 1
 
-        references = []
-        for ticker in sorted(members):
-            member = nifty.get(ticker, {})
-            references.append(dict(ticker=ticker,
-                eodhd_symbol=ticker + ".NSE" if ticker not in placeholders else None,
-                isin=member.get("isin") or final.get(ticker, {}).get("isin"),
-                active=ticker not in placeholders, updated_at=datetime.now(UTC)))
-        _upsert(target, "symbology", references)
-        store_names(target, nifty, fo, known)
-        _membership(target, groups, known)
-        cls = Base.metadata.tables["classification"]
-        sectors = dict(target.execute(select(cls.c.ticker, cls.c.sector).where(
-            cls.c.ticker.in_(nifty), cls.c.sector.is_not(None), cls.c.known_date <= known,
-        ).distinct(cls.c.ticker).order_by(cls.c.ticker, cls.c.effective_date.desc(), cls.c.known_date.desc())).all())
-        classifications = [dict(ticker=t, effective_date=known, known_date=known,
-                                sector=sectors.get(t), industry=m["industry"], source="nse_indices")
-                           for t, m in nifty.items()]
-        _upsert(target, "classification", classifications)
+        _store_primary_reference(target, nifty, fo, known, final)
         flat_prices = [row for rows in prices.values() for row in rows.values()]
         count = _write_prices(target, flat_prices)
         action_count = _upsert(target, "corporate_actions", actions)

@@ -24,6 +24,8 @@ JSON endpoints (write — server-side work):
 
 from __future__ import annotations
 
+import asyncio
+import os
 from contextlib import asynccontextmanager
 from datetime import UTC, date, timedelta
 from html import escape
@@ -39,7 +41,18 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.concurrency import run_in_threadpool
 
-from stock_agents.api import account, auth, broker, diagnostics, job_routes, personal, ranker, screener, stock_profile
+from stock_agents.api import (
+    account,
+    admin,
+    auth,
+    broker,
+    diagnostics,
+    job_routes,
+    personal,
+    ranker,
+    screener,
+    stock_profile,
+)
 from stock_agents.api.auth import AdminUser, CurrentUser
 from stock_agents.api.rq_dashboard import admin_dashboard
 from stock_agents.api.schemas import (
@@ -67,9 +80,31 @@ SHELL = (TPL_DIR / "_shell.html").read_text(encoding="utf-8")
 async def lifespan(_app: FastAPI):
     configure(service="stock-agents.api")
     setup_tracing("stock-agents.api")
+    async def warm_market():
+        generation = None
+        while True:
+            try:
+                from stock_agents.jobs.queue import _redis, redis_url
+                current = await asyncio.to_thread(_redis(redis_url()).get, "quantora:market-generation")
+                if current != generation:
+                    ranker._inputs.invalidate()
+                    screener._history.invalidate()
+                    admin.quality_cache.invalidate()
+                    generation = current
+                await asyncio.gather(
+                    asyncio.to_thread(ranker._cached_inputs, date.today(), 0),
+                    asyncio.to_thread(screener.cached_history),
+                )
+            except Exception:
+                pass  # Request handlers still report a failed cold load; retry on the next cycle.
+            await asyncio.sleep(60)
+    warmer = asyncio.create_task(warm_market()) if os.getenv("PRELOAD_MARKET_DATA") == "true" else None
     try:
         yield
     finally:
+        if warmer:
+            warmer.cancel()
+            await asyncio.gather(warmer, return_exceptions=True)
         await dispose_engine()
         await run_in_threadpool(flush_traces)
 
@@ -79,12 +114,15 @@ app.state.limiter = auth.limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(auth.router)
 app.include_router(account.router)
+app.include_router(admin.router)
 app.include_router(job_routes.router)
 app.include_router(diagnostics.router)
 app.include_router(screener.router)
 app.include_router(ranker.router)
 app.include_router(stock_profile.router)
 app.include_router(personal.router)
+from stock_agents.api import market_feed
+app.include_router(market_feed.router)
 app.include_router(broker.router)
 OperationalDB = Annotated[ReadConnection, Depends(get_conn)]
 
@@ -162,11 +200,11 @@ async def prices(
     ticker: str, db: OperationalDB, days: int = Query(90, ge=1, le=3650)
 ) -> list[dict[str, Any]]:
     rows = await db.fetch(
-        """SELECT DISTINCT ON (date) date, open, high, low, close, adj_close, volume
+        """SELECT DISTINCT ON (date) date, open, high, low, close, adj_close, volume, source
            FROM prices_daily
            WHERE ticker = :ticker AND date BETWEEN :cutoff AND :today AND known_date <= :today
              AND (volume > 0 OR volume IS NULL) AND LOWER(TRIM(source)) NOT LIKE 'factset%'
-           ORDER BY date, (source='eodhd') DESC, known_date DESC, source""",
+           ORDER BY date, (source='angel_one') DESC, (source='eodhd') DESC, known_date DESC, source""",
         ticker=ticker.upper(),
         cutoff=date.today() - timedelta(days=days),
         today=date.today(),
@@ -174,8 +212,8 @@ async def prices(
     if not rows:
         raise HTTPException(404, f"no prices for {ticker}")
     return [
-        {"date": str(d), "open": o, "high": h, "low": lo, "close": cl, "adj_close": ac, "volume": v}
-        for d, o, h, lo, cl, ac, v in rows
+        {"date": str(d), "open": o, "high": h, "low": lo, "close": cl, "adj_close": ac, "volume": v, "source": source}
+        for d, o, h, lo, cl, ac, v, source in rows
     ]
 
 
@@ -185,19 +223,51 @@ def _news_timestamp(ts) -> str:
     return str(ts)
 
 
+@app.get("/news-status/{ticker}", dependencies=[Depends(auth.require_market_data_user)])
+async def news_status(ticker: str, db: OperationalDB) -> dict:
+    import json
+    rows = await db.fetch("""SELECT ended_at, status, warnings FROM run_log
+        WHERE job='free_news' ORDER BY ended_at DESC LIMIT 1""")
+    counts = await db.fetch("""SELECT count(*),max(published_at) FROM news
+        WHERE ticker=:ticker AND source='The Economic Times RSS'""", ticker=ticker.upper())
+    latest = rows[0] if rows else None
+    details = json.loads(latest[2]) if latest and latest[2] else {}
+    return {"status": latest[1] if latest else "not_run",
+            "updated_at": str(latest[0])+"Z" if latest else None,
+            "feeds_ok": details.get("feeds_ok",0), "feeds_total": details.get("feeds_total",4),
+            "articles": counts[0][0], "latest_article": _news_timestamp(counts[0][1]) if counts[0][1] else None}
+
+
 @app.get("/news/{ticker}", response_model=list[NewsItem], dependencies=[Depends(auth.require_market_data_user)])
 async def news(
     ticker: str, db: OperationalDB, limit: int = Query(20, ge=1, le=200)
 ) -> list[dict[str, Any]]:
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
     rows = await db.fetch(
         """SELECT published_at, headline, source, url, polarity, pos, neg, neu
            FROM news
            WHERE ticker = :ticker AND LOWER(TRIM(COALESCE(source, ''))) NOT LIKE 'factset%'
-           ORDER BY published_at DESC, news_id
+           ORDER BY published_at DESC, (polarity IS NULL), news_id
            LIMIT :limit""",
         ticker=ticker.upper(),
-        limit=limit,
+        limit=limit * 5,
     )
+    unique, seen = [], set()
+    for row in rows:
+        ts, headline, source, url, *_ = row
+        try:
+            parts = urlsplit(url or "")
+            query = urlencode(sorted((k,v) for k,v in parse_qsl(parts.query)
+                if not k.lower().startswith("utm_") and k not in ("from","source")))
+            canonical = urlunsplit((parts.scheme.lower(),parts.netloc.lower(),parts.path,query,""))
+        except ValueError:
+            canonical = ""
+        key = canonical or f"{ts.date()}:{(headline or '').strip().casefold()}"
+        if key not in seen:
+            seen.add(key)
+            unique.append(row)
+        if len(unique) == limit:
+            break
     return [
         {
             "published_at": _news_timestamp(ts),
@@ -209,7 +279,7 @@ async def news(
             "neg": ne,
             "neu": nu,
         }
-        for ts, h, s, u, p, po, ne, nu in rows
+        for ts, h, s, u, p, po, ne, nu in unique
     ]
 
 

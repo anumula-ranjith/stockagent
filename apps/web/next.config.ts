@@ -5,7 +5,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   skipTrailingSlashRedirect: true,
   async rewrites() {
-    return [{ source: "/_admin/rq/:path*", destination: "/operations/:path*" }];
+    const views = ["", "/:instance(\\d+)", "/:instance(\\d+)/view/:path*"];
+    return [
+      ...views.map(suffix => ({
+        source: "/_admin/rq" + suffix,
+        destination: "/job-queues" + suffix.replace("(\\d+)", ""),
+        missing: [{type: "header" as const, key: "sec-fetch-dest", value: "iframe"}],
+      })),
+      { source: "/_admin/rq/:path*", destination: "/operations/:path*" },
+    ];
   },
 };
 

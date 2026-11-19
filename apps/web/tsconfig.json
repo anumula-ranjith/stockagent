@@ -31,8 +31,23 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-admin-verified/types/**/*.ts",
+    ".next-admin/types/**/*.ts",
+    ".next-angel-connect/types/**/*.ts",
+    ".next-angel-panels/types/**/*.ts",
+    ".next-angel-signed-screen/types/**/*.ts",
+    ".next-free-news-final/types/**/*.ts",
+    ".next-free-news/types/**/*.ts",
+    ".next-job-market-status/types/**/*.ts",
+    ".next-live-screen/types/**/*.ts",
+    ".next-popup/types/**/*.ts",
+    ".next-rq-navigation/types/**/*.ts",
+    ".next-screener-feed/types/**/*.ts",
+    ".next-stock-ticks/types/**/*.ts",
+    ".next-watch-fields/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    ".next-job-run-history/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -1,0 +1,6 @@
+.feed { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:12px 24px; padding:16px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); }
+.feed div { display:grid; gap:4px; align-content:start; }
+.feed span,.feed small { color:var(--muted); font-size:12px; }
+.feed strong { font-variant-numeric:tabular-nums; }
+.feed > small { grid-column:1 / -1; }
+.up { color:var(--long); }

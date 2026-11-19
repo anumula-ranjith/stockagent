@@ -7,12 +7,13 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { DataTable } from "@/components/data-table";
 import { State } from "@/components/presentation";
+import { StockTicker } from "@/components/stock-ticker";
 import { useSession } from "@/components/providers";
 import { agentLabels, agents, api, type Agent, type ScoreRow, type UniverseRow } from "@/lib/api";
 
 type Stock = UniverseRow & Partial<Record<Agent, number | null>>;
 const baseColumns: ColumnDef<Stock>[] = [
-  { accessorKey: "ticker", header: "Ticker", cell: ({ row }) => <Link href={"/stocks/" + encodeURIComponent(row.original.ticker)}>{row.original.ticker}</Link> },
+  { accessorKey: "ticker", header: "Ticker", cell: ({ row }) => <StockTicker ticker={row.original.ticker}/> },
   { accessorKey: "symbol", header: "Exchange symbol", cell: ({ row }) => row.original.symbol || "—" },
   { accessorKey: "sector", header: "Sector", cell: ({ row }) => row.original.sector || "—" },
   { accessorKey: "industry", header: "Industry", cell: ({ row }) => row.original.industry || "—" },

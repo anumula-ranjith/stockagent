@@ -32,6 +32,7 @@ class UniverseRow(BaseModel):
 
 # ----------------------------------------------------------------- prices
 class PriceBar(BaseModel):
+    source: str | None = None
     date: date
     open: float | None = None
     high: float | None = None

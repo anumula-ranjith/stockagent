@@ -12,6 +12,7 @@ export const factors: Record<Exclude<Agent,"fundamental">, Factor[]> = {
   sentiment: [
     ["news_tone_7d","News tone (7-day)",8],["news_volume","News volume vs normal",3],["hot_sector","Hot sector",6],
     ["est_revisions","Analyst revisions",6],["rating_change_1m","Rating change (1 month)",4],["social_buzz","Social buzz",0],["insider_activity","Insider buying",3],["short_interest","Short interest",3],
+    ["nse_short_selling_activity","NSE short sales / volume (120 sessions)",0],
   ],
   momentum: [
     ["ret_1m","1-month return",3],["ret_3m","3-month return",6],["ret_6m","6-month return",7],
@@ -40,15 +41,16 @@ export type Snapshot = {
   books:Record<Exclude<Tab,"portfolio">,{longs:string[];shorts:string[]}>;
   heat:{sector:string;value:number}[];
 };
-export const columns:Record<Agent,[string,string,("percent"|"ratio"|"number")?][]> = {
+export const columns:Record<Agent,[string,string,("percent"|"volumePercent"|"ratio"|"number")?][]> = {
   technical:[["rsi14","RSI"],["vs_sma50","vs 50d","percent"],["vs_sma200","vs 200d","percent"],["adx14_signed","ADX"],["vol_surge","Vol surge","ratio"],["technical","Score"]],
-  sentiment:[["news_tone_7d","News tone","ratio"],["headlines","Headlines 7d"],["est_revisions","Revisions"],["social_buzz","Social"],["insider_activity","Net insider"],["short_interest","Short interest","percent"],["sentiment","Score"]],
+  sentiment:[["news_tone_7d","News tone","ratio"],["headlines","Headlines 7d"],["est_revisions","Revisions"],["social_buzz","Social"],["insider_activity","Net insider"],["short_interest","Short interest","percent"],["nse_short_selling_activity","NSE short sales / volume (120 sessions)","volumePercent"],["sentiment","Score"]],
   momentum:[["ret_1m","1M","percent"],["ret_3m","3M","percent"],["ret_6m","6M","percent"],["ret_12_1","12–1M","percent"],["rel_str","Relative","percent"],["accel","Accel.","percent"],["momentum","Score"]],
   fundamental:[["pe_ttm","P/E","ratio"],["roe_ttm","ROE","percent"],["revenue_growth_yoy","Rev growth","percent"],["debt_equity","D/E","ratio"],["dividend_yield","Yield","percent"],["fundamental","Score"]],
 };
 export function display(value:number|undefined, kind?:string) {
   if(value==null || !Number.isFinite(value)) return "—";
   if(kind==="percent") return (value>0?"+":"")+(100*value).toFixed(1)+"%";
+  if(kind==="volumePercent") return (100*value).toFixed(3)+"%";
   if(kind==="ratio") return value.toFixed(2);
   return Math.round(value).toLocaleString("en-IN");
 }

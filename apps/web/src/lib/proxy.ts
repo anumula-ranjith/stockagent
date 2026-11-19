@@ -2,8 +2,8 @@ import type { NextRequest } from "next/server";
 import { isIP } from "node:net";
 
 const origin = new URL(process.env.API_ORIGIN || "http://127.0.0.1:8701");
-const reads = /^(health|me|universe|combine|ranker\/(?:snapshot|latest)|backtest\/latest|(?:prices|news|scores|agents|sentiment|jobs|stock-profile)\/[^/]+|portfolios(?:\/[^/]+)?|watchlists(?:\/[^/]+)?|brokers\/angel-one\/snapshot)$/;
-const writes = /^(login|logout|signup|register|verify-email|resend-verification|forgot-password|reset-password|change-password|backtest\/run|screener\/run|ranker\/(?:snapshot|backtest)|(?:ranker|screener)\/stock\/[^/]+|portfolios(?:\/[^/]+(?:\/entries(?:\/[^/]+)?)?)?|watchlists(?:\/[^/]+(?:\/items\/[^/]+)?)?|brokers\/angel-one\/(?:sync|snapshot))$/;
+const reads = /^(market-feed\/stock\/[^/]+\/(?:quote|candles|derivatives)|admin\/(?:angel-one(?:\/scheduled-runs)?|overview|runs(?:\/[0-9a-f-]+)?|schedules|quality|users|audit)|screener\/market-status|health|me|universe|combine|ranker\/(?:snapshot|latest)|backtest\/latest|(?:prices|news|news-status|scores|agents|sentiment|jobs|stock-memberships|stock-profile)\/[^/]+|portfolios(?:\/[^/]+)?|watchlists(?:\/[^/]+)?|brokers\/angel-one\/snapshot)$/;
+const writes = /^(market-feed\/subscribe\/[^/]+|market-feed\/watchlist\/[0-9a-f-]+|admin\/(?:angel-one\/connect|runs(?:\/[0-9a-f-]+\/(?:retry|cancel))?|schedules\/(?:morning|evening)|users\/[0-9a-f-]+\/role)|stock-memberships\/[^/]+\/watchlists|login|logout|signup|register|verify-email|resend-verification|forgot-password|reset-password|change-password|backtest\/run|screener\/run|ranker\/(?:snapshot|backtest)|(?:ranker|screener)\/stock\/[^/]+|portfolios(?:\/[^/]+(?:\/entries(?:\/[^/]+)?)?)?|watchlists(?:\/[^/]+(?:\/items\/[^/]+)?)?|brokers\/angel-one\/(?:sync|snapshot))$/;
 
 export async function proxy(request: NextRequest, segments: string[], operations = false) {
   if (segments.some(segment => !segment || segment === "." || segment === ".." || /[\/\\]/.test(segment))) {
@@ -75,7 +75,7 @@ export async function proxy(request: NextRequest, segments: string[], operations
   const returned = new Headers({
     "Cache-Control": "private, no-store",
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
+    "X-Frame-Options": operations && upstream.headers.get("content-type")?.startsWith("text/html") ? "SAMEORIGIN" : "DENY",
   });
   for (const name of ["content-type", "www-authenticate", "retry-after", "content-disposition", "x-request-id"]) {
     const value = upstream.headers.get(name);

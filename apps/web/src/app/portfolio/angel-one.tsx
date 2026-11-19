@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
+import { StockTicker } from "@/components/stock-ticker";
 import { useState, type FormEvent } from "react";
 import { State } from "@/components/presentation";
 import { useSession } from "@/components/providers";
@@ -47,7 +47,7 @@ export function AngelOnePanel({manual}:{manual:Holding[]}) {
         <div className="table-scroll"><table><thead><tr><th>Instrument</th><th>Exchange</th><th>Shares</th><th>Avg price</th><th>Broker LTP</th><th>Broker P&amp;L</th><th>Manual shares</th><th>Difference</th></tr></thead>
           <tbody>{snapshot.holdings.map((row,index)=>{const local=row.ticker?manual.find(item=>item.ticker===row.ticker):null;
             const diff=row.quantity!=null&&local?row.quantity-local.quantity:null;
-            return <tr key={row.symbol+index}><td>{row.ticker?<Link href={`/stocks/${encodeURIComponent(row.ticker)}`}>{row.symbol}</Link>:row.symbol}</td>
+            return <tr key={row.symbol+index}><td>{row.ticker?<StockTicker ticker={row.ticker} label={row.symbol}/>:row.symbol}</td>
               <td>{row.exchange}</td><td>{row.quantity??"—"}</td><td>{row.average_price==null?"—":inr.format(row.average_price)}</td>
               <td>{row.broker_ltp==null?"—":inr.format(row.broker_ltp)}</td>
               <td className={(row.broker_pnl??0)>=0?s.up:s.down}>{row.broker_pnl==null?"—":inr.format(row.broker_pnl)}</td>
@@ -55,7 +55,7 @@ export function AngelOnePanel({manual}:{manual:Holding[]}) {
           {!snapshot.holdings.length&&<State>No broker holdings were returned.</State>}</div>
         <h3>Today’s broker trades <span className="subtle">{snapshot.trades.length}</span></h3>
         <div className="table-scroll"><table><thead><tr><th>Instrument</th><th>Side</th><th>Quantity</th><th>Fill price</th><th>Fill time</th><th>Fill ID</th></tr></thead>
-          <tbody>{snapshot.trades.map((row,index)=><tr key={row.fill_id+index}><td>{row.symbol}</td><td>{row.side}</td><td>{row.quantity??"—"}</td>
+          <tbody>{snapshot.trades.map((row,index)=><tr key={row.fill_id+index}><td>{row.ticker ? <StockTicker ticker={row.ticker} label={row.symbol}/> : row.symbol}</td><td>{row.side}</td><td>{row.quantity??"—"}</td>
             <td>{row.fill_price==null?"—":inr.format(row.fill_price)}</td><td>{row.fill_time||"—"}</td><td>{row.fill_id||"—"}</td></tr>)}</tbody></table>
           {!snapshot.trades.length&&<State>No trades were returned for the current day.</State>}</div>
       </>}

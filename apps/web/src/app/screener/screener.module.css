@@ -10,9 +10,7 @@
 .filter legend { color:var(--accent); font-weight:650; padding-right:8px; }
 .filter label { margin:6px 0; }
 .filter input,.filter select { width:100%; min-width:0; }
-.periods,.actions { display:flex; gap:8px; }
-.periods label { flex:1; min-width:0; text-transform:capitalize; }
-.actions { margin-top:12px; }
+.actions { display:flex; gap:8px; margin-top:12px; }
 .results { min-width:0; }
 .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin-bottom:16px; }
 .stats span,.note,.resultHead p { color:var(--muted); font-size:12px; }

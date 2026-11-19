@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
+from stock_agents.common.price_basis import indicator_closes
 from stock_agents.storage.warehouse import Warehouse
 
 # Keep licensed vendor fields out of the interactive factor tables and downloads.
@@ -136,15 +137,16 @@ def snapshot_inputs(
     bars = _frame(
         conn,
         f"""WITH members AS ({pool_query})
-            SELECT date,ticker,adj_close,close,high,low,volume FROM (
+            SELECT date,ticker,adj_close,close,high,low,volume,source FROM (
               SELECT p.*, ROW_NUMBER() OVER (PARTITION BY p.ticker, date
-                ORDER BY CASE WHEN source='eodhd' THEN 0 ELSE 1 END,known_date DESC,source) rn
+                ORDER BY (source='angel_one') DESC,(source='eodhd') DESC,known_date DESC,source) rn
               FROM prices_daily p JOIN members USING(ticker)
-              WHERE date BETWEEN ? AND ? AND known_date<=? AND adj_close>0 AND volume>0 AND {PUBLIC_SOURCE}
+              WHERE date BETWEEN ? AND ? AND known_date<=? AND (adj_close>0 OR (source='angel_one' AND close>0)) AND volume>0 AND {PUBLIC_SOURCE}
             ) chosen WHERE rn=1""",
         pool_args + [asof - timedelta(days=420), asof, observed],
-        ["date", "ticker", "adj_close", "close", "high", "low", "volume"],
+        ["date", "ticker", "adj_close", "close", "high", "low", "volume", "source"],
     )
+    bars["adj_close"] = indicator_closes(bars)
     if comparison_subject and not bars.empty:
         reference_sessions = bars.loc[bars.ticker != comparison_subject, "date"]
         if not reference_sessions.empty:
@@ -173,7 +175,7 @@ def snapshot_inputs(
         "classification", ["ticker", "sector", "industry", "source"], cutoff=observed
     ).set_index("ticker")
     frame["sector"] = (
-        cls["sector"].where(cls["source"] != "nse_indices", cls["industry"]).fillna(cls["sector"])
+        cls["sector"].where(~cls["source"].isin(["nse_indices", "industry_sector_map"]), cls["industry"]).fillna(cls["sector"])
     )
     fundamentals = latest(
         "fundamentals_pit",
@@ -254,16 +256,39 @@ def snapshot_inputs(
             ) | protected.get("eps_ttm", set())
     insider = _frame(
         conn,
-        f"""SELECT ticker,SUM(CASE WHEN UPPER(tx_type) IN ('P','BUY') THEN value_usd
-        WHEN UPPER(tx_type) IN ('S','SELL') THEN -value_usd END) AS net FROM insider_tx
-        WHERE tx_date BETWEEN ? AND ? AND known_date<=? AND {PUBLIC_SOURCE} GROUP BY ticker""",
-        [asof - timedelta(days=89), asof, asof],
-        ["ticker", "net"],
+        f"""SELECT ticker,
+        SUM(CASE WHEN UPPER(tx_type) IN ('P','BUY') THEN value_inr
+                 WHEN UPPER(tx_type) IN ('S','SELL') THEN -value_inr END),
+        SUM(CASE WHEN UPPER(tx_type) IN ('P','BUY') THEN value_usd
+                 WHEN UPPER(tx_type) IN ('S','SELL') THEN -value_usd END)
+        FROM insider_tx WHERE tx_date BETWEEN ? AND ? AND known_date<=?
+          AND (superseded_on IS NULL OR superseded_on>?) AND {PUBLIC_SOURCE} GROUP BY ticker""",
+        [asof - timedelta(days=89), asof, asof, asof],
+        ["ticker", "inr", "usd"],
     )
-    frame["insider_activity"] = insider.set_index("ticker")["net"]
+    insider = insider.set_index("ticker").reindex(frame.index)
+    # Each cross section must compare trade values in the same currency.
+    frame["insider_activity"] = insider["inr"] if insider.loc[members, "inr"].notna().any() else insider["usd"]
     frame["short_interest"] = latest(
         "short_interest", ["ticker", "short_pct_float"], "settlement_date"
     ).set_index("ticker")["short_pct_float"]
+    short_sales = _frame(
+        conn,
+        """WITH recent_reports AS (
+            SELECT trade_date, MAX(known_date) AS known_date FROM nse_short_selling
+            WHERE known_date <= ? AND trade_date BETWEEN ? AND ?
+            GROUP BY trade_date
+            ORDER BY trade_date DESC LIMIT 120
+        )
+        SELECT ticker, CAST(SUM(short_quantity) AS DOUBLE PRECISION)
+                       / NULLIF(SUM(traded_quantity), 0)
+        FROM nse_short_selling JOIN recent_reports USING (trade_date, known_date)
+        WHERE (SELECT MAX(trade_date) FROM recent_reports) >= ?
+        GROUP BY ticker""",
+        [asof, asof - timedelta(days=240), asof, asof - timedelta(days=7)],
+        ["ticker", "activity"],
+    )
+    frame["nse_short_selling_activity"] = short_sales.set_index("ticker")["activity"]
     frame["social_buzz"] = latest("social_daily", ["ticker", "mentions"]).set_index("ticker")[
         "mentions"
     ]

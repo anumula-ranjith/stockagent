@@ -1,5 +1,11 @@
 # Phase 4 Next.js frontend
 
+Market pages reuse browser query data for five minutes and retain it for thirty
+minutes while the app remains open. Account and job queries keep their separate
+freshness rules. Shared ranking and screener snapshots refresh after two minutes
+without blocking readers; failed refreshes may reuse data for at most ten minutes.
+Set `PRELOAD_MARKET_DATA=true` on the API to preload these snapshots at startup.
+
 ## 1. Start the API and frontend
 
 Keep FastAPI running on port 8701. Follow the [jobs runbook](JOBS.md) to

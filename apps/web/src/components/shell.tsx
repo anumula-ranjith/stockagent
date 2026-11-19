@@ -1,11 +1,15 @@
 "use client";
 
-import { ArrowUpRight, Moon, Sun, Menu, X } from "lucide-react";
+import { Moon, Sun, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { rankingQuery } from "@/lib/ranking-query";
+import { screenQuery } from "@/lib/screener-query";
+import { savedScreen } from "@/lib/screen-filters";
 import { api } from "@/lib/api";
 import { useSession, usesClerk } from "./providers";
 import { Button } from "./ui/button";
@@ -20,6 +24,23 @@ const links = [
 export function Header() {
   const pathname = usePathname();
   const session = useSession();
+  const client = useQueryClient();
+  function warmPage(href: string) {
+    if (href === "/stocks") {
+      void client.prefetchQuery({queryKey: ["universe"], queryFn: ({signal}) => api("/universe", {signal})});
+    }
+    const user = session.data?.id;
+    if (!user) return;
+    if (href === "/" || href === "/dashboard") void client.prefetchQuery(rankingQuery(user));
+    if (href === "/screener") void client.prefetchQuery(screenQuery(user, savedScreen(user)));
+    const reads: Record<string, [string, string]> = {
+      "/backtest": ["latest-backtest", "/backtest/latest"],
+      "/portfolio": ["my-portfolios", "/portfolios"],
+      "/watchlist": ["my-watchlists", "/watchlists"],
+    };
+    const read = reads[href];
+    if (read) void client.prefetchQuery({queryKey: [read[0], user], queryFn: ({signal}) => api(read[1], {signal})});
+  }
   const { resolvedTheme, setTheme } = useTheme();
   const [menu, setMenu] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -36,11 +57,13 @@ export function Header() {
         <span className="brand-mark" aria-hidden="true">Q</span>QUANTORA
       </Link>
       <nav className={menu ? "main-nav is-open" : "main-nav"} aria-label="Main navigation">
-        {links.map(([href, label]) => <Link key={href} href={href} onClick={() => setMenu(false)}
+        {links.map(([href, label]) => <Link key={href} href={href} onMouseEnter={() => warmPage(href)} onFocus={() => warmPage(href)}
+          onClick={() => {warmPage(href); setMenu(false);}}
           aria-current={pathname === href || (href !== "/" && pathname.startsWith(href + "/")) ? "page" : undefined}>
           {label}
         </Link>)}
-        {session.data?.is_admin && <a href="/_admin/rq/">Job queues <ArrowUpRight size={14}/></a>}
+        {session.data?.is_admin && <Link href="/admin">Admin</Link>}
+        {session.data?.is_admin && <a href="/_admin/rq/" aria-current={pathname.startsWith("/_admin/rq") || pathname.startsWith("/job-queues") ? "page" : undefined}>Job queues</a>}
       </nav>
       <div className="top-actions">
         <span className="market-chip"><i/>NSE India</span>

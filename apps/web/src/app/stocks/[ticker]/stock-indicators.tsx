@@ -3,10 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { State } from "@/components/presentation";
+import { CandleField, RangeFields } from "@/components/screen-fields";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import type { components } from "@/lib/api-types";
 import { type ChartRules, type Periods } from "@/lib/stock-context";
+import { candleLabels, intradayLabel, screenRequest, type ScreenFilters } from "@/lib/screen-filters";
 import { dateLabel, rupees } from "@/lib/utils";
 import styles from "./stock-indicators.module.css";
 
@@ -28,20 +30,21 @@ function relation(a: number | null, b: number | null) {
   return a === b ? "Equal" : a > b ? "Above" : "Below";
 }
 
-type Filters = {belowHigh: number | null; aboveLow: number | null; rules: ChartRules};
+type Filters = {belowHigh: number | null; aboveLow: number | null; rules: ChartRules; screen?: ScreenFilters};
 const choices: [ChartRules["ema_rule"], string][] = [["any","Any relationship"],["above","Above"],
   ["below","Below"],["cross_up","Crossed above"],["cross_down","Crossed below"]];
-export function StockIndicators({ticker, initial, initialRules, onApply}: {ticker: string; initial: Periods;
-  initialRules: ChartRules; onApply?: (periods: Periods, rules: ChartRules) => void}) {
+export function StockIndicators({ticker, initial, initialRules, screen, onApply}: {ticker: string; initial: Periods;
+  initialRules: ChartRules; screen?: ScreenFilters; onApply?: (periods: Periods, rules: ChartRules, screen?: ScreenFilters) => void}) {
   const [draft, setDraft] = useState(initial);
   const [applied, apply] = useState(initial);
-  const [filters, setFilters] = useState<Filters>({belowHigh:null,aboveLow:null,rules:initialRules});
+  const [filters, setFilters] = useState<Filters>({belowHigh:null,aboveLow:null,rules:initialRules,screen});
   const [activeFilters, setActiveFilters] = useState(filters);
   const [error, setError] = useState("");
   const query = useQuery({queryKey:["stock-indicators",ticker,applied,activeFilters],
     queryFn:({signal}) => api<Report>("/screener/stock/" + encodeURIComponent(ticker),
-      {method:"POST", signal, body:JSON.stringify({...applied,below_high_pct:activeFilters.belowHigh,
-        above_low_pct:activeFilters.aboveLow,...activeFilters.rules})})});
+      {method:"POST", signal, body:JSON.stringify({...applied,...activeFilters.rules,
+        ...(activeFilters.screen ? {...screenRequest(activeFilters.screen), screen_universe:true}
+          : {below_high_pct:activeFilters.belowHigh, above_low_pct:activeFilters.aboveLow})})})});
   const result = query.data;
   const values = result?.values;
   function submit(e: FormEvent) {
@@ -49,18 +52,23 @@ export function StockIndicators({ticker, initial, initialRules, onApply}: {ticke
     if (draft.ema_fast >= draft.ema_slow || draft.macd_fast >= draft.macd_slow) {
       setError("Each fast period must be shorter than its slow period."); return;
     }
-    setError(""); apply({...draft}); setActiveFilters({...filters}); onApply?.({...draft},filters.rules);
+    setError(""); apply({...draft}); setActiveFilters({...filters}); onApply?.({...draft},filters.rules,filters.screen);
   }
+  const changeScreen = (patch: Partial<ScreenFilters>) => setFilters(previous => previous.screen
+    ? {...previous, screen: {...previous.screen, ...patch}} : previous);
   return <section className="surface" aria-label="Technical indicator settings and results">
     <div className="surface-top"><h2 className="section-title">Technical indicators</h2>
-      {result?.asof && <span className="subtle">Session · {dateLabel(result.asof)}</span>}</div>
+      {result?.asof && <span className="subtle">Session · {dateLabel(result.asof)}{intradayLabel(result) && " · " + intradayLabel(result)}</span>}</div>
     <div className={styles.body}>
       <form onSubmit={submit}>
         <fieldset className={styles.group}><legend>52-week range</legend><div className={styles.fields}>
-          {([["belowHigh","Within % below high",100],["aboveLow","Within % above low",10000]] as const).map(([key,label,max])=>
+          {filters.screen ? <RangeFields screen={filters.screen} change={changeScreen}/> :
+            ([["belowHigh","Within % below high",100],["aboveLow","Within % above low",10000]] as const).map(([key,label,max])=>
             <label className="field" key={key}>{label}<input type="number" min="0" max={max} step="any"
               placeholder="Any distance" value={filters[key] ?? ""}
               onChange={e=>setFilters({...filters,[key]:e.target.value===""?null:e.target.valueAsNumber})}/></label>)}</div></fieldset>
+        {filters.screen && <fieldset className={styles.group}><legend>Heikin Ashi</legend>
+          <CandleField screen={filters.screen} change={changeScreen}/></fieldset>}
         <fieldset className={styles.group}><legend>EMA</legend><div className={styles.fields}>{fields.slice(0,3).map(([key,label,min,max]) =>
           <label key={key} className="field">{label}<input required type="number" min={min} max={max}
             value={Number.isFinite(draft[key]) ? draft[key] : ""}
@@ -93,6 +101,10 @@ export function StockIndicators({ticker, initial, initialRules, onApply}: {ticke
           <article><h3>52-week trading range</h3><strong>{money(values.low_52w)} – {money(values.high_52w)}</strong>
             <p>Below high · {percent(values.below_high_pct)}<br/>Above low · {percent(values.above_low_pct)}</p>
             <small>{values.high_52w == null ? "Insufficient adjusted price history for a 52-week range." : "Adjusted intraday range, expressed in current price units."}</small></article>
+          {activeFilters.screen && <article><h3>Heikin Ashi</h3><strong>{values.heikin_ashi_color ?? "Unavailable"}</strong>
+            <p>{values.heikin_ashi_transition === "none" ? "No color change" : values.heikin_ashi_transition
+              ? candleLabels[values.heikin_ashi_transition] : "Previous candle unavailable"}</p>
+            <small>Open · {money(values.heikin_ashi_open ?? null)}<br/>Close · {money(values.heikin_ashi_close ?? null)}</small></article>}
         </div></>}
     </div>
   </section>;

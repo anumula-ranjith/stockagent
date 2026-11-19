@@ -114,6 +114,11 @@ FACTOR_INFO = {
         "fraction",
         "Reported short interest as a share of float.",
     ),
+    "nse_short_selling_activity": (
+        "NSE short-selling activity (120 sessions)",
+        "fraction",
+        "Sum of reported short-sold shares divided by NSE traded shares on sessions with a report for the stock, using the latest 120 available sessions.",
+    ),
     "ret_1m": ("One-month return", "fraction", "Adjusted close return over 21 market sessions."),
     "ret_3m": ("Three-month return", "fraction", "Adjusted close return over 63 market sessions."),
     "ret_6m": ("Six-month return", "fraction", "Adjusted close return over 126 market sessions."),

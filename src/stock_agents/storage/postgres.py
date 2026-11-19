@@ -93,6 +93,7 @@ class PricesDaily(Base):
     volume = Column(BigInteger)
     source = Column(String)
     known_date = Column(Date, nullable=False)
+    exchange_trade_at = Column(DateTime(timezone=True))
     __table_args__ = (PrimaryKeyConstraint("ticker", "date", "source"),)
 
 
@@ -341,6 +342,8 @@ Table(
     Column("shares", Double),
     Column("price", Double),
     Column("value_usd", Double),
+    Column("value_inr", Double),
+    Column("superseded_on", Date),
     Column("insider_role", String),
     Column("known_date", Date, nullable=False),
     Column("source", String, nullable=False),
@@ -369,6 +372,16 @@ Table(
     Column("known_date", Date, nullable=False),
     Column("source", String, nullable=False),
     PrimaryKeyConstraint("ticker", "settlement_date", "source"),
+)
+
+Table(
+    "nse_short_selling",
+    Base.metadata,
+    Column("ticker", String, primary_key=True),
+    Column("trade_date", Date, primary_key=True),
+    Column("known_date", Date, primary_key=True),
+    Column("short_quantity", BigInteger, nullable=False),
+    Column("traded_quantity", BigInteger, nullable=False),
 )
 
 Table(

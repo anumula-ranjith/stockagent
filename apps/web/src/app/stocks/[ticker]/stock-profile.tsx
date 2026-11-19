@@ -13,7 +13,7 @@ type Profile = components["schemas"]["Profile"];
 type Metric = Profile["fundamentals"][number];
 
 const names: Record<string, string> = {
-  eodhd: "EODHD", nse_indices: "NSE Indices", nse: "NSE", nse_bhavcopy: "NSE Bhavcopy",
+  angel_one: "Angel One", eodhd: "EODHD", nse_indices: "NSE Indices", nse: "NSE", nse_bhavcopy: "NSE Bhavcopy",
   nse_fo: "NSE F&O", seed_csv: "Local security directory",
 };
 const headlineKeys = new Set(["market_cap","eps_ttm","pe_ttm","dividend_yield"]);
@@ -45,7 +45,7 @@ function ProfileData({data: p}: {data: Profile}) {
         <p className={styles.identifiers}>{[p.venue, p.ticker, p.series && `Series ${p.series}`, p.isin && `ISIN ${p.isin}`].filter(Boolean).join(" · ")}</p>
         {p.identity_source && p.identity_date && <small>Identity from {from(p.identity_source,p.identity_date)}</small>}
       </div>
-      {q && <div className={styles.close}><span>Last traded close</span><strong>{money(q.close)}</strong>
+      {q && <div className={styles.close}><span>{q.source === "angel_one" ? "Intraday last price" : "Last traded close"}</span><strong>{money(q.close)}</strong>
         {q.change != null && q.change_pct != null && <p className={q.change < 0 ? "negative" : q.change > 0 ? "positive" : ""}>
           {q.change > 0 ? "+" : ""}{money(q.change)} ({q.change_pct > 0 ? "+" : ""}{decimal.format(q.change_pct)}%)
         </p>}
@@ -69,7 +69,7 @@ function ProfileData({data: p}: {data: Profile}) {
       {q ? <dl className={styles.grid}>
         <Detail label="Open">{money(q.open)}</Detail><Detail label="High">{money(q.high)}</Detail>
         <Detail label="Low">{money(q.low)}</Detail><Detail label="Volume">{count.format(q.volume)} {p.series === "RR" || p.series === "IV" ? "units" : "shares"}</Detail>
-        <Detail label="Previous close" note={q.previous_date ? dateLabel(q.previous_date) : undefined}>{money(q.previous_close)}</Detail>
+        <Detail label="Previous session price" note={q.previous_date ? dateLabel(q.previous_date) : undefined}>{money(q.previous_close)}</Detail>
       </dl> : <p className={styles.empty}>No closing price is available for this security.</p>}
     </div>
     <div className={styles.block}>

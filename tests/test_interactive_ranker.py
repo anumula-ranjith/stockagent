@@ -75,11 +75,15 @@ def test_dated_membership_and_knowledge_separate_a_cohort_replay():
                         observed,
                     ]
                 )
-            conn.executemany("INSERT INTO prices_daily VALUES (?,?,?,?,?,?,?,?,?,?)", rows)
+            conn.executemany("""INSERT INTO prices_daily
+                (ticker,date,open,high,low,close,adj_close,volume,source,known_date)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""", rows)
         # A vendor flat bar on a market closure must never become a trading session.
         holiday = next(d + timedelta(days=1) for d in days[40:] if d.weekday() == 4)
         conn.execute(
-            "INSERT INTO prices_daily VALUES ('A',?,1,1,1,1,1,0,'eodhd',?)", [holiday, observed]
+            """INSERT INTO prices_daily
+               (ticker,date,open,high,low,close,adj_close,volume,source,known_date)
+               VALUES ('A',?,1,1,1,1,1,0,'eodhd',?)""", [holiday, observed]
         )
         conn.execute(
             "INSERT INTO fundamentals_pit VALUES ('A','roe_ttm','FY25',.2,?,?, 'eodhd')",

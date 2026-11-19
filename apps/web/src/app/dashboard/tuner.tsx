@@ -6,9 +6,10 @@ import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { SignInNotice, State } from "@/components/presentation";
 import { useSession } from "@/components/providers";
-import { agentLabels, agents, api } from "@/lib/api";
+import { agentLabels, agents } from "@/lib/api";
+import { rankingQuery } from "@/lib/ranking-query";
 import { SettingsPanel } from "./ranker-controls";
-import { defaults, type Settings, type Snapshot, type Tab } from "./ranker-model";
+import { defaults, type Settings, type Tab } from "./ranker-model";
 import { Candidates, Heat } from "./ranker-tables";
 import s from "./ranker.module.css";
 
@@ -30,8 +31,7 @@ export function Tuner() {
   const [config,setConfig] = useState<Settings>(defaults);
   const [debounced,setDebounced] = useState(config);
   useEffect(()=>{const t=window.setTimeout(()=>setDebounced(config),230);return()=>window.clearTimeout(t);},[config]);
-  const snapshot = useQuery({queryKey:["ranker",session.data?.id,date,debounced],enabled:!!session.data,
-    queryFn:async ({signal})=>({...await api<Snapshot>("/ranker/snapshot"+(date?"?asof="+date:""),{method:"POST",signal,body:JSON.stringify(debounced)}),settings:debounced}),
+  const snapshot = useQuery({...rankingQuery(session.data?.id,date,debounced),
     placeholderData:keepPreviousData});
   const data = snapshot.data;
   return <div className={s.workspace}><div className={s.inner}>

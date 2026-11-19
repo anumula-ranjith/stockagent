@@ -1,6 +1,6 @@
 """Private manual portfolios and watchlists, priced from local EOD observations."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from time import monotonic
 from typing import Literal
@@ -9,7 +9,8 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import delete, func, select, text
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import case, delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from stock_agents.api.auth import CurrentUser, Session
@@ -171,25 +172,27 @@ async def quotes(session: AsyncSession, tickers: list[str]) -> dict[str, QuoteOu
     pending = [ticker for ticker in set(tickers) if ticker not in _quote_cache or _quote_cache[ticker][0] <= now]
     if not pending:
         return {ticker: _quote_cache[ticker][1] for ticker in tickers}
+    asof = today()
+    cutoff = asof - timedelta(days=14)
     async def read(symbols: list[str], window: str):
         return (await session.execute(text(f"""
         SELECT t.ticker, p.date, p.close FROM unnest(CAST(:tickers AS text[])) AS t(ticker)
         LEFT JOIN LATERAL (
-            SELECT date, close FROM prices_daily
-            WHERE ticker=t.ticker AND date<=CURRENT_DATE AND {window} AND known_date<=CURRENT_DATE
-              AND close>0 AND volume>0 AND source IN ('eodhd','nse_bhavcopy')
-            ORDER BY date DESC, (source='eodhd') DESC, known_date DESC LIMIT 8
+            SELECT DISTINCT ON (date) date, close FROM prices_daily
+            WHERE ticker=t.ticker AND date<=:asof AND {window} AND known_date<=:asof
+              AND close>0 AND volume>0 AND source IN ('angel_one','eodhd','nse_bhavcopy')
+            ORDER BY date DESC, (source='angel_one') DESC,(source='eodhd') DESC, known_date DESC LIMIT 2
         ) p ON true
         ORDER BY t.ticker, p.date DESC
-    """), {"tickers": sorted(set(symbols))})).all()
-    rows = await read(pending, "date >= CURRENT_DATE - INTERVAL '14 days'")
+    """), {"tickers": sorted(set(symbols)), "asof": asof, "cutoff": cutoff})).all()
+    rows = await read(pending, "date >= :cutoff")
     grouped: dict[str, list] = {ticker: [] for ticker in pending}
     for ticker, price_date, close in rows:
         if price_date is not None and len(grouped[ticker]) < 2 and all(day != price_date for day, _ in grouped[ticker]):
             grouped[ticker].append((price_date, close))
     missing = [ticker for ticker, values in grouped.items() if len(values) < 2]
     if missing:
-        for ticker, price_date, close in await read(missing, "date < CURRENT_DATE - INTERVAL '14 days'"):
+        for ticker, price_date, close in await read(missing, "date < :cutoff"):
             if price_date is not None and len(grouped[ticker]) < 2 and all(day != price_date for day, _ in grouped[ticker]):
                 grouped[ticker].append((price_date, close))
     result = {}
@@ -305,9 +308,7 @@ async def portfolio_detail(portfolio_id: UUID, user: CurrentUser, session: Sessi
             amount=num(entry.amount), note=entry.note) for entry in reversed(entries)])
 
 
-@router.post("/portfolios/{portfolio_id}/entries", response_model=EntryOut, status_code=201)
-async def add_entry(portfolio_id: UUID, body: EntryInput, user: CurrentUser, session: Session):
-    account = await portfolio_for(session, user.id, portfolio_id, lock=True)
+async def prepare_entry(body: EntryInput, session: Session) -> PortfolioEntry:
     if body.trade_date > today():
         raise HTTPException(422, "Transaction date cannot be in the future")
     trade = body.kind in {"buy", "sell"}
@@ -316,12 +317,44 @@ async def add_entry(portfolio_id: UUID, body: EntryInput, user: CurrentUser, ses
     if not trade and (body.amount is None or body.ticker is not None or body.quantity is not None or body.price is not None or body.fees):
         raise HTTPException(422, "A cash entry needs only an amount")
     ticker = await known_ticker(session, body.ticker) if trade else None
-    entry = PortfolioEntry(portfolio_id=account.id, kind=body.kind, ticker=ticker,
+    entry = PortfolioEntry(kind=body.kind, ticker=ticker,
         quantity=body.quantity, price=body.price, fees=body.fees, amount=body.amount,
         trade_date=body.trade_date, note=body.note.strip() if body.note else None)
-    entries = await entries_for(session, account.id)
     entry.created_at = datetime.now(ZoneInfo("UTC"))
     entry.id = str(uuid4())
+    return entry
+
+
+class TradePreviewInput(EntryInput):
+    kind: Literal["buy", "sell"]
+    opening_cash: Decimal = Field(default=0, ge=0, le=Decimal("1000000000000"))
+
+
+@router.post("/portfolios/{account_key}/entries/preview")
+async def preview_trade(account_key: str, body: TradePreviewInput, user: CurrentUser, session: Session):
+    entry = await prepare_entry(body, session)
+    if account_key == "new":
+        entries = [PortfolioEntry(kind="deposit", amount=body.opening_cash, trade_date=body.trade_date,
+            created_at=entry.created_at, id="0")]
+    else:
+        try:
+            account_id = UUID(account_key)
+        except ValueError as exc:
+            raise HTTPException(422, "Invalid portfolio") from exc
+        account = await portfolio_for(session, user.id, account_id)
+        entries = await entries_for(session, account.id)
+    projected = valid_ledger([*entries, entry])
+    holding = projected["holdings"].get(entry.ticker)
+    return {"cash": float(projected["cash"]), "shares": float(holding["quantity"]) if holding else 0,
+        "average_cost": float(holding["cost_basis"] / holding["quantity"]) if holding else None}
+
+
+@router.post("/portfolios/{portfolio_id}/entries", response_model=EntryOut, status_code=201)
+async def add_entry(portfolio_id: UUID, body: EntryInput, user: CurrentUser, session: Session):
+    account = await portfolio_for(session, user.id, portfolio_id, lock=True)
+    entry = await prepare_entry(body, session)
+    entry.portfolio_id = account.id
+    entries = await entries_for(session, account.id)
     valid_ledger([*entries, entry])
     session.add(entry)
     await session.commit()
@@ -424,3 +457,73 @@ async def remove_watch_item(watchlist_id: UUID, ticker: str, user: CurrentUser, 
     if not result.rowcount:
         raise HTTPException(404, "Watchlist item not found")
     await session.commit()
+
+class WatchlistSelection(BaseModel):
+    details: dict[UUID, WatchItemInput] = Field(default_factory=dict)
+    new_details: WatchItemInput | None = None
+    watchlist_ids: list[UUID] = Field(default_factory=list)
+    remove_ids: list[UUID] = Field(default_factory=list)
+    new_name: str | None = Field(default=None, max_length=80)
+
+
+@router.get("/stock-memberships/{ticker}")
+async def stock_memberships(ticker: str, user: CurrentUser, session: Session):
+    ticker = await known_ticker(session, ticker)
+    lists = await session.execute(select(Watchlist.id, Watchlist.name, WatchlistItem.note,
+        WatchlistItem.target_above, WatchlistItem.target_below).join(WatchlistItem).where(
+        Watchlist.user_id == user.id, WatchlistItem.ticker == ticker).order_by(Watchlist.name))
+    quantity = func.sum(case((PortfolioEntry.kind == "buy", PortfolioEntry.quantity), else_=-PortfolioEntry.quantity))
+    holdings = await session.execute(select(PortfolioAccount.id, PortfolioAccount.name).join(PortfolioEntry).where(
+        PortfolioAccount.user_id == user.id, PortfolioEntry.ticker == ticker,
+        PortfolioEntry.kind.in_(["buy", "sell"])).group_by(PortfolioAccount.id, PortfolioAccount.name)
+        .having(quantity > 0).order_by(PortfolioAccount.name))
+    return {"watchlists": lists.mappings().all(), "portfolios": holdings.mappings().all()}
+
+
+@router.post("/stock-memberships/{ticker}/watchlists")
+async def update_watchlist_memberships(ticker: str, body: WatchlistSelection, user: CurrentUser, session: Session):
+    ticker = await known_ticker(session, ticker)
+    ids = sorted({str(item) for item in body.watchlist_ids})
+    removals = {str(item) for item in body.remove_ids}
+    details = {str(key): value for key, value in body.details.items()}
+    if removals.intersection(set(ids) | details.keys()):
+        raise HTTPException(422, "A list cannot be added and removed together")
+    affected = removals.union(ids, details)
+    if affected:
+        owned = await session.scalars(select(Watchlist.id).where(
+            Watchlist.user_id == user.id, Watchlist.id.in_(affected)).order_by(Watchlist.id).with_for_update())
+        if set(owned) != affected:
+            raise HTTPException(404, "Watchlist not found")
+    if body.new_name is not None:
+        name = body.new_name.strip()
+        if not name:
+            raise HTTPException(422, "Enter a watchlist name")
+        new_list = Watchlist(user_id=user.id, name=name)
+        session.add(new_list)
+        await session.flush()
+        ids.append(new_list.id)
+        if body.new_details:
+            details[new_list.id] = body.new_details
+    if not ids and not removals and not details:
+        raise HTTPException(422, "Choose at least one change")
+    added = removed = 0
+    if ids:
+        inserted = await session.scalars(insert(WatchlistItem).values([
+            {"watchlist_id": list_id, "ticker": ticker} for list_id in ids
+        ]).on_conflict_do_nothing(index_elements=["watchlist_id", "ticker"]).returning(WatchlistItem.watchlist_id))
+        added = len(inserted.all())
+    for list_id, changes in details.items():
+        item = await session.get(WatchlistItem, (list_id, ticker), with_for_update=True)
+        if item is None:
+            raise HTTPException(409, "Stock membership changed. Reopen the popup and try again.")
+        for field, value in changes.model_dump(exclude_unset=True).items():
+            setattr(item, field, value.strip() or None if field == "note" and value else value)
+        if item.target_above is not None and item.target_below is not None and item.target_above <= item.target_below:
+            raise HTTPException(422, "The upper alert must exceed the lower alert")
+    if removals:
+        deleted = await session.scalars(delete(WatchlistItem).where(
+            WatchlistItem.watchlist_id.in_(removals), WatchlistItem.ticker == ticker
+        ).returning(WatchlistItem.watchlist_id))
+        removed = len(deleted.all())
+    await session.commit()
+    return {"saved": len(ids), "added": added, "removed": removed}

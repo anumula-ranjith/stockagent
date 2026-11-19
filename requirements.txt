@@ -39,3 +39,5 @@ alpaca-py>=0.20
 #   pip install fds.sdk.utils fds.sdk.FactSetFundamentals fds.sdk.FactSetEstimates \
 #               fds.sdk.FactSetPrices fds.sdk.FactSetOwnership fds.sdk.Symbology \
 #               fds.sdk.EventsandTranscripts
+
+celery[redis]>=5.5,<6

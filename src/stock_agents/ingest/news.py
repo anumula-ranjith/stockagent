@@ -27,7 +27,8 @@ def ingest_news(
     client: EODHDClient,
     tickers: Iterable[str] | None = None,
     limit_per_ticker: int = 50,
-) -> int:
+    *, report: bool = False,
+) -> int | dict:
     univ = _tickers(conn)
     if tickers:
         wanted = set(tickers)
@@ -91,14 +92,15 @@ def ingest_news(
     if univ and failures == len(univ):
         raise RuntimeError("All EODHD news requests failed")
     log.info("news ingested: %d rows", inserted)
-    return inserted
+    return {"status": "partial" if failures else "ok", "rows": inserted, "failures_count": failures} if report else inserted
 
 
 def ingest_sentiment_daily(
     conn: Warehouse,
     client: EODHDClient,
     tickers: Iterable[str] | None = None,
-) -> int:
+    *, report: bool = False,
+) -> int | dict:
     univ = _tickers(conn)
     if tickers:
         wanted = set(tickers)
@@ -136,4 +138,4 @@ def ingest_sentiment_daily(
     if univ and failures == len(univ):
         raise RuntimeError("All EODHD sentiment requests failed")
     log.info("daily sentiment ingested: %d rows", inserted)
-    return inserted
+    return {"status": "partial" if failures else "ok", "rows": inserted, "failures_count": failures} if report else inserted

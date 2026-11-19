@@ -1,0 +1,153 @@
+{
+  "id": "591b8df7-4045-4e1b-8ba1-b0eea7c81619",
+  "status": "success",
+  "trade_date": "2026-11-18",
+  "stages": [
+    {
+      "name": "preflight",
+      "result": {
+        "broker": true,
+        "status": "ok",
+        "database": true
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:28:58.720098+00:00",
+      "finished_at": "2026-11-19T11:28:58.732799+00:00"
+    },
+    {
+      "name": "reference",
+      "result": {
+        "names": 0,
+        "filled": 0,
+        "status": "ok",
+        "indices": 10,
+        "unresolved": []
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:28:58.734806+00:00",
+      "finished_at": "2026-11-19T11:29:01.302646+00:00"
+    },
+    {
+      "name": "eod",
+      "result": {
+        "method": "Completed-session candles with verified NSE fallback",
+        "priced": 501,
+        "status": "ok",
+        "members": 501,
+        "written": 501,
+        "trade_date": "2026-11-18",
+        "angel_one_bars": 40,
+        "fallback_reason": "Angel One daily candle unavailable",
+        "nse_fallback_bars": 461,
+        "live_capture_reconstructed": false
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:29:01.341498+00:00",
+      "finished_at": "2026-11-19T11:29:49.432109+00:00"
+    },
+    {
+      "name": "providers",
+      "result": {
+        "date": "2026-11-19",
+        "status": "ok"
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:29:49.435529+00:00",
+      "finished_at": "2026-11-19T11:29:49.779848+00:00"
+    },
+    {
+      "name": "insider",
+      "result": {
+        "filings": 44,
+        "written": 1,
+        "trade_rows": 52
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:29:49.783254+00:00",
+      "finished_at": "2026-11-19T11:29:57.283941+00:00"
+    },
+    {
+      "name": "short_selling",
+      "result": {
+        "status": "ok",
+        "already_loaded": 6,
+        "non_trading_days": 2
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:29:57.283941+00:00",
+      "finished_at": "2026-11-19T11:29:57.283941+00:00"
+    },
+    {
+      "name": "news",
+      "result": {
+        "rows": 3289,
+        "status": "ok",
+        "failures_count": 0
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:29:57.283941+00:00",
+      "finished_at": "2026-11-19T11:31:58.808121+00:00"
+    },
+    {
+      "name": "sentiment",
+      "result": {
+        "rows": 147,
+        "status": "ok",
+        "failures_count": 0
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:31:58.818518+00:00",
+      "finished_at": "2026-11-19T11:32:13.195953+00:00"
+    },
+    {
+      "name": "validate",
+      "result": {
+        "priced": 501,
+        "status": "ok",
+        "members": 501,
+        "adjusted": 501,
+        "trade_date": "2026-11-18",
+        "invalid_prices": [],
+        "missing_prices": [],
+        "missing_sectors": [],
+        "missing_adjusted": []
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:32:13.199953+00:00",
+      "finished_at": "2026-11-19T11:32:13.281525+00:00"
+    },
+    {
+      "name": "scores",
+      "result": {
+        "momentum": 502,
+        "sentiment": 509,
+        "technical": 502,
+        "fundamental": 509
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:32:13.287906+00:00",
+      "finished_at": "2026-11-19T11:32:28.815652+00:00"
+    },
+    {
+      "name": "publish",
+      "result": {
+        "status": "ok",
+        "cache_refresh_requested": true
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:32:28.820412+00:00",
+      "finished_at": "2026-11-19T11:32:28.820412+00:00"
+    }
+  ]
+}

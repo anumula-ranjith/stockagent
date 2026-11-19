@@ -31,6 +31,7 @@ dependencies = [
   "slowapi>=0.1.9",
   "redis>=5.2",
   "rq>=2.8,<4",
+  "celery[redis]>=5.5,<6",
   "rq-dashboard>=0.9.1,<1",
   "a2wsgi>=1.10",
   "boto3>=1.35",
@@ -39,6 +40,7 @@ dependencies = [
   "opentelemetry-sdk>=1.31",
   "opentelemetry-exporter-otlp-proto-http>=1.31",
   "uvicorn>=0.27",
+  "websockets>=13",
   "plotly>=5.18",
   "matplotlib>=3.8",
   # External brokers / vendors (optional at import time; see sources/*.py):

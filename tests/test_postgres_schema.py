@@ -26,6 +26,8 @@ def test_postgres_metadata_covers_warehouse():
         "watchlists",
         "watchlist_items",
         "broker_snapshots",
+        "pipeline_runs",
+        "pipeline_schedules",
     }
 
 

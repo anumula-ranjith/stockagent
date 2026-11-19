@@ -11,9 +11,17 @@ const ClerkShell = dynamic(() => import("./clerk-shell"));
 export const usesClerk = process.env.NEXT_PUBLIC_AUTH_PROVIDER === "clerk";
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [client] = useState(() => new QueryClient({
-    defaultOptions: { queries: { staleTime: 45_000, retry: false } },
-  }));
+  const [client] = useState(() => {
+    const cache = new QueryClient({defaultOptions: {queries: {
+      staleTime: 45_000, gcTime: 30 * 60_000, retry: false,
+    }}});
+    // EOD observations can be reused across page visits. Account and job queries
+    // retain their own freshness rules and explicit mutation invalidation.
+    for (const key of ["universe", "price", "ranker", "nifty-screen", "stock-indicators", "stock-profile", "stock-agent-analysis", "agent", "history", "news"]) {
+      cache.setQueryDefaults([key], {staleTime: 5 * 60_000, refetchOnWindowFocus: false});
+    }
+    return cache;
+  });
   const app = <QueryClientProvider client={client}><NuqsAdapter>{children}</NuqsAdapter></QueryClientProvider>;
   return <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem disableTransitionOnChange>
     {usesClerk ? <ClerkShell>{app}</ClerkShell> : app}

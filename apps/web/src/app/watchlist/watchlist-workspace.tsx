@@ -2,9 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState, type FormEvent } from "react";
 import { SignInNotice, State } from "@/components/presentation";
+import { StockTicker } from "@/components/stock-ticker";
+import { useMarketPrices } from "@/lib/use-market-prices";
+import { TickerPicker } from "@/components/ticker-picker";
 import { useSession } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -17,12 +20,13 @@ export function WatchlistWorkspace() {
   const [selected, setSelected] = useState("");
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
+  const [linkedTicker] = useQueryState("add", parseAsString);
   const [note, setNote] = useState("");
   const [above, setAbove] = useState("");
   const [below, setBelow] = useState("");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState("");
-  useEffect(()=>{setTicker(new URLSearchParams(location.search).get("add")?.toUpperCase()??"");},[]);
+  useEffect(()=>{if(linkedTicker){setEditing("");setTicker(linkedTicker.toUpperCase());}},[linkedTicker]);
   const lists = useQuery({queryKey:["my-watchlists",session.data?.id],enabled:!!session.data,
     queryFn:({signal})=>api<WatchlistRow[]>("/watchlists",{signal})});
   useEffect(()=>{if(lists.data?.length&&!selected)setSelected(lists.data[0].id);},[lists.data,selected]);
@@ -40,6 +44,7 @@ export function WatchlistWorkspace() {
   function edit(item:WatchItem) {setTicker(item.ticker);setNote(item.note??"");setAbove(item.target_above?.toString()??"");setBelow(item.target_below?.toString()??"");setEditing(item.ticker);}
   function submit(event:FormEvent) {event.preventDefault();save.mutate();}
   const items = detail.data?.items.filter(item=>item.ticker.includes(search.trim().toUpperCase())||item.note?.toLowerCase().includes(search.trim().toLowerCase()))??[];
+  const feed=useMarketPrices(selected, detail.data?.items.map(item=>item.ticker).sort().join(",")??"");
   if(session.isPending)return <State>Checking your account…</State>;
   if(!session.data)return <SignInNotice next="/watchlist">Your watchlists and research notes are private to your account.</SignInNotice>;
   return <div className={s.layout}>
@@ -68,7 +73,7 @@ export function WatchlistWorkspace() {
         <section className="surface"><div className="surface-top"><h2 className="section-title">{editing?`Edit ${editing}`:"Add a stock"}</h2>
           {editing&&<button className={s.plain} onClick={()=>{setEditing("");setTicker("");setNote("");setAbove("");setBelow("");}}>Cancel edit</button>}</div>
           <form className={s.entryForm} onSubmit={submit}>
-            <label className="field">NSE ticker<input required readOnly={!!editing} placeholder="RELIANCE" value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase())}/></label>
+            <TickerPicker required readOnly={!!editing} value={ticker} onChange={setTicker}/>
             <label className="field">Alert at or above · ₹<input type="number" min="0.0001" step="any" value={above} placeholder="Optional" onChange={e=>setAbove(e.target.value)}/></label>
             <label className="field">Alert at or below · ₹<input type="number" min="0.0001" step="any" value={below} placeholder="Optional" onChange={e=>setBelow(e.target.value)}/></label>
             <label className={`field ${s.note}`}>Research note<input maxLength={500} value={note} placeholder="Why this stock is on your list" onChange={e=>setNote(e.target.value)}/></label>
@@ -77,9 +82,9 @@ export function WatchlistWorkspace() {
           </form></section>
         <section className="surface"><div className="surface-top"><h2 className="section-title">Stocks to watch</h2>
           <label className="field"><span className="sr-only">Search watchlist</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a ticker or note"/></label></div>
-          <div className="table-scroll"><table><thead><tr><th>Stock</th><th>Last close</th><th>1D move</th><th>Price date</th><th>Levels</th><th>Status</th><th>Research note</th><th/></tr></thead>
-            <tbody>{items.map(item=><tr key={item.ticker}><td><Link href={`/stocks/${encodeURIComponent(item.ticker)}`}>{item.ticker}</Link></td>
-              <td>{item.close==null?"—":inr.format(item.close)}</td>
+          <div className="table-scroll"><table><thead><tr><th>Stock</th><th>Angel One LTP · ₹</th><th>Last close</th><th>1D move</th><th>Price date</th><th>Levels</th><th>Status</th><th>Research note</th><th/></tr></thead>
+            <tbody>{items.map(item=><tr key={item.ticker}><td><StockTicker ticker={item.ticker}/></td>
+              <td>{feed.quotes[item.ticker] ? <>{inr.format(feed.quotes[item.ticker].price)}<small className="subtle" style={{display:"block"}}>{feed.quotes[item.ticker].time} IST · {feed.quotes[item.ticker].source==="tick"?"Tick":"Snapshot"}</small></> : "—"}</td><td>{item.close==null?"—":inr.format(item.close)}</td>
               <td className={(item.change_pct??0)>=0?s.up:s.down}>{item.change_pct==null?"—":`${item.change_pct>=0?"+":""}${item.change_pct.toFixed(2)}%`}</td>
               <td>{item.price_date??"—"}</td><td>{item.target_above!=null?`↑ ${inr.format(item.target_above)}`:""} {item.target_below!=null?`↓ ${inr.format(item.target_below)}`:""}</td>
               <td>{item.alert?<span className={item.alert==="above"?s.alertUp:s.alertDown}>{item.alert==="above"?"Above level":"Below level"}</span>:"—"}</td>
@@ -89,7 +94,7 @@ export function WatchlistWorkspace() {
             {!items.length&&<State>{search?"No stocks match your search.":"No stocks yet. Add a ticker above or from its stock page."}</State>}</div>
           {remove.isError&&<p className={s.error} role="alert">{remove.error.message}</p>}</section>
       </>}
-      <p className={s.hint}>Price levels are evaluated when this page loads against the latest stored close. They do not send notifications or place orders.</p>
+      <p className={s.hint}>{feed.status} · Price levels are evaluated when this page loads against the latest stored close. They do not send notifications or place orders.</p>
     </div>
   </div>;
 }

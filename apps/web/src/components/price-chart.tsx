@@ -51,7 +51,11 @@ export default function PriceChart({prices, periods, rules, days}: {
     const rows = Array.from(new Map(prices.filter(row => row.open != null && row.high != null && row.low != null && row.close != null)
       .map(row => [row.date, row] as const)).values()).sort((a, b) => a.date.localeCompare(b.date));
     const times = rows.map(row => (Date.parse(row.date) / 1000) as UTCTimestamp);
-    const adjusted = rows.map(row => row.adj_close ?? null);
+    let priceBasis = 1;
+    const adjusted = rows.map(row => {
+      if (row.adj_close != null && row.close && row.close > 0) priceBasis = row.adj_close / row.close;
+      return row.adj_close ?? (row.source === "angel_one" ? row.close! * priceBasis : null);
+    });
     const fast = ema(adjusted, periods.ema_fast), slow = ema(adjusted, periods.ema_slow);
     const macdFast = ema(adjusted, periods.macd_fast), macdSlow = ema(adjusted, periods.macd_slow);
     const macd = macdFast.map((value, i) => value == null || macdSlow[i] == null ? null : value - macdSlow[i]!);
@@ -66,7 +70,8 @@ export default function PriceChart({prices, periods, rules, days}: {
       if (!Number.isFinite(time) || time < cutoff) continue;
       candles.push({time, open: row.open!, high: row.high!, low: row.low!, close: row.close!});
       // Indicators use adjusted closes, displayed in each bar's traded-price units.
-      const scale = row.adj_close && row.adj_close > 0 ? row.close! / row.adj_close : null;
+      const basisClose = adjusted[i];
+      const scale = basisClose && basisClose > 0 ? row.close! / basisClose : null;
       if (scale == null) continue;
       if (fast[i] != null) fastLine.push({time, value: fast[i]! * scale});
       if (slow[i] != null) slowLine.push({time, value: slow[i]! * scale});

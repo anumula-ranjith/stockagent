@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { StockTicker } from "@/components/stock-ticker";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
@@ -55,12 +56,12 @@ function ReplayResults({result}:{result:Report}) {
     <div className={s.books}>
       <section className={s.card}><h2>Holdings after last rebalance{result.holdings_date ? ", "+result.holdings_date : ""}</h2>
         <div className={s.scroll}><table><thead><tr><th>#</th><th>Ticker</th><th>Side</th><th>Weight</th><th>Composite</th></tr></thead>
-          <tbody>{holdings.map((row,index)=><tr key={row.ticker}><td>{index+1}</td><td><Link href={"/stocks/"+encodeURIComponent(row.ticker)}>{row.ticker}</Link></td>
+          <tbody>{holdings.map((row,index)=><tr key={row.ticker}><td>{index+1}</td><td><StockTicker ticker={row.ticker}/></td>
             <td className={row.side==="Long"?s.up:s.down}>{row.side}</td><td>{pct(row.weight)}</td><td>{row.composite==null?"—":<span className={s.score}><i><b style={{width:row.composite+"%"}}/></i>{row.composite.toFixed(0)}</span>}</td></tr>)}
           </tbody></table>{!holdings.length&&<p className={s.empty}>Holdings are unavailable for this report.</p>}</div></section>
       <section className={s.card}><h2>Trade log, latest 40</h2>
         <div className={s.scroll}><table><thead><tr><th>Date</th><th>Ticker</th><th>Action</th><th>Composite</th></tr></thead>
-          <tbody>{trades.map((row,index)=><tr key={row.date+row.ticker+row.action+index}><td>{row.date}</td><td><Link href={"/stocks/"+encodeURIComponent(row.ticker)}>{row.ticker}</Link></td>
+          <tbody>{trades.map((row,index)=><tr key={row.date+row.ticker+row.action+index}><td>{row.date}</td><td><StockTicker ticker={row.ticker}/></td>
             <td className={row.action==="Buy"||row.action==="Cover"?s.up:s.down}>{row.action}</td><td>{row.composite==null?"—":row.composite.toFixed(0)}</td></tr>)}</tbody></table>
           {!trades.length&&<p className={s.empty}>Trades are unavailable for this report.</p>}</div></section>
     </div>

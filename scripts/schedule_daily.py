@@ -1,7 +1,7 @@
 """Schedule NSE market data and deliver PostgreSQL jobs to Redis."""
 
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from uuid import NAMESPACE_URL, uuid5
 from zoneinfo import ZoneInfo
 
@@ -15,6 +15,7 @@ from sqlalchemy.dialects.postgresql import insert
 from stock_agents.common import config
 from stock_agents.common.logging import configure
 from stock_agents.common.telemetry import setup_tracing, trace_headers, tracer
+from stock_agents.ingest.price_provider import price_provider
 from stock_agents.ingest.screen_indices import refresh_screen_indices
 from stock_agents.jobs.queue import dispatch, reconcile_jobs, sync_engine
 from stock_agents.storage.postgres import JobRun
@@ -44,6 +45,15 @@ def refresh_due_provider_inputs() -> None:
         derive_peg(date.fromisoformat(result["date"]))
     if result["status"] == "partial":
         log.warning("provider.inputs.partial", date=result["date"])
+
+
+def refresh_due_short_selling() -> None:
+    from stock_agents.ingest.nse_short_selling import refresh_short_selling
+
+    today = datetime.now(MARKET_TZ).date()
+    result = refresh_short_selling(today - timedelta(days=3), today)
+    if result["errors"] or result.get("unmatched_volume"):
+        log.warning("nse.short_selling.partial", **result)
 
 
 def enqueue_daily(kind: str, run_date: date | None = None) -> str | None:
@@ -100,15 +110,23 @@ def build_scheduler(*, market_jobs: bool = True) -> BlockingScheduler:
         return scheduler
     scheduler.add_job(refresh_screen_indices, "interval", hours=12, id="nifty-screen-indices",
                       next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1)
-    scheduler.add_job(
-        refresh_due_eod, "interval", minutes=15, id="eod-catchup",
-        next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1,
-    )
+    legacy_prices = price_provider() == "eodhd"
+    if legacy_prices:
+        scheduler.add_job(
+            refresh_due_eod, "interval", minutes=15, id="eod-catchup",
+            next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1,
+        )
     scheduler.add_job(
         refresh_due_provider_inputs, "interval", minutes=15, id="nifty-provider-inputs",
         next_run_time=datetime.now(MARKET_TZ), coalesce=True, max_instances=1,
     )
+    scheduler.add_job(
+        refresh_due_short_selling, "cron", hour=19, minute=10, id="nse-short-selling",
+        coalesce=True, max_instances=1, misfire_grace_time=3600,
+    )
     for kind, hour, minute in SCHEDULE:
+        if kind == "ingest" and not legacy_prices:
+            continue
         scheduler.add_job(
             refresh_due_eod if kind == "ingest" else enqueue_daily,
             "cron",

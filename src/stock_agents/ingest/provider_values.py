@@ -49,7 +49,8 @@ def _section(data, key):
     return section if isinstance(section, dict) else {}
 
 
-def snapshot_rows(ticker: str, values: dict, observed: date, source: str) -> dict[str, list]:
+def snapshot_rows(ticker: str, values: dict, observed: date, source: str,
+                  analyst_counts: dict[str, int] | None = None) -> dict[str, list]:
     rows: dict[str, list] = {
         "fundamentals_pit": [],
         "estimates_pit": [],
@@ -64,8 +65,12 @@ def snapshot_rows(ticker: str, values: dict, observed: date, source: str) -> dic
             continue
         if metric in {"rating_mean", "target_mean"}:
             analyst[metric] = value
+        elif metric == "recommendation_count":
+            if value.is_integer() and 0 <= value <= 2_147_483_647:
+                analyst["n_analysts"] = int(value)
         elif metric in ESTIMATES:
-            rows["estimates_pit"].append(dict(**base, metric=metric, value=value))
+            rows["estimates_pit"].append(dict(**base, metric=metric, value=value,
+                                              n_analysts=(analyst_counts or {}).get(metric)))
         else:
             # These are observed vendor snapshots, even when a constituent
             # figure is described as LTM. Never backdate to a fiscal period end.
@@ -78,6 +83,7 @@ def snapshot_rows(ticker: str, values: dict, observed: date, source: str) -> dic
                 **base,
                 rating_mean=analyst.get("rating_mean"),
                 target_mean=analyst.get("target_mean"),
+                n_analysts=analyst.get("n_analysts"),
             )
         )
     return rows
@@ -107,6 +113,7 @@ def eodhd_rows(
     values = {name: h.get(key) for name, key in HIGHLIGHTS.items()}
     values.update({name: valuation.get(key) for name, key in VALUATION.items()})
     values["gross_margin"] = ratio(h.get("GrossProfitTTM"), h.get("RevenueTTM"))
+    analyst_counts = {}
     for item in _section(data, "Earnings::Trend").values():
         if item.get("period") == "0y":
             values.update(
@@ -114,9 +121,15 @@ def eodhd_rows(
                 revisions_up_30d=item.get("epsRevisionsUpLast30days"),
                 revisions_down_30d=item.get("epsRevisionsDownLast30days"),
             )
+            count = number(item.get("earningsEstimateNumberOfAnalysts"))
+            if count is not None and count >= 0 and count.is_integer():
+                analyst_counts["eps_fy1"] = int(count)
         elif item.get("period") == "+1y":
             values["eps_fy2"] = item.get("earningsEstimateAvg")
-    rows = snapshot_rows(ticker, values, observed, "eodhd")
+            count = number(item.get("earningsEstimateNumberOfAnalysts"))
+            if count is not None and count >= 0 and count.is_integer():
+                analyst_counts["eps_fy2"] = int(count)
+    rows = snapshot_rows(ticker, values, observed, "eodhd", analyst_counts)
     for item in _section(data, "Earnings::History").values():
         if not item.get("reportDate") or not item.get("date"):
             continue

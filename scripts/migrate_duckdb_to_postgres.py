@@ -22,6 +22,10 @@ BATCH_SIZE = 1000
 
 def _source_rows(source, table, names):
     columns = ", ".join(f'"{name}"' for name in names)
+    if table.name == "prices_daily":
+        available = {r[0] for r in source.execute("DESCRIBE prices_daily").fetchall()}
+        if "exchange_trade_at" not in available:
+            columns = columns.replace('"exchange_trade_at"', "CAST(NULL AS TIMESTAMP)")
     order = ' ORDER BY "date"' if table.name == "prices_daily" else ""
     rows = source.execute(f'SELECT {columns} FROM "{table.name}"{order}')
     while batch := rows.fetchmany(BATCH_SIZE):

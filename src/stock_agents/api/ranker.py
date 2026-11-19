@@ -1,7 +1,6 @@
 """Authenticated research controls and audited portfolio replay."""
 
 from datetime import date
-from functools import lru_cache
 from time import monotonic
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -10,6 +9,7 @@ from sqlalchemy import or_, select
 from stock_agents.api.auth import AdminUser, CurrentUser, Session, admin_rate_key, limiter
 from stock_agents.api.job_routes import _enqueue
 from stock_agents.api.schemas import BacktestJobRef
+from stock_agents.common.snapshot_cache import SnapshotCache
 from stock_agents.engine.ranker import RankSettings, to_payload
 from stock_agents.engine.ranker_inputs import snapshot_inputs
 from stock_agents.engine.ranker_replay import Replay
@@ -20,11 +20,14 @@ from stock_agents.storage.warehouse import connect
 router = APIRouter(prefix="/ranker")
 
 
-@lru_cache(maxsize=4)
+_inputs = SnapshotCache()
+
+
 def _cached_inputs(asof: date, generation: int, subject: str | None = None):
-    # Reuse immutable observations across slider changes; refresh within two minutes of a load.
-    with connect(read_only=True) as conn:
-        return snapshot_inputs(conn, asof, subject=subject)
+    def load():
+        with connect(read_only=True) as conn:
+            return snapshot_inputs(conn, asof, subject=subject)
+    return _inputs.get((asof, subject), load)
 
 
 @router.get("/snapshot")

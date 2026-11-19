@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS prices_daily (
     volume     BIGINT,
     source     VARCHAR,
     known_date DATE     NOT NULL,
+    exchange_trade_at TIMESTAMPTZ,
     PRIMARY KEY (ticker, date, source)
 );
 

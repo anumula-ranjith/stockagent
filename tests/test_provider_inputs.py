@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import text
 
 from stock_agents.ingest import provider_inputs
-from stock_agents.ingest.provider_values import eodhd_rows, number, ratio
+from stock_agents.ingest.provider_values import eodhd_rows, number, ratio, snapshot_rows
 from stock_agents.sources.factset import FORMULAS, FactSetClient
 
 
@@ -32,6 +32,20 @@ def test_eodhd_missing_sections_and_history_are_point_in_time():
     assert eodhd_rows("ABC", "current", data, observed, {"current": "C-R", "old": "C-R"}) == rows
 
 
+def test_eodhd_estimate_analyst_count_is_kept_with_its_estimate():
+    data = {
+        "General": {"Code": "ABC", "Exchange": "NSE"},
+        "Earnings::Trend": {
+            "current": {"period": "0y", "earningsEstimateAvg": "25.5",
+                        "earningsEstimateNumberOfAnalysts": "12.0000"},
+            "next": {"period": "+1y", "earningsEstimateAvg": "28.0",
+                     "earningsEstimateNumberOfAnalysts": "8.0000"},
+        },
+    }
+    rows = eodhd_rows("ABC", "", data, date(2026, 11, 19))["estimates_pit"]
+    assert {row["metric"]: row["n_analysts"] for row in rows} == {"eps_fy1": 12, "eps_fy2": 8}
+
+
 def test_formula_maps_provider_order_currency_percentages_and_nulls(monkeypatch):
     raw = {
         "net_margin_ttm": 3,
@@ -41,6 +55,7 @@ def test_formula_maps_provider_order_currency_percentages_and_nulls(monkeypatch)
         "_annual_repurchases": 5,
         "_annual_issuance": 2,
         "rating_mean": 1.2,
+        "recommendation_count": 12,
         "_previous_rating": 1.5,
     }
     columns = {
@@ -63,6 +78,9 @@ def test_formula_maps_provider_order_currency_percentages_and_nulls(monkeypatch)
     assert result["IN"]["net_margin_ttm"] == 0.03
     assert result["IN"]["pe_ttm"] == 4
     assert result["IN"]["rating_change_1m"] == pytest.approx(0.3)
+    rows = snapshot_rows("ABC", result["IN"], date(2026, 11, 19), "factset_formula")
+    assert rows["analyst_pit"][0]["n_analysts"] == 12
+    assert not any(row["metric"] == "recommendation_count" for row in rows["fundamentals_pit"])
     assert result["IN"]["buyback_yield"] == pytest.approx(0.06)
     assert result["IN"]["fcf_yield"] is None
     assert ratio(20, 0) is None and number(float("nan")) is None
