@@ -7,7 +7,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 import pandas_market_calendars as calendars
-from sqlalchemy import case, select, text, update
+from sqlalchemy import and_, case, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import OperationalError
 
@@ -20,6 +20,15 @@ ACTIVE = ("queued", "running", "retrying")
 TERMINAL = ("success", "partial", "failed", "cancelled")
 PIPELINE_LOCK = 490122880
 SUBMIT_LOCK = 490122881
+QUOTA_WAIT = "Awaiting EODHD quota reset"
+
+
+def blocking_runs():
+    return and_(PipelineRun.status.in_(ACTIVE), ~and_(PipelineRun.status == "retrying",
+        PipelineRun.error.is_not(None), PipelineRun.error == QUOTA_WAIT,
+        PipelineRun.next_attempt_at.is_not(None), PipelineRun.next_attempt_at > datetime.now(UTC)))
+
+
 PIPELINES = {
     "daily": ("preflight", "reference", "eod", "providers", "insider", "short_selling", "news", "sentiment", "validate", "scores", "publish"),
     "prices": ("preflight", "eod", "validate", "scores", "publish"),
@@ -79,7 +88,7 @@ def submit(pipeline, day, key, *, user_id=None, trigger="manual", parent_id=None
             if previous["pipeline"] != pipeline or previous["trade_date"] != day:
                 raise ValueError("Idempotency key was used with different inputs")
             return dict(previous)
-        active = conn.scalar(select(table.c.id).where(table.c.status.in_(ACTIVE)).limit(1))
+        active = conn.scalar(select(table.c.id).where(blocking_runs()).limit(1))
         if active:
             raise PipelineBusy(f"Pipeline {active} is already active")
         run_id = str(uuid4())
@@ -191,6 +200,14 @@ def execute(run_id):
                 try:
                     result = run_stage(name, row["trade_date"])
                     state = result.get("status", "ok")
+                    if state == "awaiting_quota":
+                        retry_at = datetime.fromisoformat(result["retry_at"])
+                        if retry_at.tzinfo is None or retry_at <= datetime.now(UTC):
+                            raise ValueError("Invalid quota retry time")
+                        stage.update(status="retrying", result=result, finished_at=datetime.now(UTC).isoformat())
+                        set_run(run_id, stages=stages, status="retrying", error=QUOTA_WAIT,
+                            next_attempt_at=retry_at, finished_at=None)
+                        return
                     if state in ("busy", "awaiting_exchange", "awaiting_data"):
                         raise RuntimeError("Source data is not ready or another writer is active")
                     stage.update(status="partial" if state in ("partial", "warning") else "skipped" if state == "skipped" else "success", result=result)

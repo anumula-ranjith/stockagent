@@ -1946,6 +1946,12 @@ export interface components {
         };
         /** ScheduledPriceRun */
         ScheduledPriceRun: {
+            /** Members */
+            members?: number | null;
+            /** Priced */
+            priced?: number | null;
+            /** Missing */
+            missing?: string[] | null;
             /**
              * Trade Date
              * Format: date
@@ -1961,6 +1967,8 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "partial" | "failed";
+            /** Stocks Updated */
+            stocks_updated: number | null;
         };
         /** Screen */
         Screen: {

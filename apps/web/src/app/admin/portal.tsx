@@ -20,7 +20,7 @@ import s from "./portal.module.css";
 
 type Stage = {name:string;status:string;started_at:string;finished_at?:string;error?:string;result?:Record<string,unknown>;attempt:number};
 
-type Run = {id:string;pipeline:string;trade_date:string;status:string;trigger:string;created_at:string;started_at?:string;finished_at?:string;heartbeat_at?:string;attempt:number;cancel_requested:boolean;stages:Stage[];error?:string;parent_id?:string};
+type Run = {id:string;pipeline:string;trade_date:string;status:string;trigger:string;created_at:string;started_at?:string;finished_at?:string;heartbeat_at?:string;next_attempt_at?:string;attempt:number;cancel_requested:boolean;stages:Stage[];error?:string;parent_id?:string};
 
 type Overview = {latest_session:string;active_runs:number;pipelines:Record<string,string[]>;latest_run:Run|null;cache_note:string;services:{broker:boolean;scheduler:boolean;worker:boolean;eodhd_configured:boolean;timezone:string}};
 
@@ -205,6 +205,7 @@ export function AdminPortal() {
         <div className={s.row}><h2>{label(current.pipeline)} · {current.trade_date}</h2><Badge status={current.status}/></div><p className="subtle">Run {current.id} · attempt {current.attempt} · heartbeat {format(current.heartbeat_at)}</p>
 
         {current.error&&<p role="alert" className={s.warning}>{current.error}</p>}
+        {current.next_attempt_at&&<p className={s.warning}>Automatic retry: {format(current.next_attempt_at)} IST. Completed stages are retained; pending source data is not marked complete.</p>}
 
         {current.parent_id&&<p>Retry of {current.parent_id}</p>}
 

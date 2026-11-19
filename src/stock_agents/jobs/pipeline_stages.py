@@ -122,26 +122,24 @@ def run_stage(name, day):
                 result["status"] = "partial"
             # RSS remains independent of paid credentials and paid-source failures.
             if settings.env("EODHD_API_KEY"):
-                from stock_agents.ingest.news import ingest_news
-                from stock_agents.sources.eodhd import EODHDClient
-                from stock_agents.storage.warehouse import Warehouse
+                from stock_agents.ingest.eodhd_news import refresh_eodhd_news
                 try:
                     with conn.begin_nested():
-                        paid = ingest_news(Warehouse(conn), EODHDClient.from_env(), report=True)
+                        paid = refresh_eodhd_news(conn, "news")
                 except Exception:
                     paid = {"status": "failed", "reason": "EODHD news unavailable"}
                 result["eodhd"] = paid
+                if paid["status"] == "awaiting_quota":
+                    result.update(status="awaiting_quota", retry_at=paid["retry_at"], reason=paid["reason"])
+                    return result
                 if paid["status"] != "ok" or result["status"] != "ok":
                     result["status"] = "partial"
             return result
         if name == "sentiment":
             if not settings.env("EODHD_API_KEY"):
                 return {"status": "skipped", "reason": "EODHD source is not configured"}
-            from stock_agents.ingest.news import ingest_news, ingest_sentiment_daily
-            from stock_agents.sources.eodhd import EODHDClient
-            from stock_agents.storage.warehouse import Warehouse
-            action = ingest_news if name == "news" else ingest_sentiment_daily
-            return action(Warehouse(conn), EODHDClient.from_env(), report=True)
+            from stock_agents.ingest.eodhd_news import refresh_eodhd_news
+            return refresh_eodhd_news(conn, "sentiment")
         if name == "scores":
             from stock_agents.engine.scores import compute_and_store
             from stock_agents.storage.warehouse import Warehouse

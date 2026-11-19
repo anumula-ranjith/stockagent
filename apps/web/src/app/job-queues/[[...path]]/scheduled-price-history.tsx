@@ -25,13 +25,22 @@ export function ScheduledPriceHistory({user}: {user: string}) {
   return <section className="surface" aria-labelledby="scheduled-price-history">
     <div className="surface-top"><h2 id="scheduled-price-history">Angel One run history · 3:16 p.m. IST</h2></div>
     <div className="table-scroll"><table aria-labelledby="scheduled-price-history">
-      <thead><tr><th scope="col">Trading date</th><th scope="col">Finished at (IST)</th><th scope="col">Price and volume update</th></tr></thead>
+      <thead><tr><th scope="col">Trading date</th><th scope="col">Finished at (IST)</th><th scope="col">Price and volume update</th>
+        <th scope="col" title="Stocks written in the last recorded capture">Stocks updated</th>
+        <th scope="col" title="Stocks with valid prices and volume across all attempts for this trading day">Session coverage</th>
+        <th scope="col">Missing stocks</th></tr></thead>
       <tbody>{runs.map(run => <tr key={run.trade_date}>
         <td>{dateLabel(run.trade_date)}</td>
         <td><time dateTime={run.finished_at}>{finishTime.format(new Date(run.finished_at))}</time></td>
         <td>{outcomes[run.status]}</td>
+        <td>{run.stocks_updated ?? "Unrecorded"}</td>
+        <td>{run.priced != null && run.members != null ? `${run.priced} of ${run.members}` : "Unrecorded"}</td>
+        <td>{run.status === "partial" && run.missing?.length ? <details className="queue-missing-stocks">
+          <summary>{run.missing.length} missing · View tickers</summary>
+          <p>{run.missing.join(", ")}</p>
+        </details> : run.status === "ok" ? "None" : "Unrecorded"}</td>
       </tr>)}
-      {!runs.length && <tr><td colSpan={3}>{history.isPending ? "Loading run history…" : history.isError
+      {!runs.length && <tr><td colSpan={6}>{history.isPending ? "Loading run history…" : history.isError
         ? "Run history could not be loaded." : "No scheduled Angel One runs have been recorded yet."}</td></tr>}
       </tbody>
     </table></div>

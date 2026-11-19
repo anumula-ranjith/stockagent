@@ -136,7 +136,8 @@ def _load_provider(connection, name, members, observed):
             client = EODHDClient.from_env()
             # A fundamentals request costs ten units. Keep a margin for
             # concurrent price/news ingestion and limit concurrency per batch.
-            capacity = max(0, (client.remaining_calls() - 100) // 10)
+            reserve = max(100, int(load_settings().env("EODHD_NEWS_RESERVED_UNITS") or 12000))
+            capacity = max(0, (client.remaining_calls() - reserve) // 10)
             if capacity < len(pending):
                 state["provider_error"] = "EODHD daily quota insufficient for remaining symbols"
             pending = pending[:capacity]

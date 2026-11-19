@@ -1,3 +1,5 @@
+import json
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -9,11 +11,19 @@ from sqlalchemy import select
 from stock_agents.api import admin, auth
 from stock_agents.jobs import pipeline_stages, pipelines
 from stock_agents.jobs.pipeline_models import PipelineRun
-from stock_agents.storage.postgres import Base, User
+from stock_agents.storage.postgres import Base, User, dispose_engine
+
+
+@asynccontextmanager
+async def admin_test_lifespan(app):
+    try:
+        yield
+    finally:
+        await dispose_engine()
 
 
 def test_scheduled_price_history_reports_outcomes_and_paginates(auth_database):
-    app = FastAPI()
+    app = FastAPI(lifespan=admin_test_lifespan)
     app.include_router(admin.router)
     user = auth.UserOut(id=str(uuid4()), email="admin@test.example", is_admin=True, email_verified=True)
     app.dependency_overrides[auth.get_current_user] = lambda: user
@@ -25,14 +35,23 @@ def test_scheduled_price_history_reports_outcomes_and_paginates(auth_database):
             ended = datetime(2026, 11, 2, 9, 47, 12) + timedelta(days=i)
             rows.append(dict(run_id=f"angel-market-{ended.date()}", job="angel_market",
                              started_at=ended - timedelta(minutes=1), ended_at=ended,
-                             status=("ok", "partial", "failed")[i % 3]))
+                             status=("ok", "partial", "failed")[i % 3], rows_written=None, warnings=None))
+        # A retry writes one additional ticker; earlier captures already covered the others.
+        rows[-1].update(rows_written=1, warnings=json.dumps({"members": 501, "priced": 499,
+                                                           "missing": ["INFY", "SBIN"]}))
+        rows[-2].update(rows_written=0, warnings=json.dumps({"members": 501, "priced": 501, "missing": []}))
+        rows[-3].update(rows_written=0, warnings="legacy warning")
         rows.append({**rows[-1], "run_id": "angel-manual-2026-11-12"})
         rows.append({**rows[-1], "job": "angel_eod", "run_id": "angel-eod-2026-11-12"})
         with auth_database.begin() as conn:
             conn.execute(Base.metadata.tables["run_log"].insert(), rows)
         first = client.get(path).json()
         assert len(first["runs"]) == 10
-        assert first["runs"][0] == {"trade_date": "2026-11-12", "finished_at": "2026-11-12T09:47:12Z", "status": "partial"}
+        assert first["runs"][0] == {"trade_date": "2026-11-12", "finished_at": "2026-11-12T09:47:12Z",
+                                    "status": "partial", "stocks_updated": 1, "priced": 499, "members": 501,
+                                    "missing": ["INFY", "SBIN"]}
+        assert first["runs"][1]["stocks_updated"] == 0 and first["runs"][1]["missing"] == []
+        assert first["runs"][2]["stocks_updated"] == 0 and first["runs"][2]["missing"] is None
         assert {row["status"] for row in first["runs"]} == {"ok", "partial", "failed"}
         last = client.get(path, params={"before": first["next_before"]}).json()
         assert [row["trade_date"] for row in last["runs"]] == ["2026-11-02"]
@@ -167,7 +186,7 @@ def test_broker_failure_keeps_request(auth_database, monkeypatch):
 
 
 def test_admin_api_permissions_validation_and_controls(auth_database, monkeypatch):
-    app = FastAPI()
+    app = FastAPI(lifespan=admin_test_lifespan)
     app.include_router(admin.router)
     with TestClient(app) as client:
         assert client.get("/admin/overview").status_code == 401

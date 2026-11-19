@@ -80,7 +80,7 @@ def test_news_stage_runs_free_source_without_paid_key(monkeypatch):
 
 def test_paid_failure_does_not_rollback_free_import(auth_database, monkeypatch):
     from sqlalchemy import text
-    from stock_agents.ingest import free_news, news
+    from stock_agents.ingest import free_news, eodhd_news
     from stock_agents.jobs import pipeline_stages
     from stock_agents.sources.eodhd import EODHDClient
     class Settings:
@@ -91,7 +91,7 @@ def test_paid_failure_does_not_rollback_free_import(auth_database, monkeypatch):
     monkeypatch.setattr(EODHDClient, 'from_env', lambda: object())
     def broken(*args, **kwargs):
         raise AttributeError('malformed paid payload')
-    monkeypatch.setattr(news, 'ingest_news', broken)
+    monkeypatch.setattr(eodhd_news, 'refresh_eodhd_news', broken)
     item = dict(headline='INFY wins contract', url='https://economictimes.indiatimes.com/a',
                 published_at=datetime.now(UTC), source=free_news.SOURCE, polarity=None)
     monkeypatch.setattr(free_news, 'fetch_feed', lambda *args: ([item], 0))

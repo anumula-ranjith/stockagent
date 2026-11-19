@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 
 from stock_agents.common.logging import get_logger
-from stock_agents.sources.eodhd import EODHDClient
+from stock_agents.sources.eodhd import EODHDAccountError, EODHDClient
 from stock_agents.storage.warehouse import Warehouse
 
 log = get_logger(__name__)
@@ -40,6 +40,8 @@ def ingest_news(
         ticker, symbol = member
         try:
             return ticker, client.news(symbol, limit=limit_per_ticker), None
+        except EODHDAccountError:
+            raise
         except Exception as e:
             return ticker, [], type(e).__name__
 
@@ -69,7 +71,7 @@ def ingest_news(
                     news_id,
                     ticker,
                     ts,
-                    n.get("source") or "",
+                    n.get("source") or "EODHD",
                     (n.get("title") or "")[:500],
                     (n.get("link") or "")[:1000],
                     sentiment.get("polarity"),
@@ -114,6 +116,8 @@ def ingest_sentiment_daily(
             resp = client.sentiments(",".join(symbol for _, symbol in batch))
             if resp and not isinstance(resp, dict):
                 raise ValueError("Unexpected EODHD sentiment response")
+        except EODHDAccountError:
+            raise
         except Exception as e:
             failures += len(batch)
             log.warning("sentiment ingest skipped %d symbols (%s)", len(batch), type(e).__name__)

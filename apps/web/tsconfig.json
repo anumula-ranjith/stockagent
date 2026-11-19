@@ -39,15 +39,17 @@
     ".next-free-news-final/types/**/*.ts",
     ".next-free-news/types/**/*.ts",
     ".next-job-market-status/types/**/*.ts",
+    ".next-job-run-history/types/**/*.ts",
     ".next-live-screen/types/**/*.ts",
     ".next-popup/types/**/*.ts",
+    ".next-queue-stock-coverage/types/**/*.ts",
     ".next-rq-navigation/types/**/*.ts",
     ".next-screener-feed/types/**/*.ts",
     ".next-stock-ticks/types/**/*.ts",
     ".next-watch-fields/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-job-run-history/types/**/*.ts"
+    ".next-eodhd-recovery/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -334,3 +334,27 @@ empty states, and a refresh button that reloads stored data (it does not fetch
 publishers). Open pages poll news/status once per minute. The publisher RSS terms
 allow personal non-commercial use: https://economictimes.indiatimes.com/rss.cms .
 Do not enable this personal feed in a shared/commercial deployment without rights.
+
+## EODHD quota recovery
+
+Confirmed 19 November 2026: account usage 99,996/100,000 units; news and
+sentiment returned HTTP 402 (daily quota exhausted). No code change can restore
+provider access before quota reset or additional capacity. Official subscription
+quota resets at midnight UTC (05:30 IST). QUANTORA defers quota-blocked pipelines
+to 00:05 UTC (05:35 IST), visibly `retrying`, without marking missing data complete.
+Completed stages remain committed. Waiting quota runs do not block a subsequent
+scheduled pipeline, but all running warehouse writes still use the same lock.
+Cancellation clears the deferred retry. The normal three-attempt ceiling applies.
+
+EODHD news/sentiment now have separate durable checkpoints per morning/evening
+refresh slot, limited to the current Nifty 500/F&O union. Each successful symbol
+(or sentiment batch) is reused on later runs in the same slot, including valid
+empty results. Failed requests are not checkpointed complete. The user endpoint
+is checked before bounded batches; lazy reset dates and extra units are included.
+HTTP 402 stops spending attempts, 401/403 stop account requests, and 429 respects
+bounded Retry-After. Payloads are validated before persistence.
+
+Fundamentals loading and its missing-values backfill reserve 12,000 API units
+for news/sentiment by default (`EODHD_NEWS_RESERVED_UNITS`). Other consumers of
+the same API key can still exhaust the shared account quota. An API key or paid
+limit change is not performed automatically. Free RSS ingestion stays available.

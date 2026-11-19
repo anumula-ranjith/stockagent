@@ -19,6 +19,8 @@ html { scroll-behavior:smooth; }
 main { flex:1; }
 .queue-dashboard { display:block; width:100%; height:calc(100dvh - 66px); border:0; }
 .queue-market-status { display:grid; gap:16px; padding-block:16px; }
+.queue-missing-stocks summary { cursor:pointer; color:var(--accent); }
+.queue-missing-stocks p { white-space:normal; max-width:40ch; overflow-wrap:anywhere; }
 a { color:inherit; text-decoration:none; }
 button, a, input, select { -webkit-tap-highlight-color:transparent; }
 button, select { cursor:pointer; }

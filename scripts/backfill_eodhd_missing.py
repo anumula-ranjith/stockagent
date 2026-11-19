@@ -59,7 +59,8 @@ def main():
                   AND f.metric IN ('debt_equity','current_ratio','interest_coverage','fcf_yield','buyback_yield'))
             ORDER BY s.ticker""")).all()
     available = client.remaining_calls()
-    if available < len(members) * 10 + 100:
+    reserve = max(100, int(load_settings().env("EODHD_NEWS_RESERVED_UNITS") or 12000))
+    if available < len(members) * 10 + reserve:
         raise RuntimeError(f"EODHD quota insufficient: {available} units for {len(members)} symbols")
     observed = date.today()
     table = Base.metadata.tables["fundamentals_pit"]

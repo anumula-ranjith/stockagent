@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 from sqlalchemy import func, select, text, update
 from starlette.concurrency import run_in_threadpool
 
@@ -20,6 +20,7 @@ from stock_agents.jobs.pipelines import (
     TZ,
     PipelineBusy,
     dispatch_pending,
+    blocking_runs,
     latest_session,
     submit,
 )
@@ -41,10 +42,17 @@ async def angel_status(user: AdminUser):
     return await run_in_threadpool(connection_status)
 
 
-class ScheduledPriceRun(BaseModel):
+class CaptureCoverage(BaseModel):
+    members: int | None = None
+    priced: int | None = None
+    missing: list[str] | None = None
+
+
+class ScheduledPriceRun(CaptureCoverage):
     trade_date: date
     finished_at: datetime
     status: Literal["ok", "partial", "failed"]
+    stocks_updated: int | None
 
 
 class ScheduledPriceHistory(BaseModel):
@@ -55,7 +63,7 @@ class ScheduledPriceHistory(BaseModel):
 @router.get("/angel-one/scheduled-runs", response_model=ScheduledPriceHistory)
 async def scheduled_price_history(user: AdminUser, session: Session, before: date | None = None):
     log = Base.metadata.tables["run_log"].c
-    query = select(log.run_id, log.ended_at, log.status).where(
+    query = select(log.run_id, log.ended_at, log.status, log.rows_written, log.warnings).where(
         log.job == "angel_market", log.run_id.like("angel-market-%"),
         log.ended_at.is_not(None), log.status.in_(("ok", "partial", "failed")),
     )
@@ -63,9 +71,18 @@ async def scheduled_price_history(user: AdminUser, session: Session, before: dat
     if before:
         query = query.where(log.run_id < f"angel-market-{before.isoformat()}")
     rows = (await session.execute(query.order_by(log.run_id.desc()).limit(11))).all()
-    runs = [ScheduledPriceRun(trade_date=date.fromisoformat(row.run_id.removeprefix("angel-market-")),
-                              finished_at=row.ended_at.replace(tzinfo=UTC), status=row.status)
-            for row in rows[:10]]
+    runs = []
+    for row in rows[:10]:
+        try:
+            coverage = CaptureCoverage.model_validate_json(row.warnings or "{}")
+        except ValidationError:
+            coverage = CaptureCoverage()  # Older log entries may contain plain-text warnings.
+        runs.append(ScheduledPriceRun(
+            trade_date=date.fromisoformat(row.run_id.removeprefix("angel-market-")),
+            finished_at=row.ended_at.replace(tzinfo=UTC), status=row.status,
+            stocks_updated=row.rows_written,
+            **coverage.model_dump(),
+        ))
     return ScheduledPriceHistory(runs=runs, next_before=runs[-1].trade_date if len(rows) > 10 else None)
 
 
@@ -127,7 +144,7 @@ def service_status():
 @router.get("/overview")
 async def overview(user: AdminUser, session: Session):
     last = await session.scalar(select(PipelineRun).order_by(PipelineRun.created_at.desc()).limit(1))
-    active = await session.scalar(select(func.count()).select_from(PipelineRun).where(PipelineRun.status.in_(ACTIVE)))
+    active = await session.scalar(select(func.count()).select_from(PipelineRun).where(blocking_runs()))
     return {"latest_session": latest_session(), "active_runs": active,
             "services": await run_in_threadpool(service_status),
             "latest_run": row_out(last) if last else None,

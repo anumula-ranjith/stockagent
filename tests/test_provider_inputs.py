@@ -87,6 +87,7 @@ def test_formula_maps_provider_order_currency_percentages_and_nulls(monkeypatch)
 
 
 def test_batch_checkpoint_resumes_without_refetching_or_duplicates(auth_database, monkeypatch):
+    monkeypatch.setenv("EODHD_NEWS_RESERVED_UNITS", "100")
     day = date(2026, 11, 18)
     members = [("AAA", "first", "AAA.NSE"), ("BBB", "second", "BBB.NSE")]
     called = []
