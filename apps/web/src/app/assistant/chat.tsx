@@ -25,7 +25,11 @@ export function AssistantChat({ compact = false }: { compact?: boolean }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Assistant unavailable");
       setMessages([...next, { role: "assistant", content: data.answer }]);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Assistant unavailable"); }
+    } catch (cause) {
+      setMessages(messages);
+      setDraft(content);
+      setError(cause instanceof Error ? cause.message : "Assistant unavailable");
+    }
     finally { setBusy(false); }
   }
   return <div className={compact ? styles.compact : "shell workspace"}>{!compact && <div className={styles.head}><span className="eyebrow">Private workspace</span><h1>Product assistant</h1>

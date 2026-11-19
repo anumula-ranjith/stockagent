@@ -31,6 +31,11 @@ responses use `private, no-store`. The existing RQ dashboard is also
 available through Next.js at `/_admin/rq/`. Use a browser-reachable
 `S3_PUBLIC_ENDPOINT` on FastAPI for signed artifact links.
 
+The QUANTORA assistant is served by Next.js at `/api/assistant`. Set
+`OPENAI_API_KEY` in the web server environment and restart the web process
+to enable replies. The key is server-only and must not use a `NEXT_PUBLIC_`
+prefix. `OPENAI_CHAT_MODEL` can override the default model.
+
 For IP-based production login limits, configure the deployment edge to
 overwrite a dedicated forwarding header with the verified client address.
 Set `TRUSTED_CLIENT_IP_HEADER` on Next.js to that header, restrict direct

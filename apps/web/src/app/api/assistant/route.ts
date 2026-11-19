@@ -7,12 +7,16 @@ const context = `You are QUANTORA's private product assistant. Answer questions 
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
-  if (origin && origin !== request.nextUrl.origin) return Response.json({ detail: "Invalid origin" }, { status: 403 });
+  // Next may use an internal URL behind the local server or a reverse proxy.
+  // Compare against the public Host header, as the backend proxy does.
+  const host = request.headers.get("host");
+  const expected = host ? `${request.nextUrl.protocol}//${host}` : request.nextUrl.origin;
+  if (origin && origin !== expected) return Response.json({ detail: "Invalid origin" }, { status: 403 });
   if (request.headers.get("x-stock-agents-request") !== "1") return Response.json({ detail: "Invalid request" }, { status: 403 });
   const auth = await proxy(new NextRequest(new URL("/backend/me", request.url), { headers: request.headers }), ["me"]);
   if (!auth.ok) return Response.json({ detail: "Sign in to use the assistant" }, { status: 401 });
   const key = process.env.OPENAI_API_KEY;
-  if (!key) return Response.json({ detail: "The assistant needs OPENAI_API_KEY configured on the server." }, { status: 503 });
+  if (!key) return Response.json({ detail: "AI assistant is not configured. Set OPENAI_API_KEY for the web server, then restart it." }, { status: 503 });
   let body: unknown;
   try { body = await request.json(); } catch { return Response.json({ detail: "Invalid JSON" }, { status: 400 }); }
   if (!body || typeof body !== "object" || !("messages" in body) || !Array.isArray(body.messages)) {
