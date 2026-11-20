@@ -60,7 +60,7 @@ export function HomeNews() {
               <span className={s.kind}>{story.kind==="announcement"?"NSE announcement":"Media headline"}</span>
               <h3><a href={story.url} target="_blank" rel="noopener noreferrer">{story.title} <ExternalLink size={14} aria-label="Open original source"/></a></h3>
               <span className={s.kind}>{story.sentiment ? `FinBERT estimate: ${story.sentiment.label} (${story.sentiment.polarity.toFixed(2)})` : story.kind==="announcement"?"Announcement · not scored":"Sentiment pending"}</span>
-              <div className={s.companies}>{story.companies.map(c=><Link key={c.symbol} href={`/stocks/${encodeURIComponent(c.symbol)}`} title={c.name}>{c.name} · {c.symbol}</Link>)}</div>
+              <div className={s.companies}>{story.companies.map(c=><Link key={c.symbol} href={`/stocks/${encodeURIComponent(c.symbol)}`} title={c.name} target="_blank" rel="opener" referrerPolicy="same-origin">{c.name} · {c.symbol}</Link>)}</div>
             </article>)}
           </div>
         </>}

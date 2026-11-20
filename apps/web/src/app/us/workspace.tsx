@@ -4,6 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import {useQuery,useMutation,useQueryClient} from "@tanstack/react-query";
 import {useSession} from "@/components/providers";
+import {StockReturnLink} from "@/components/stock-return-link";
 import {SignInNotice,State} from "@/components/presentation";
 import {api,type PriceBar} from "@/lib/api";
 import {standardPeriods,standardRules} from "@/lib/stock-context";
@@ -70,7 +71,7 @@ function Directory({rows,page,follow}:{rows:Listing[];page:string;follow:Follow}
     (!term||r.ticker.includes(term)||r.name.toUpperCase().includes(term))&&(!screen||((!high||(r.below!=null&&r.below<=Number(high)))&&(!low||(r.above!=null&&r.above<=Number(low))))));
   const visible=matching.slice(offset,offset+(home?12:25));
   const live=useUsTrades(visible.map(r=>r.ticker),watch&&visible.length>0);
-  return <>{home&&<div className="us-quotes">{["SPY","QQQ","DIA","IWM"].map(t=>rows.find(r=>r.ticker===t)).filter((r):r is Listing=>!!r).map(r=><Link className="surface" key={r.ticker} href={"/us/stocks/"+r.ticker}><small>{r.name}</small><b>{r.ticker}</b><strong>{usd.format(r.close)}</strong><small>Close · {r.date}</small></Link>)}</div>}
+  return <>{home&&<div className="us-quotes">{["SPY","QQQ","DIA","IWM"].map(t=>rows.find(r=>r.ticker===t)).filter((r):r is Listing=>!!r).map(r=><Link className="surface" key={r.ticker} href={"/us/stocks/"+r.ticker} target="_blank" rel="opener" referrerPolicy="same-origin"><small>{r.name}</small><b>{r.ticker}</b><strong>{usd.format(r.close)}</strong><small>Close · {r.date}</small></Link>)}</div>}
     <section className="surface"><div className="surface-top"><h2 className="section-title">{home?"Largest companies by market cap":watch?"Saved stocks":screen?"Screen results":"Stock directory"}</h2><small>{matching.length.toLocaleString()} listings · {watch?live.mode:"EODHD · USD"}</small></div>
     {!home&&<div className="us-toolbar" onChange={()=>setOffset(0)}><label className="field">Search<input type="search" placeholder="Ticker or company" value={search} onChange={e=>setSearch(e.target.value)}/></label>
       <label className="field">Exchange<select value={exchange} onChange={e=>setExchange(e.target.value)}><option value="">All exchanges</option>{Array.from(new Set(rows.map(r=>r.exchange))).sort().map(x=><option key={x}>{x}</option>)}</select></label>
@@ -78,7 +79,7 @@ function Directory({rows,page,follow}:{rows:Listing[];page:string;follow:Follow}
       {screen&&<>{[["Max % below 250-session high",high,setHigh],["Max % above 250-session low",low,setLow]].map(([label,val,set])=><label className="field" key={String(label)}>{String(label)}<input type="number" min={0} step="any" value={String(val)} placeholder="Any" onChange={e=>(set as typeof setHigh)(e.target.value)}/></label>)}</>}
     </div>}
     <div className="table-scroll"><table><thead><tr>{["Ticker","Company","Exchange",...(watch?["Latest IEX trade"]:[]),"Close","Session","Open to close","Volume","Market cap",...(screen?["Below high","Above low"]:[]),"Watch"].map(x=><th key={x}>{x}</th>)}</tr></thead>
-    <tbody>{visible.map(r=><tr key={r.ticker}><td><Link className="text-link" href={"/us/stocks/"+r.ticker}>{r.ticker}</Link></td><td>{r.name}</td><td>{r.exchange}</td>
+    <tbody>{visible.map(r=><tr key={r.ticker}><td><Link className="text-link" href={"/us/stocks/"+r.ticker} target="_blank" rel="opener" referrerPolicy="same-origin">{r.ticker}</Link></td><td>{r.name}</td><td>{r.exchange}</td>
     {watch&&<td>{live.prices[r.ticker]?<>{usd.format(live.prices[r.ticker].price)}<br/><small>{et.format(new Date(live.prices[r.ticker].time))}</small></>:"—"}</td>}
     <td>{usd.format(r.close)}</td><td>{r.date}</td><td>{r.intraday==null?"—":fmt(r.intraday)+"%"}</td><td>{fmt(r.volume,0)}</td><td>{r.cap==null?"—":"$"+Intl.NumberFormat("en-US",{notation:"compact"}).format(r.cap)}</td>
     {screen&&<><td>{fmt(r.below)}%</td><td>{fmt(r.above)}%</td></>}<td><FollowButton ticker={r.ticker} follow={follow}/></td></tr>)}</tbody></table></div>
@@ -93,7 +94,7 @@ export function UsWorkspace({page,ticker}:{page:string;ticker?:string}){
   const change=useMutation({mutationFn:(t:string)=>api("/us/watchlist/"+t,{method:saved.data?.includes(t)?"DELETE":"PUT"}),onSuccess:()=>client.invalidateQueries({queryKey:["us-watch",id]})});
   const follow={saved:saved.data??[],toggle:change.mutate,busy:change.isPending||!saved.data};
   const path=ticker?"/us/stocks/"+ticker:page==="dashboard"?"/us":"/us/"+page;
-  return <div className="shell workspace us-board">{!ticker&&<div><p className="eyebrow">United States · Equities</p><h1>{labels[page]}</h1></div>}
+  return <div className="shell workspace us-board">{ticker ? <StockReturnLink fallback="/us/stocks"/> : <div><p className="eyebrow">United States · Equities</p><h1>{labels[page]}</h1></div>}
   {session.isPending?<State>Checking account…</State>:!id?<SignInNotice next={path}>Sign in to view US market data.</SignInNotice>:<>
   {(change.isError||saved.isError)&&<State error>{change.error?.message??saved.error?.message}</State>}
   {ticker?<Stock key={ticker} ticker={ticker} row={market.data?.find(r=>r.ticker===ticker)} follow={follow}/>:page==="news"?<News/>:

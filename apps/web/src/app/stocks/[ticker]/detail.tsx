@@ -69,7 +69,7 @@ export function StockDetail({ ticker, periods: inputs, rules, settings, asof, sc
   return <div className={`stack ${styles.detail}`}>
     <PageTitle title={ticker} action={<form className={styles.stockSearch} role="search" onSubmit={event=>{
       event.preventDefault();
-      if (matches.length) { setSearchError(""); window.open(href(matches[0].ticker), "_blank", "noopener,noreferrer"); }
+      if (matches.length) { setSearchError(""); window.open(href(matches[0].ticker), "_blank"); }
       else setSearchError(universe.isPending ? "Stock list is loading." : universe.isError ? "Stock search is unavailable. Please refresh and try again." : "No matching company found.");
     }}>
       <label htmlFor="detail-stock-search">Search company</label>
@@ -78,7 +78,7 @@ export function StockDetail({ ticker, periods: inputs, rules, settings, asof, sc
         <button type="submit">View stock</button></div>
       {(searchError || (term && !matches.length)) && <p role="status" className={styles.searchMessage}>{searchError || (universe.isPending ? "Loading companies..." : universe.isError ? "Stock search is unavailable. Please refresh and try again." : "No matching company found.")}</p>}
       {term && matches.length>0 && <ul className={styles.searchMatches} aria-label="Matching stocks">{matches.map(row=><li key={row.ticker}>
-        <Link href={href(row.ticker)} target="_blank" rel="noopener noreferrer"><strong>{row.ticker}</strong>{row.company_name && <span>{row.company_name}</span>}
+        <Link href={href(row.ticker)} target="_blank" rel="opener" referrerPolicy="same-origin"><strong>{row.ticker}</strong>{row.company_name && <span>{row.company_name}</span>}
           {row.sector&&<span>{row.sector}</span>}</Link><StockActions ticker={row.ticker}/></li>)}</ul>}
     </form>}>NSE equity research</PageTitle>
     <div className="surface" id="prices">
