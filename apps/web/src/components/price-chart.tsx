@@ -42,8 +42,8 @@ function markers(events: Cross[], selected: UTCTimestamp | undefined, rule: Char
   });
 }
 
-export default function PriceChart({prices, periods, rules, days}: {
-  prices: PriceBar[]; periods: Periods; rules: ChartRules; days: number;
+export default function PriceChart({prices, periods, rules, days, currency = "INR"}: {
+  prices: PriceBar[]; periods: Periods; rules: ChartRules; days: number; currency?: "INR" | "USD";
 }) {
   const host = useRef<HTMLDivElement>(null);
   const {resolvedTheme} = useTheme();
@@ -95,7 +95,7 @@ export default function PriceChart({prices, periods, rules, days}: {
       layout: {background: {type: ColorType.Solid, color: color("--panel")}, textColor: color("--muted"), attributionLogo: true},
       grid: {vertLines: {visible: false}, horzLines: {color: color("--line")}},
       timeScale: {borderColor: color("--line")}, rightPriceScale: {borderColor: color("--line")},
-      localization: {priceFormatter: (price: number) => price.toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}});
+      localization: {priceFormatter: (price: number) => price.toLocaleString(currency === "USD" ? "en-US" : "en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}});
     const price = chart.addSeries(CandlestickSeries, {upColor: color("--long"), downColor: color("--short"), borderVisible: false,
       wickUpColor: color("--long"), wickDownColor: color("--short")});
     price.setData(data.candles);
@@ -110,7 +110,7 @@ export default function PriceChart({prices, periods, rules, days}: {
     chart.panes()[1]?.setHeight(160);
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [data, resolvedTheme]);
+  }, [data, resolvedTheme, currency]);
 
   return data.candles.length ? <div className="indicator-chart-wrap">
     <div className="indicator-legend"><span className="swatch ema-fast"/>EMA {periods.ema_fast}<span className="swatch ema-slow"/>EMA {periods.ema_slow}

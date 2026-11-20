@@ -11,7 +11,8 @@ export async function proxy(request: NextRequest, segments: string[], operations
   }
   const path = segments.map(encodeURIComponent).join("/");
   const read = request.method === "GET" || request.method === "HEAD";
-  if (!operations && !(read ? reads : writes).test(path)) {
+  const usMarket = read ? /^us\/(?:market|watchlist|news|stock\/[A-Z0-9.-]{1,15}\/(?:candles|news|options))$/.test(path) : (request.method === "POST" && path === "us/subscribe") || (["PUT","DELETE"].includes(request.method) && /^us\/watchlist\/[A-Z0-9.-]{1,15}$/.test(path));
+  if (!operations && !usMarket && !(read ? reads : writes).test(path)) {
     return new Response(null, { status: 404 });
   }
   if (operations && !read && request.method !== "POST") {

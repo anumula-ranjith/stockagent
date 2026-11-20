@@ -427,3 +427,6 @@ app.mount("/_admin/rq", admin_dashboard, name="rq-dashboard")
 # Static assets (styles.css, future bundled JS, favicon)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.add_middleware(ObserveRequests)
+
+from stock_agents.api import us_market
+app.include_router(us_market.router)
