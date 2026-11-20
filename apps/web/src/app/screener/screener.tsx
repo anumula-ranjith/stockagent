@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useState, type FormEvent } from "react";
+import { UniverseFilters } from "@/components/universe-filters";
 import { DataTable } from "@/components/data-table";
 import { StockIdentity as StockTicker } from "@/components/stock-identity";
 import { CandleField, RangeFields } from "@/components/screen-fields";
@@ -80,30 +81,7 @@ function AccountScreen({user}: {user: string}) {
   const rows = data?.rows.filter(r => r.ticker.toLowerCase().includes(search.trim().toLowerCase())) ?? [];
   return <div className={styles.layout}>
     <AngelMarketStatus user={user}/>
-    <section className={styles.universe} aria-label="Universe filters">
-      <label className="field">Nifty index
-        <select value={draft.index_code} onChange={e => set({index_code: e.target.value})}>
-          {Object.entries(data?.index_options ?? {NIFTY500: "Nifty 500", [draft.index_code]: draft.index_code}).map(([code, label]) =>
-            <option key={code} value={code}>{label}</option>)}
-        </select>
-      </label>
-      <label className="field">Market-cap segment
-        <select value={draft.cap} onChange={e => set({cap: e.target.value as ScreenFilters["cap"]})}>
-          <option value="">All sizes</option>
-          <option value="large">Large cap · Nifty 100</option>
-          <option value="mid">Mid cap · Midcap 150</option>
-          <option value="small">Small cap · Smallcap 250</option>
-        </select>
-      </label>
-      <label className="field">Industry
-        <select value={draft.industry} onChange={e => set({industry: e.target.value})}>
-          <option value="">All industries</option>
-          {(data?.industries ?? (draft.industry ? [draft.industry] : [])).map(value => <option key={value}>{value}</option>)}
-        </select>
-      </label>
-      <label className={styles.eligible}><input type="checkbox" checked={draft.fo_only}
-        onChange={e => set({fo_only: e.target.checked})}/>F&amp;O eligible only</label>
-    </section>
+    <UniverseFilters draft={draft} set={set} data={data}/>
     <form onSubmit={submit} className={styles.filter}>
       <h2>Screen filters</h2>
       <fieldset><legend>52-week range</legend>

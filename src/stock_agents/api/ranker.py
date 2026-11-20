@@ -2,6 +2,7 @@
 
 from datetime import date
 from time import monotonic
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from sqlalchemy import or_, select
@@ -13,6 +14,7 @@ from stock_agents.common.snapshot_cache import SnapshotCache
 from stock_agents.engine.ranker import RankSettings, to_payload
 from stock_agents.engine.ranker_inputs import snapshot_inputs
 from stock_agents.engine.ranker_replay import Replay
+from stock_agents.ingest.screen_indices import INDEX_FILES, CAP_INDEX
 from stock_agents.engine.stock_analysis import stock_analysis
 from stock_agents.storage.postgres import JobRun
 from stock_agents.storage.warehouse import connect
@@ -42,11 +44,50 @@ def _snapshot_date(asof: date | None):
     return asof
 
 
+_universe_cache = SnapshotCache()
+
+
+def _universe_metadata(asof):
+    with connect(read_only=True) as conn:
+        memberships = conn.execute(
+            """SELECT index_code,ticker FROM index_membership
+               WHERE known_on <= ? AND joined_on <= ? AND (left_on IS NULL OR left_on > ?)
+               AND index_code = ANY(?)""",
+            [asof, asof, asof, [*INDEX_FILES, "NSE_FO"]],
+        ).all()
+        industries = dict(conn.execute(
+            """SELECT DISTINCT ON (ticker) ticker,industry FROM classification
+               WHERE source='nse_indices' AND known_date <= ? AND effective_date <= ?
+                 AND NULLIF(TRIM(industry),'') IS NOT NULL
+               ORDER BY ticker,effective_date DESC,known_date DESC""", [asof, asof],
+        ).all())
+    groups = {}
+    for code, ticker in memberships:
+        groups.setdefault(code, set()).add(ticker)
+    return groups, industries
+
+
 @router.post("/snapshot")
-def tuned_snapshot(settings: RankSettings, _user: CurrentUser, asof: date | None = None):
+def tuned_snapshot(
+    settings: RankSettings, _user: CurrentUser, asof: date | None = None,
+    universe_filters: bool = False, index_code: str = "NIFTY500",
+    cap: Literal["", "large", "mid", "small"] = "", industry: str = "", fo_only: bool = False,
+):
     asof = _snapshot_date(asof)
     raw, price_date = _cached_inputs(asof, int(monotonic() // 120))
-    return to_payload(raw, settings, asof, price_date)
+    if not (universe_filters or index_code != "NIFTY500" or cap or industry or fo_only):
+        return to_payload(raw, settings, asof, price_date)
+    groups, industries = _universe_cache.get(asof, lambda: _universe_metadata(asof))
+    options = {"NIFTY500": "Nifty 500", **{c: spec[0] for c, spec in INDEX_FILES.items() if c in groups}}
+    industry_options = sorted({industries[t] for t in raw.index if t in industries})
+    eligible = set(raw.index)
+    for code in (index_code if index_code != "NIFTY500" else None, CAP_INDEX.get(cap), "NSE_FO" if fo_only else None):
+        if code:
+            eligible.intersection_update(groups.get(code, set()))
+    if industry:
+        eligible = {t for t in eligible if industries.get(t) == industry}
+    payload = to_payload(raw.loc[raw.index.isin(eligible)], settings, asof, price_date)
+    return {**payload, "index_options": options, "industries": industry_options}
 
 
 @router.post("/stock/{ticker}")
