@@ -10,13 +10,14 @@ import { agentLabels, agents } from "@/lib/api";
 import { UniverseFilters, type UniverseSelection } from "@/components/universe-filters";
 import { rankingQuery } from "@/lib/ranking-query";
 import { SettingsPanel } from "./ranker-controls";
-import { defaults, type Settings, type Tab } from "./ranker-model";
+import { defaults, type Settings } from "./ranker-model";
 import { Candidates, Heat } from "./ranker-tables";
 import s from "./ranker.module.css";
 
 const Portfolio = dynamic(()=>import("./portfolio").then(m=>m.Portfolio));
-const tabs = [...agents,"combined","portfolio"] as const;
-const labels = {...agentLabels,combined:"Combined",portfolio:"Portfolio & Backtest"};
+const DailyPortfolio = dynamic(()=>import("./daily-portfolio"));
+const tabs = [...agents,"combined","daily","portfolio"] as const;
+const labels = {...agentLabels,combined:"Combined",daily:"Daily Portfolio",portfolio:"Portfolio & Backtest"};
 const summaries = {
   technical:"Ranks stocks on chart health. Stocks failing a long-list filter can still appear as shorts.",
   sentiment:"Ranks stocks on news tone, analyst revisions, sector performance and available positioning data.",
@@ -43,10 +44,12 @@ export function Tuner() {
     </header>
     {session.data && <UniverseFilters data={data} draft={universe} set={patch=>setUniverse(current=>({...current,...patch}))}/>}
     <nav className={s.tabs} aria-label="Ranking workspaces">{tabs.map(name=><button key={name} aria-current={name===tab?"page":undefined}
-      onClick={()=>void setTab(name as Tab)}>{labels[name]}</button>)}</nav>
+      onClick={()=>void setTab(name)}>{labels[name]}</button>)}</nav>
     {session.isPending ? <State>Checking your session…</State> : session.isError ? <State error>Session unavailable.</State>
       : !session.data ? <SignInNotice next="/dashboard">Sign in to tune the four agents and compare their portfolios.</SignInNotice>
       : tab==="portfolio" ? <Portfolio selection={universe} config={config} end={date||data?.asof||new Date().toISOString().slice(0,10)} admin={!!session.data.is_admin} user={session.data.id}/>
+      : tab==="daily" ? <DailyPortfolio key={session.data.id} user={session.data.id} config={config} selection={universe}
+          snapshot={data} updating={snapshot.isFetching || debounced!==config} rankingError={snapshot.error?.message}/>
       : <div className={s.grid}><SettingsPanel tab={tab} config={config} change={setConfig} coverage={data?.coverage}/>
         <section className={s.results} aria-busy={snapshot.isFetching}>
           <p className={s.summary}>{summaries[tab]}</p>

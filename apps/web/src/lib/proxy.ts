@@ -12,7 +12,10 @@ export async function proxy(request: NextRequest, segments: string[], operations
   const path = segments.map(encodeURIComponent).join("/");
   const read = request.method === "GET" || request.method === "HEAD";
   const usMarket = read ? /^us\/(?:market|watchlist|news|stock\/[A-Z0-9.-]{1,15}\/(?:candles|news|options))$/.test(path) : (request.method === "POST" && path === "us/subscribe") || (["PUT","DELETE"].includes(request.method) && /^us\/watchlist\/[A-Z0-9.-]{1,15}$/.test(path));
-  if (!operations && !usMarket && !(read ? reads : writes).test(path)) {
+  const dailyPicks = read ? /^ranker\/daily-picks(?:\/\d{4}-\d{2}-\d{2})?$/.test(path)
+    : (request.method === "POST" && path === "ranker/daily-picks")
+      || (["PUT","DELETE"].includes(request.method) && path === "ranker/daily-picks/schedule");
+  if (!operations && !usMarket && !dailyPicks && !(read ? reads : writes).test(path)) {
     return new Response(null, { status: 404 });
   }
   if (operations && !read && request.method !== "POST") {
@@ -65,7 +68,7 @@ export async function proxy(request: NextRequest, segments: string[], operations
       body: read ? undefined : await request.text(),
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.timeout(path === "brokers/angel-one/sync" ? 45000 : 30000),
+      signal: AbortSignal.timeout(dailyPicks ? 90000 : path === "brokers/angel-one/sync" ? 45000 : 30000),
     });
   } catch {
     return Response.json({ detail: "The research API is unavailable" }, {
