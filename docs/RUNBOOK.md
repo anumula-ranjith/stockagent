@@ -1,23 +1,14 @@
-# Runbook
+# Local operations
 
-Day-to-day operations. Expanded as phases land.
+Follow [Local startup](../DEPLOY.md) for installation, native service commands
+and verification. PostgreSQL holds the operational warehouse for the API,
+CLI, scheduled ingestion, scoring and backtests.
 
-## First-time setup
-
-```
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-pip install -e .
-cp .env.example .env     # fill in keys
-make test
-```
-
-## Initialize the warehouse
-
-```
-python -m stock_agents.cli init-db
-```
+- [Database migrations and legacy imports](MIGRATIONS.md)
+- [Authentication and account recovery](AUTHENTICATION.md)
+- [RQ jobs and scheduling](JOBS.md)
+- [Next.js frontend](FRONTEND.md)
+- [Readiness, traces, metrics and CI](OBSERVABILITY.md)
 
 ## Phase-1 probes
 
@@ -37,4 +28,7 @@ and fill in `config/factset_metrics.yaml` from the metrics fixture.
 
 ## Daily operations
 
-_(populated in Phase 7)_
+The scheduler and native scheduled task refresh Nifty 500 plus NSE stock F&O
+membership and EOD prices after the market closes. See [Jobs](JOBS.md) for
+scheduling and retry behavior. `python -m stock_agents.cli status` reads the
+PostgreSQL warehouse counts.

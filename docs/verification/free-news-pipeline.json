@@ -1,0 +1,84 @@
+{
+  "id": "3ed89af6-833b-46e7-9024-2c0faea63af2",
+  "status": "partial",
+  "stages": [
+    {
+      "name": "preflight",
+      "result": {
+        "broker": true,
+        "status": "ok",
+        "database": true
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:51:43.579181+00:00",
+      "finished_at": "2026-11-19T11:51:43.582872+00:00"
+    },
+    {
+      "name": "news",
+      "result": {
+        "rows": 5,
+        "eodhd": {
+          "rows": 188,
+          "status": "partial",
+          "failures_count": 472
+        },
+        "feeds": {
+          "stocks": {
+            "items": 50,
+            "status": "ok",
+            "rejected": 0
+          },
+          "industry": {
+            "items": 50,
+            "status": "ok",
+            "rejected": 0
+          },
+          "companies": {
+            "items": 49,
+            "status": "ok",
+            "rejected": 0
+          },
+          "technology": {
+            "items": 50,
+            "status": "ok",
+            "rejected": 0
+          }
+        },
+        "errors": {},
+        "status": "partial",
+        "members": 501,
+        "articles": 199,
+        "feeds_ok": 4,
+        "duplicates": 51,
+        "updated_at": "2026-11-19T11:51:43.831145+00:00",
+        "feeds_total": 4,
+        "matched_stocks": 45,
+        "stocks_without_recent_matches": 456
+      },
+      "status": "partial",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:51:43.584873+00:00",
+      "finished_at": "2026-11-19T11:53:36.526659+00:00"
+    },
+    {
+      "name": "sentiment",
+      "error": "RuntimeError: stage did not complete; check service logs and source configuration",
+      "status": "partial",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:53:36.594058+00:00",
+      "finished_at": "2026-11-19T11:53:48.765836+00:00"
+    },
+    {
+      "name": "publish",
+      "result": {
+        "status": "ok",
+        "cache_refresh_requested": true
+      },
+      "status": "success",
+      "attempt": 1,
+      "started_at": "2026-11-19T11:53:48.793766+00:00",
+      "finished_at": "2026-11-19T11:53:48.826055+00:00"
+    }
+  ]
+}

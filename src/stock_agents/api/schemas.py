@@ -7,9 +7,9 @@ generate (openapi.json -> openapi-typescript -> api.ts).
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
 
 # ------------------------------------------------------------------ core
@@ -19,10 +19,12 @@ class HealthOut(BaseModel):
     tickers_with_prices: int | None = None
     price_rows: int | None = None
     error: str | None = None
+    checks: dict[str, Literal["ok", "unavailable", "unconfigured"]] | None = None
 
 
 # -------------------------------------------------------------- universe
 class UniverseRow(BaseModel):
+    company_name: str | None = None
     ticker: str
     symbol: str | None = None
     sector: str | None = None
@@ -31,6 +33,7 @@ class UniverseRow(BaseModel):
 
 # ----------------------------------------------------------------- prices
 class PriceBar(BaseModel):
+    source: str | None = None
     date: date
     open: float | None = None
     high: float | None = None
@@ -64,10 +67,17 @@ AgentName = Literal["technical", "sentiment", "momentum", "fundamental"]
 
 class AgentScoreRow(BaseModel):
     ticker: str
-    score: float
+    score: float | None
     imputed: bool = False
     sector: str | None = None
     industry: str | None = None
+
+
+class AgentHistoryPoint(BaseModel):
+    date: date
+    agent: str
+    score: float | None
+    imputed: bool = False
 
 
 # ---------------------------------------------------------------- combine
@@ -92,10 +102,21 @@ class CombineRow(BaseModel):
 
 class CombineOut(BaseModel):
     asof: date
-    mode: str
-    weights: dict[str, float]
+    mode: str | None = None
+    weights: dict[str, float] | None = None
     longs: list[CombineRow]
     shorts: list[CombineRow]
+    note: str | None = None
+
+
+class CombineQuery(BaseModel):
+    asof: date | None = None
+    n: int = Field(10, ge=1, le=50)
+    mode: Literal["weighted", "consensus", "hybrid"] = "weighted"
+    technical: float | None = Field(None, ge=0, le=100)
+    sentiment: float | None = Field(None, ge=0, le=100)
+    momentum: float | None = Field(None, ge=0, le=100)
+    fundamental: float | None = Field(None, ge=0, le=100)
 
 
 # ---------------------------------------------------------------- backtest
@@ -132,10 +153,30 @@ class BacktestJobRef(BaseModel):
     result_key: str | None = None
 
 
+class BacktestNotice(BaseModel):
+    note: str
+
+
+class JobStatusOut(BaseModel):
+    job_id: str
+    status: str
+    result: dict[str, Any] | None
+    error: str | None
+    result_key: str | None
+    result_url: str | None
+
+
 # -------------------------------------------------------------------- auth
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: SecretStr
+
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: SecretStr | None = None
+    clerk_subject: str | None = Field(None, min_length=1, max_length=255)
+    is_admin: bool = False
 
 
 class TokenResponse(BaseModel):
@@ -148,3 +189,32 @@ class UserOut(BaseModel):
     id: str
     email: str
     is_admin: bool = False
+    email_verified: bool = True
+
+
+class EmailRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: EmailStr
+
+
+class RegisterRequest(EmailRequest):
+    password: SecretStr = Field(min_length=12, max_length=256)
+
+
+class EmailTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: SecretStr = Field(min_length=32, max_length=256)
+
+
+class ResetPasswordRequest(EmailTokenRequest):
+    password: SecretStr = Field(min_length=12, max_length=256)
+
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: SecretStr = Field(min_length=1, max_length=256)
+    password: SecretStr = Field(min_length=12, max_length=256)
+
+
+class AuthMessage(BaseModel):
+    message: str

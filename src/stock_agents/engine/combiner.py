@@ -5,27 +5,14 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-import duckdb
 import pandas as pd
 
 from stock_agents.common import config as _config
-
-
-def _load_scores(conn: duckdb.DuckDBPyConnection, asof: date) -> pd.DataFrame:
-    rows = conn.execute(
-        """SELECT ticker, agent, score, passes
-           FROM agent_scores
-           WHERE date = ?""",
-        [asof],
-    ).fetchall()
-    if not rows:
-        return pd.DataFrame()
-    df = pd.DataFrame(rows, columns=["ticker", "agent", "score", "passes"])
-    return df.pivot(index="ticker", columns="agent", values="score").reset_index()
+from stock_agents.storage.warehouse import Warehouse
 
 
 def combine_latest(
-    conn: duckdb.DuckDBPyConnection,
+    conn: Warehouse,
     asof: str | None = None,
     n_per_side: int = 10,
     mode: str = "weighted",
@@ -36,28 +23,46 @@ def combine_latest(
         r = conn.execute("SELECT MAX(date) FROM agent_scores").fetchone()
         asof_date = r[0] if r and r[0] else date.today()
 
-    scores = _load_scores(conn, asof_date)
-    if scores.empty:
-        return {"asof": str(asof_date), "longs": [], "shorts": [], "note": "no scores yet"}
-
-    # Attach sector for sector cap
+    scores = conn.execute(
+        "SELECT ticker, agent, score FROM agent_scores WHERE date = ?", [asof_date]
+    ).fetchall()
     cls = conn.execute(
         """SELECT ticker, sector FROM classification
            WHERE effective_date = (SELECT MAX(effective_date) FROM classification cl2
                                    WHERE cl2.ticker = classification.ticker)"""
     ).fetchall()
-    scores = scores.merge(
-        pd.DataFrame(cls, columns=["ticker", "sector"]), on="ticker", how="left"
-    )
+    return rank_scores(scores, cls, asof_date, n_per_side, mode)
 
+
+def rank_scores(
+    rows: list[tuple[str, str, float | None]],
+    classifications: list[tuple[str, str | None]],
+    asof_date: date,
+    n_per_side: int,
+    mode: str,
+    *,
+    custom_weights: dict[str, float] | None = None,
+) -> dict[str, Any]:
     settings = _config.load_settings()
-    w = settings.weights.get("combiner", {}).get("agent_weights", {})
+    combiner = settings.weights.get("combiner", {})
+    configured = combiner.get("agent_weights", {})
+    aliases = {"technical": "tech", "sentiment": "sent", "momentum": "mom", "fundamental": "fund"}
     weights = {
-        "technical": w.get("tech", 25) / 100.0,
-        "sentiment": w.get("sent", 25) / 100.0,
-        "momentum": w.get("mom", 25) / 100.0,
-        "fundamental": w.get("fund", 25) / 100.0,
+        agent: (custom_weights or {}).get(agent, configured.get(agent, configured.get(key, 25)))
+        for agent, key in aliases.items()
     }
+    total = sum(weights.values())
+    if total <= 0:
+        raise ValueError("Set at least one weight above zero")
+    weights = {agent: value / total for agent, value in weights.items()}
+    if not rows:
+        return {"asof": str(asof_date), "longs": [], "shorts": [], "note": "no scores yet"}
+
+    frame = pd.DataFrame(rows, columns=["ticker", "agent", "score"])
+    scores = frame.pivot(index="ticker", columns="agent", values="score").reset_index()
+    scores = scores.merge(
+        pd.DataFrame(classifications, columns=["ticker", "sector"]), on="ticker", how="left"
+    )
 
     for a in ("technical", "sentiment", "momentum", "fundamental"):
         if a not in scores.columns:
@@ -77,14 +82,14 @@ def combine_latest(
             + 0.3 * scores[list(weights)].min(axis=1)
         )
 
-    max_per_sector = settings.weights.get("combiner", {}).get("max_names_per_sector", 3)
+    max_per_sector = combiner.get("max_names_per_sector", 3)
 
     def pick(df: pd.DataFrame, ascending: bool, n: int) -> list[dict[str, Any]]:
         df = df.sort_values("composite", ascending=ascending)
         sector_counts: dict[str, int] = {}
         out = []
         for row in df.itertuples():
-            sec = row.sector or "Unknown"
+            sec = "Unknown" if pd.isna(row.sector) else row.sector
             if sector_counts.get(sec, 0) >= max_per_sector:
                 continue
             out.append(

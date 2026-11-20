@@ -11,22 +11,21 @@ Returns a summary and a per-day equity curve.
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
-from pathlib import Path
+from datetime import date
 from typing import Any
 
-import duckdb
 import pandas as pd
 
 from stock_agents.common import config as _config
 from stock_agents.common.logging import get_logger
 from stock_agents.engine.scores import AGENTS
+from stock_agents.storage.warehouse import Warehouse
 
 log = get_logger(__name__)
 
 
 def _price_matrix(
-    conn: duckdb.DuckDBPyConnection, start: date, end: date
+    conn: Warehouse, start: date, end: date
 ) -> pd.DataFrame:
     rows = conn.execute(
         """SELECT date, ticker, adj_close
@@ -38,17 +37,19 @@ def _price_matrix(
     if not rows:
         return pd.DataFrame()
     df = pd.DataFrame(rows, columns=["date", "ticker", "adj_close"])
+    df["date"] = pd.to_datetime(df["date"])
     return df.pivot(index="date", columns="ticker", values="adj_close").sort_index()
 
 
 def run_backtest(
-    conn: duckdb.DuckDBPyConnection,
+    conn: Warehouse,
     start: date,
     end: date,
     n_per_side: int = 10,
     rebalance: str = "monthly",
+    *,
+    persist: bool = True,
 ) -> dict[str, Any]:
-    settings = _config.load_settings()
     prices = _price_matrix(conn, start, end)
     if prices.empty:
         return {"error": "no prices"}
@@ -107,14 +108,10 @@ def run_backtest(
     total_ret = equity.iloc[-1] - 1
     ann_ret = (1 + total_ret) ** (252 / len(equity)) - 1 if len(equity) > 0 else 0
     daily_ret = equity.pct_change().dropna()
-    ann_vol = daily_ret.std() * (252 ** 0.5) if len(daily_ret) else 0.0
+    ann_vol = daily_ret.std() * (252 ** 0.5) if len(daily_ret) > 1 else 0.0
     sharpe = (ann_ret / ann_vol) if ann_vol else 0.0
     max_dd = (equity / equity.cummax() - 1).min()
 
-    out_dir = settings.paths.backtests_dir
-    out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = date.today().isoformat()
-    out_file = out_dir / f"backtest_{stamp}.json"
     summary = {
         "start": str(start),
         "end": str(end),
@@ -133,8 +130,12 @@ def run_backtest(
             for d, v in equity.items()
         ],
     }
-    out_file.write_text(json.dumps(summary, indent=2))
-    log.info("backtest saved to %s (total_ret=%.2f%%, sharpe=%.2f)", out_file, total_ret * 100, sharpe)
+    if persist:
+        out_dir = _config.load_settings().paths.backtests_dir
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"backtest_{date.today().isoformat()}.json"
+        out_file.write_text(json.dumps(summary, indent=2))
+        log.info("backtest saved to %s", out_file)
     return summary
 
 

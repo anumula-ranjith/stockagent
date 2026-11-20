@@ -1,0 +1,63 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "allowJs": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-admin-verified/types/**/*.ts",
+    ".next-admin/types/**/*.ts",
+    ".next-angel-connect/types/**/*.ts",
+    ".next-angel-panels/types/**/*.ts",
+    ".next-angel-signed-screen/types/**/*.ts",
+    ".next-company-search/types/**/*.ts",
+    ".next-eodhd-recovery/types/**/*.ts",
+    ".next-free-news-final/types/**/*.ts",
+    ".next-free-news/types/**/*.ts",
+    ".next-full-table-columns/types/**/*.ts",
+    ".next-job-market-status/types/**/*.ts",
+    ".next-job-run-history/types/**/*.ts",
+    ".next-live-screen/types/**/*.ts",
+    ".next-popup/types/**/*.ts",
+    ".next-queue-stock-coverage/types/**/*.ts",
+    ".next-rq-navigation/types/**/*.ts",
+    ".next-screener-feed/types/**/*.ts",
+    ".next-sector-align/types/**/*.ts",
+    ".next-stacked-tables/types/**/*.ts",
+    ".next-stock-ticks/types/**/*.ts",
+    ".next-tab-audit/types/**/*.ts",
+    ".next-watch-fields/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-workspace-tables/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

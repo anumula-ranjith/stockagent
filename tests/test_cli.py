@@ -1,18 +1,19 @@
+from sqlalchemy import create_engine, inspect, text
+
 from stock_agents import cli
-from stock_agents.storage import schema
+from stock_agents.storage.postgres import database_url
 
 
-def test_init_db_cli_creates_warehouse(tmp_path, monkeypatch):
-    # cli.init_db will write to settings.paths.duckdb; the conftest fixture
-    # already redirected it to tmp_path, so this exercises the whole path.
-    cli.main(["init-db"])
-    from stock_agents.common.config import load_settings
-
-    s = load_settings()
-    assert s.paths.duckdb.exists()
-    conn = schema.connect(str(s.paths.duckdb))
+def test_init_db_cli_creates_postgres_warehouse(postgres_url, _isolated_paths):
+    engine = create_engine(database_url("psycopg2", postgres_url))
     try:
-        tables = set(schema.list_tables(conn))
-        assert {"prices_daily", "signals", "nav"} <= tables
+        cli.main(["init-db"])
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO symbology (ticker) VALUES ('LOCAL')"))
+        cli.main(["init-db"])
+        assert {"prices_daily", "signals", "nav", "alembic_version"} <= set(inspect(engine).get_table_names())
+        with engine.connect() as conn:
+            assert conn.scalar(text("SELECT ticker FROM symbology")) == "LOCAL"
     finally:
-        conn.close()
+        engine.dispose()
+    assert not _isolated_paths.paths.duckdb.exists()

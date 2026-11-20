@@ -16,7 +16,7 @@
 
 </main>
 <script>
-const TK = "{{TICKER}}";
+const TK = document.getElementById("dtk").textContent;
 
 async function boot(){
   try{
@@ -39,7 +39,7 @@ async function boot(){
     const scores = {};
     for(const a of agents){
       const arr = await (await fetch(`/agents/${a}`)).json();
-      const row = arr.find(r=>r.ticker===TK);
+      const row = Array.isArray(arr) ? arr.find(r=>r.ticker===TK) : null;
       scores[a] = row ? row.score : null;
     }
     scoreBox.innerHTML = agents.map(a=>{
@@ -56,14 +56,18 @@ async function boot(){
     try {
       const news = await (await fetch(`/news/${TK}?limit=15`)).json();
       const box = document.getElementById("newsBox");
-      if(!news.length){ box.innerHTML = `<p class="note">No news in warehouse yet. Run <code>python -m stock_agents ingest-news --tickers ${TK}</code>.</p>`; return; }
+      if(!news.length){ box.textContent = "No news is available for this ticker."; return; }
       box.innerHTML = `<table><thead><tr><th>When</th><th>Headline</th><th>Source</th><th>Polarity</th></tr></thead><tbody>${
         news.map(n=>{
           const p = n.polarity ?? 0;
           const cls = p>0.1?"pos":p<-0.1?"neg":"";
-          return `<tr><td>${(n.published_at||"").slice(0,10)}</td>
-            <td style="text-align:left"><a href="${n.url}" target="_blank" rel="noopener">${n.headline||"—"}</a></td>
-            <td class="sec">${n.source||""}</td>
+          const headline = escapeHtml(n.headline || "—");
+          const link = /^https?:\/\//i.test(n.url || "")
+            ? `<a href="${escapeHtml(n.url)}" target="_blank" rel="noopener noreferrer">${headline}</a>`
+            : headline;
+          return `<tr><td>${escapeHtml((n.published_at||"").slice(0,10))}</td>
+            <td style="text-align:left">${link}</td>
+            <td class="sec">${escapeHtml(n.source)}</td>
             <td class="${cls}">${p.toFixed(2)}</td></tr>`;
         }).join("")
       }</tbody></table>`;

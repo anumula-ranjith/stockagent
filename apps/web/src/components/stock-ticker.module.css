@@ -1,0 +1,5 @@
+.stock { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+.name { color:var(--accent); font-weight:700; }
+.actions { display:inline-flex; align-items:center; gap:1px; }
+.actions a { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:5px; color:var(--muted); }
+.actions a:hover,.actions a:focus-visible { background:var(--accent-soft,#24364f); color:var(--accent); }

@@ -1,0 +1,9 @@
+.picker { position:relative; min-width:0; }
+.picker > label { margin-bottom:6px; }
+.picker > input { width:100%; }
+.options { position:absolute; z-index:30; top:100%; left:0; right:0; margin:4px 0 0; padding:4px; list-style:none; max-height:280px; overflow:auto; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:0 16px 36px #0005; }
+.options button { display:flex; width:100%; align-items:center; gap:10px; padding:9px 10px; border:0; border-radius:5px; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+.options button:hover,.options button.active { background:var(--accent-soft,#24364f); }
+.options strong { min-width:90px; color:var(--accent); }
+.options span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; }
+.hint { display:block; margin-top:5px; color:var(--muted); }

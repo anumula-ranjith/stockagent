@@ -14,6 +14,7 @@ import duckdb
 
 from stock_agents.common import config as _config
 from stock_agents.common.logging import get_logger
+from stock_agents.storage.tracing import connect_duckdb
 
 log = get_logger(__name__)
 
@@ -81,6 +82,7 @@ PRICES_DAILY = Table(
         volume     BIGINT,
         source     VARCHAR,
         known_date DATE     NOT NULL,
+        exchange_trade_at TIMESTAMP,
         PRIMARY KEY (ticker, date, source)
     )""",
     indexes=("CREATE INDEX IF NOT EXISTS idx_prices_date ON prices_daily(date)",),
@@ -216,6 +218,8 @@ INSIDER_TX = Table(
         shares       DOUBLE,
         price        DOUBLE,
         value_usd    DOUBLE,
+        value_inr    DOUBLE,
+        superseded_on DATE,
         insider_role VARCHAR,
         known_date   DATE    NOT NULL,
         source       VARCHAR NOT NULL
@@ -246,6 +250,18 @@ SHORT_INTEREST = Table(
         known_date     DATE NOT NULL,    -- FINRA publication date
         source         VARCHAR NOT NULL,
         PRIMARY KEY (ticker, settlement_date, source)
+    )""",
+)
+
+NSE_SHORT_SELLING = Table(
+    "nse_short_selling",
+    """CREATE TABLE IF NOT EXISTS nse_short_selling (
+        ticker VARCHAR NOT NULL,
+        trade_date DATE NOT NULL,
+        known_date DATE NOT NULL,
+        short_quantity BIGINT NOT NULL,
+        traded_quantity BIGINT NOT NULL,
+        PRIMARY KEY (ticker, trade_date, known_date)
     )""",
 )
 
@@ -429,6 +445,7 @@ ALL_TABLES: tuple[Table, ...] = (
     INST_OWNERSHIP,
     SHORT_INTEREST,
     SOCIAL_DAILY,
+    NSE_SHORT_SELLING,
     MACRO,
     FACTOR_VALUES,
     AGENT_SCORES,
@@ -447,7 +464,7 @@ def connect(path: str | None = None) -> duckdb.DuckDBPyConnection:
     """Open the warehouse. Defaults to settings.paths.duckdb."""
     if path is None:
         path = str(_config.load_settings().paths.duckdb)
-    return duckdb.connect(path)
+    return connect_duckdb(path)
 
 
 def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
@@ -456,6 +473,7 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
         conn.execute(t.ddl)
         for idx in t.indexes:
             conn.execute(idx)
+    conn.execute("ALTER TABLE prices_daily ADD COLUMN IF NOT EXISTS exchange_trade_at TIMESTAMP")
     log.info("schema ready: %d tables", len(ALL_TABLES))
 
 

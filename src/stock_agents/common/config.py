@@ -31,7 +31,7 @@ def _read_yaml(path: Path) -> dict[str, Any]:
 class Paths:
     data_dir: Path
     raw_dir: Path
-    duckdb: Path
+    duckdb: Path  # Legacy import/test fixture path. Runtime storage uses DATABASE_URL.
     backtests_dir: Path
     log_dir: Path
     fixtures_dir: Path
@@ -69,7 +69,7 @@ def load_settings() -> Settings:
     paths = Paths(
         data_dir=_resolve(paths_raw["data_dir"], root),
         raw_dir=_resolve(paths_raw["raw_dir"], root),
-        duckdb=_resolve(paths_raw["duckdb"], root),
+        duckdb=_resolve(paths_raw.get("duckdb", "data/market.duckdb"), root),
         backtests_dir=_resolve(paths_raw["backtests_dir"], root),
         log_dir=_resolve(paths_raw["log_dir"], root),
         fixtures_dir=_resolve(paths_raw["fixtures_dir"], root),

@@ -1,5 +1,5 @@
 /* ================================================================
-   stock-agents — shared stylesheet
+   QUANTORA — shared stylesheet
    Used by every page: header, footer, hero, cards, tables, forms.
    ============================================================== */
 
@@ -49,8 +49,8 @@ a:hover{text-decoration:underline}
 .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:16px; color:var(--ink)}
 .brand .logo{
   width:28px; height:28px; border-radius:6px;
-  background:linear-gradient(135deg, var(--accent), var(--long));
-  display:grid; place-items:center; color:#fff; font-weight:800; font-size:13px;
+  background:#173a58;
+  display:grid; place-items:center; color:#fff; font-family:Georgia,serif; font-weight:400; font-size:21px;
 }
 .brand:hover{text-decoration:none}
 .site-nav{display:flex; gap:4px; flex:1; overflow-x:auto}

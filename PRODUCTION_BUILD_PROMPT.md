@@ -28,8 +28,7 @@ speculation — everything maps to an existing file to replace or extend.
 - **Credentials**: `.env` has EODHD, FactSet (Formula API), FRED, Alpaca
   paper keys. Never commit `.env`.
 - **Partial production scaffolds already placed**:
-    - `docker-compose.yml` with Postgres+TimescaleDB, Redis, MinIO, api, worker
-    - `Dockerfile` (multi-stage)
+    - Native service startup in `scripts/local.py` and `DEPLOY.md`
     - `requirements-prod.txt`
     - `scripts/sql/init.sql` — Postgres schema with the Timescale hypertable
     - `src/stock_agents/api/schemas.py` — Pydantic request/response models
@@ -58,7 +57,7 @@ the phase explicitly tells you to.**
 | Cache + queue | Redis |
 | Object storage | S3 (prod) / MinIO (dev) |
 | Auth | FastAPI JWT for self-hosted, Clerk/Auth0 adapter as option |
-| Hosting | Frontend on Vercel; API + workers on Render / Railway / Fly.io / AWS ECS; database on Timescale Cloud / RDS / Supabase |
+| Hosting | Native local services on loopback |
 
 ---
 
@@ -77,7 +76,7 @@ the phase explicitly tells you to.**
    public cache, no Vercel edge cache, no shared dashboard export.
 5. **No feature flag plumbing, no hypothetical abstractions, no commented-out
    code.** Delete what you replace.
-6. **Every phase ends in a green test suite and a working `docker compose up`.**
+6. **Every phase ends in a green test suite and a passing native service readiness check.**
 
 ---
 
@@ -93,10 +92,8 @@ Replace DuckDB as the operational store. Keep DuckDB for the backtest
 research path.
 
 Tasks:
-1. `docker compose up postgres redis minio` — confirm all three are healthy.
-   Run `scripts/sql/init.sql` against the Postgres container (it's wired as
-   a mount so it runs on first boot). Verify all tables + the hypertable
-   exist: `SELECT * FROM timescaledb_information.hypertables;`
+1. Start native PostgreSQL, Redis and object storage using `DEPLOY.md`.
+   Apply the schema and check the optional TimescaleDB hypertable.
 2. Add `scripts/migrate_duckdb_to_postgres.py`:
    - Read every DuckDB table.
    - Write to the matching SQLAlchemy ORM model in
@@ -124,8 +121,7 @@ Tasks:
      ORM model round-trips a sample row.
    - Hit every existing JSON endpoint against Postgres and compare the
      response shape byte-for-byte with the DuckDB version.
-6. Done when: `STORAGE_BACKEND=postgres docker compose up api` serves
-   the same JSON as `python -m uvicorn stock_agents.api.main:app`.
+6. Confirm the local API serves the expected JSON from PostgreSQL.
 
 ### Phase 2 — Auth + user model
 
@@ -166,7 +162,7 @@ Tasks:
    - 18:30 IST — `ingest_prices_job(years=1)` (incremental).
    - 19:00 IST — `ingest_news_job()` + `ingest_sentiment_daily_job()`.
    - 19:30 IST — `compute_scores_job()`.
-   - Wire it into docker-compose as a `scheduler` service.
+   - Start a single native scheduler process.
 4. Mount `rq-dashboard` at `/_admin/rq` (admin-only) so the operator can see
    queue depth, failed jobs, retry a failure.
 5. Done when: enqueue a backtest from the Next.js UI → it lands as JSON in
@@ -220,46 +216,13 @@ Tasks:
      head-bucket all pass.
    - `/health/deep` adds an EODHD and FactSet reachability probe (admin-only).
 5. CI: GitHub Actions workflow at `.github/workflows/ci.yml` running
-   ruff + mypy + pytest + `docker build` + a smoke `docker compose up -d`
-   with a one-shot curl at `/health`.
-6. Done when: pushing to main deploys to Render/Fly with zero manual
-   steps, and a failed healthcheck rolls back.
+   Ruff, mypy, pytest, a frontend build and an isolated native smoke test.
+6. Confirm the local readiness endpoint and a worker-produced backtest artifact.
 
-### Phase 6 — Hosting
+### Phase 6 � Local operations
 
-Pick one path and wire it. All three are documented in `DEPLOY.md`
-(write it as part of this phase).
-
-**Path A — Render + Timescale Cloud + Upstash Redis + S3** (easiest)
-- Render Web Service for the API (Dockerfile build).
-- Render Background Worker for RQ.
-- Render Cron Job for the scheduler.
-- Timescale Cloud for the DB (managed Postgres with the extension).
-- Upstash Redis.
-- AWS S3 bucket (not Render's disks).
-- Vercel for the Next.js frontend (`apps/web`).
-
-**Path B — Fly.io** (cheaper, requires more ops)
-- Fly app for the API (3 regions).
-- Fly machine for the worker.
-- Fly scheduled machine for cron.
-- Fly Postgres (apply TimescaleDB extension manually).
-- Upstash Redis.
-- AWS S3.
-- Vercel for frontend.
-
-**Path C — AWS** (if the firm already uses AWS)
-- ECS Fargate for API + worker + scheduler.
-- RDS Postgres with TimescaleDB extension (or Aurora PostgreSQL + Timescale).
-- Elasticache Redis.
-- S3.
-- CloudFront + S3 for the Next.js frontend (or Vercel still).
-- Secrets Manager.
-
-Tasks in this phase:
-1. Write `DEPLOY.md` covering all three.
-2. Pick one with the user. Ship it. Shake out env-var problems.
-3. Document the rollback procedure.
+Maintain the native installation, restart and verification commands in
+`DEPLOY.md`. Keep persistent service directories when restarting.
 
 ### Phase 7 — Pro data features
 
@@ -302,8 +265,6 @@ These unlock the full product once the stack is solid.
 2. Read the "What exists today" files (don't just glance, read them).
 3. Ask the user:
    - Which phase do they want first? Default is Phase 1.
-   - Which hosting path do they lean toward? (affects Phase 6 choices and
-     some Phase 1 env-var decisions).
    - Do they want Clerk/Auth0 or self-hosted JWT? (affects Phase 2).
 4. Open a plan with `update_plan`, list the phase's tasks, start work.
 5. Save intermediate decisions to `docs/DECISIONS.md` so the next session

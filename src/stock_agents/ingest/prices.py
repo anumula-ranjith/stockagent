@@ -1,4 +1,4 @@
-"""Ingest NSE daily prices + corporate actions from EODHD into DuckDB.
+"""Ingest NSE daily prices + corporate actions from EODHD into PostgreSQL.
 
 Design:
   - First run (backfill): per-ticker /eod call for the last N years.
@@ -13,28 +13,27 @@ Point-in-time:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, timedelta
-from typing import Iterable
 
-import duckdb
-
-from stock_agents.common import config as _config
 from stock_agents.common.logging import get_logger
+from stock_agents.ingest.daily import _write_prices
 from stock_agents.sources.eodhd import EODHDClient
+from stock_agents.storage.warehouse import Warehouse
 
 log = get_logger(__name__)
 
 SOURCE = "eodhd"
 
 
-def _tickers_in_universe(conn: duckdb.DuckDBPyConnection) -> list[tuple[str, str]]:
+def _tickers_in_universe(conn: Warehouse) -> list[tuple[str, str]]:
     """Return [(ticker, eodhd_symbol)] from symbology."""
     return conn.execute(
-        "SELECT ticker, eodhd_symbol FROM symbology WHERE active = TRUE ORDER BY ticker"
+        "SELECT ticker, eodhd_symbol FROM symbology WHERE active = TRUE AND eodhd_symbol IS NOT NULL ORDER BY ticker"
     ).fetchall()
 
 
-def _max_date_per_ticker(conn: duckdb.DuckDBPyConnection) -> dict[str, date]:
+def _max_date_per_ticker(conn: Warehouse) -> dict[str, date]:
     rows = conn.execute(
         "SELECT ticker, MAX(date) FROM prices_daily WHERE source = ? GROUP BY ticker",
         [SOURCE],
@@ -43,12 +42,13 @@ def _max_date_per_ticker(conn: duckdb.DuckDBPyConnection) -> dict[str, date]:
 
 
 def backfill_prices(
-    conn: duckdb.DuckDBPyConnection,
+    conn: Warehouse,
     client: EODHDClient,
     years: int = 5,
     tickers: Iterable[str] | None = None,
 ) -> int:
     """Per-ticker /eod backfill. Idempotent (PK = ticker+date+source)."""
+    conn.execute("SELECT pg_advisory_xact_lock(?)", [490122862])
     all_univ = _tickers_in_universe(conn)
     if tickers:
         wanted = set(tickers)
@@ -58,57 +58,53 @@ def backfill_prices(
     already = _max_date_per_ticker(conn)
     today = date.today()
     inserted = 0
+    attempts = failures = 0
     for i, (ticker, symbol) in enumerate(all_univ, 1):
         last = already.get(ticker)
         fetch_from = (last + timedelta(days=1)) if last else start
         if fetch_from > end:
             continue
+        attempts += 1
         try:
             rows = client.eod(symbol, start=fetch_from, end=end)
         except Exception as e:
-            log.warning("skip %s: %s", ticker, e)
+            failures += 1
+            log.warning("price ingest skipped %s (%s)", ticker, type(e).__name__)
             continue
         if not rows:
             continue
         payload = [
-            (
-                ticker,
-                r["date"],
-                r.get("open"),
-                r.get("high"),
-                r.get("low"),
-                r.get("close"),
-                r.get("adjusted_close"),
-                int(r["volume"]) if r.get("volume") is not None else None,
-                SOURCE,
-                today,
+            dict(
+                ticker=ticker,
+                date=date.fromisoformat(r["date"]),
+                open=r.get("open"), high=r.get("high"), low=r.get("low"),
+                close=r.get("close"), adj_close=r.get("adjusted_close"),
+                volume=int(r["volume"]) if r.get("volume") is not None else None,
+                source=SOURCE, known_date=today,
             )
             for r in rows
         ]
-        conn.executemany(
-            """INSERT OR REPLACE INTO prices_daily
-               (ticker, date, open, high, low, close, adj_close, volume, source, known_date)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            payload,
-        )
+        _write_prices(conn.connection, payload)
         inserted += len(payload)
         if i % 20 == 0:
             log.info("priced %d/%d tickers (last %s: %d rows)", i, len(all_univ), ticker, len(payload))
+    if attempts and attempts == failures:
+        raise RuntimeError("All EODHD price requests failed")
     log.info("backfill done: %d rows inserted/replaced across %d tickers", inserted, len(all_univ))
     return inserted
 
 
 def ingest_bulk_last_day(
-    conn: duckdb.DuckDBPyConnection,
+    conn: Warehouse,
     client: EODHDClient,
     exchange: str,
     trade_date: date | None = None,
 ) -> int:
     """One API call for the whole exchange. Writes only tickers in symbology."""
+    conn.execute("SELECT pg_advisory_xact_lock(?)", [490122862])
     rows = client.bulk_eod(exchange, trade_date=trade_date)
     if not rows:
         return 0
-    known = {t: ticker for ticker, t in _tickers_in_universe(conn)} if False else None
     # symbology rows are (ticker, eodhd_symbol). Build symbol -> ticker.
     sym_map = {s: t for t, s in _tickers_in_universe(conn)}
     today = date.today()
@@ -122,33 +118,24 @@ def ingest_bulk_last_day(
         if not ticker:
             continue
         payload.append(
-            (
-                ticker,
-                r.get("date"),
-                r.get("open"),
-                r.get("high"),
-                r.get("low"),
-                r.get("close"),
-                r.get("adjusted_close"),
-                int(r["volume"]) if r.get("volume") is not None else None,
-                SOURCE,
-                today,
+            dict(
+                ticker=ticker,
+                date=date.fromisoformat(r["date"]),
+                open=r.get("open"), high=r.get("high"), low=r.get("low"),
+                close=r.get("close"), adj_close=r.get("adjusted_close"),
+                volume=int(r["volume"]) if r.get("volume") is not None else None,
+                source=SOURCE, known_date=today,
             )
         )
     if not payload:
         return 0
-    conn.executemany(
-        """INSERT OR REPLACE INTO prices_daily
-           (ticker, date, open, high, low, close, adj_close, volume, source, known_date)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
-        payload,
-    )
+    _write_prices(conn.connection, payload)
     log.info("bulk ingest wrote %d rows for %s on %s", len(payload), exchange, trade_date or "latest")
     return len(payload)
 
 
 def ingest_corporate_actions(
-    conn: duckdb.DuckDBPyConnection, client: EODHDClient, tickers: Iterable[str] | None = None
+    conn: Warehouse, client: EODHDClient, tickers: Iterable[str] | None = None
 ) -> int:
     univ = _tickers_in_universe(conn)
     if tickers:
@@ -172,9 +159,12 @@ def ingest_corporate_actions(
             rows.append((ticker, "dividend", dv.get("date"), dv.get("value"), SOURCE, today))
         if rows:
             conn.executemany(
-                """INSERT OR REPLACE INTO corporate_actions
+                """INSERT INTO corporate_actions
                    (ticker, action_type, ex_date, value, source, known_date)
-                   VALUES (?,?,?,?,?,?)""",
+                   VALUES (?,?,?,?,?,?)
+                   ON CONFLICT (ticker, action_type, ex_date, source) DO UPDATE SET
+                       value=EXCLUDED.value, known_date=EXCLUDED.known_date
+                   WHERE corporate_actions.value IS DISTINCT FROM EXCLUDED.value""",
                 rows,
             )
             n += len(rows)

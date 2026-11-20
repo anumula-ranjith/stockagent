@@ -16,9 +16,10 @@ Exchange suffix comes from config/settings.yaml (`exchange_suffix`, e.g. ``.NSE`
 from __future__ import annotations
 
 import os
+import math
 import time
-from dataclasses import dataclass
-from datetime import date
+from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 from typing import Any
 
 import requests
@@ -30,9 +31,16 @@ log = get_logger(__name__)
 BASE = "https://eodhistoricaldata.com/api"
 
 
+class EODHDAccountError(RuntimeError):
+    """Authentication, entitlement, or quota failure for this account."""
+    def __init__(self, message, status_code=None):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 @dataclass(frozen=True)
 class EODHDClient:
-    api_key: str
+    api_key: str = field(repr=False)
     timeout: int = 30
     max_retries: int = 3
     backoff_s: float = 1.5
@@ -49,23 +57,35 @@ class EODHDClient:
         p = {"api_token": self.api_key, "fmt": "json"}
         if params:
             p.update(params)
-        last_exc: Exception | None = None
+        failure = "request failed"
         for attempt in range(1, self.max_retries + 1):
             try:
                 r = requests.get(f"{BASE}{path}", params=p, timeout=self.timeout)
                 if r.status_code == 429:
-                    time.sleep(self.backoff_s * attempt)
+                    failure = "HTTP 429"
+                    try:
+                        delay = float(r.headers.get("Retry-After", self.backoff_s * attempt))
+                    except ValueError:
+                        delay = self.backoff_s * attempt
+                    if delay > 60:
+                        raise RuntimeError("EODHD rate limit requires a later retry")
+                    if attempt < self.max_retries:
+                        time.sleep(max(0, delay))
                     continue
                 if r.status_code == 404:
                     return None
+                if r.status_code in (401, 402, 403):
+                    raise EODHDAccountError(f"EODHD HTTP {r.status_code}", r.status_code)
+                if r.status_code in (400, 422):
+                    raise ValueError(f"EODHD HTTP {r.status_code}: invalid request")
                 r.raise_for_status()
                 ctype = r.headers.get("content-type", "")
                 return r.json() if "json" in ctype else r.text
             except requests.RequestException as e:
-                last_exc = e
-                log.warning("eodhd %s attempt %d failed: %s", path, attempt, e)
+                failure = f"HTTP {e.response.status_code}" if e.response is not None else type(e).__name__
+                log.warning("eodhd %s attempt %d failed (%s)", path, attempt, failure)
                 time.sleep(self.backoff_s * attempt)
-        raise RuntimeError(f"eodhd {path} failed after {self.max_retries} retries: {last_exc}")
+        raise RuntimeError(f"eodhd {path} failed after {self.max_retries} attempts ({failure})")
 
     # -- endpoints ----------------------------------------------------------
     def eod(
@@ -97,11 +117,48 @@ class EODHDClient:
     def fundamentals(self, symbol: str) -> dict[str, Any] | None:
         return self._get(f"/fundamentals/{symbol}")
 
+    def ranking_fundamentals(self, symbol: str) -> dict[str, Any] | None:
+        return self._get(f"/fundamentals/{symbol}", {
+            "filter": "General,Highlights,Valuation,Earnings::Trend,Earnings::History",
+        })
+
+    def remaining_calls(self) -> int:
+        account = self._get("/user")
+        used = int(account["apiRequests"])
+        # The provider resets its counter lazily on the first post-midnight call.
+        reported = account.get("apiRequestsDate")
+        if reported and date.fromisoformat(str(reported)[:10]) < datetime.now(UTC).date():
+            used = 0
+        return max(0, int(account["dailyRateLimit"]) + int(account.get("extraLimit") or 0) - used)
+
     def news(self, symbol: str, limit: int = 50) -> list[dict[str, Any]]:
-        return self._get("/news", {"s": symbol, "limit": limit}) or []
+        result = self._get("/news", {"s": symbol, "limit": limit})
+        if result is None:
+            return []
+        if not isinstance(result, list) or any(not isinstance(item, dict) for item in result):
+            raise ValueError("Invalid EODHD news response")
+        for item in result:
+            if not isinstance(item.get("title"), str) or not item["title"].strip() or not isinstance(item.get("date"), str):
+                raise ValueError("Invalid EODHD news article")
+            datetime.fromisoformat(item["date"].replace("Z", "+00:00"))
+        return result
 
     def sentiments(self, symbol: str) -> dict[str, Any]:
-        return self._get("/sentiments", {"s": symbol}) or {}
+        result = self._get("/sentiments", {"s": symbol})
+        if result is None:
+            return {}
+        if not isinstance(result, dict) or any(not isinstance(items,list) or any(not isinstance(item,dict) for item in items) for items in result.values()):
+            raise ValueError("Invalid EODHD sentiment response")
+        for items in result.values():
+            for item in items:
+                date.fromisoformat(str(item.get("date", "")))
+                count = item.get("count")
+                polarity = item.get("normalized")
+                if not isinstance(count,(int,float)) or not math.isfinite(count) or count < 0 or int(count) != count:
+                    raise ValueError("Invalid EODHD sentiment count")
+                if count and (not isinstance(polarity,(int,float)) or not math.isfinite(polarity) or not -1 <= polarity <= 1):
+                    raise ValueError("Invalid EODHD sentiment polarity")
+        return result
 
     def calendar_earnings(
         self, start: date | None = None, end: date | None = None, symbol: str | None = None
