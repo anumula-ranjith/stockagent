@@ -4,8 +4,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from stock_agents.api.auth import CurrentUser
+from stock_agents.api.ranker import tuned_snapshot
 from stock_agents.engine.daily_picks import (
-    IST, PickConfig, closed_through, combined_book, performance, store_batch,
+    IST, PickConfig, closed_through, performance, store_batch,
 )
 from stock_agents.storage.warehouse import connect
 
@@ -62,8 +63,10 @@ def add_batch(body: SaveRequest, user: CurrentUser):
                                 [user.id, day]).scalar()
         if existing:
             return {"added": False, "signal_date": day}
-        book = combined_book(conn, day, config)
-        if book is None or not any(book.values()):
+        snapshot = tuned_snapshot(config.settings, user, day, universe_filters=True,
+                                  **config.selection.model_dump())
+        book = snapshot["books"]["combined"]
+        if snapshot["price_date"] != day.isoformat() or not any(book.values()):
             raise HTTPException(422, "No Combined picks are available for that trading session.")
         if book != expected:
             raise HTTPException(409, "The Combined picks changed. Refresh the rankings and try again.")
