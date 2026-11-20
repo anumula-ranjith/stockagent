@@ -12,6 +12,7 @@ import { screenQuery } from "@/lib/screener-query";
 import { savedScreen } from "@/lib/screen-filters";
 import { api } from "@/lib/api";
 import { useSession, usesClerk } from "./providers";
+import { MarketSelect } from "./market-select";
 import { Button } from "./ui/button";
 
 const ClerkSignOut = dynamic(() => import("./clerk-sign-out"), { ssr: false });
@@ -66,7 +67,6 @@ export function Header() {
         {session.data?.is_admin && <a href="/_admin/rq/" aria-current={pathname.startsWith("/_admin/rq") || pathname.startsWith("/job-queues") ? "page" : undefined}>Job queues</a>}
       </nav>
       <div className="top-actions">
-        <span className="market-chip"><i/>NSE India</span>
         <button className="icon-button" type="button" aria-label={resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme"} title={resolvedTheme === "dark" ? "Light theme" : "Dark theme"} onClick={switchTheme}>{resolvedTheme === "dark" ? <Sun size={19}/> : <Moon size={19}/>}</button>
         {session.data && !usesClerk && <Link className="text-link" href="/account">Account</Link>}
         {session.data
@@ -74,6 +74,7 @@ export function Header() {
           : <Button variant="secondary" asChild><Link href={"/login?next=" + encodeURIComponent(pathname)}>Sign in</Link></Button>}
         <button className="icon-button menu-toggle" type="button" aria-label={menu ? "Close navigation" : "Open navigation"}
           aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? <X size={21}/> : <Menu size={21}/>}</button>
+        <MarketSelect/>
       </div>
       {sessionError && <p role="status" className="header-error">Sign-out failed. Try again.</p>}
     </div>
