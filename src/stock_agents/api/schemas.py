@@ -24,6 +24,7 @@ class HealthOut(BaseModel):
 
 # -------------------------------------------------------------- universe
 class UniverseRow(BaseModel):
+    company_name: str | None = None
     ticker: str
     symbol: str | None = None
     sector: str | None = None

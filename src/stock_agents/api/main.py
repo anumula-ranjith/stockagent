@@ -182,16 +182,22 @@ async def server_error(request: Request, _exc: Exception) -> JSONResponse:
 @app.get("/universe", response_model=list[UniverseRow], dependencies=[Depends(auth.require_market_data_user)])
 async def universe(db: OperationalDB) -> list[dict[str, Any]]:
     rows = await db.fetch(
-        f"""SELECT s.ticker, s.eodhd_symbol, cl.sector, cl.industry
+        f"""SELECT s.ticker, s.eodhd_symbol, cl.sector, cl.industry, company.company_name
             FROM symbology s
             LEFT JOIN LATERAL ({CLASSIFICATION.format(ticker="s.ticker")}) cl ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT c.company_name FROM company_reference c
+                WHERE c.ticker=s.ticker AND c.isin IS NOT DISTINCT FROM s.isin
+                  AND c.observed_on<=:asof
+                ORDER BY c.observed_on DESC, c.source LIMIT 1
+            ) company ON TRUE
             WHERE s.active = TRUE
             ORDER BY s.ticker""",
         asof=date.today(),
     )
     return [
-        {"ticker": ticker, "symbol": symbol, "sector": sector, "industry": industry}
-        for ticker, symbol, sector, industry in rows
+        {"ticker": ticker, "symbol": symbol, "sector": sector, "industry": industry, "company_name": company_name}
+        for ticker, symbol, sector, industry, company_name in rows
     ]
 
 

@@ -1,0 +1,162 @@
+{
+  "live_run": {
+    "id": "ad41c5b2-c2ef-4d22-aa55-1181bc971b8d",
+    "status": "retrying",
+    "next_attempt_at": "2026-11-20 05:35:00+05:30",
+    "error": "Awaiting EODHD quota reset",
+    "stages": [
+      {
+        "name": "preflight",
+        "result": {
+          "broker": true,
+          "status": "ok",
+          "database": true
+        },
+        "status": "success",
+        "attempt": 1,
+        "started_at": "2026-11-19T12:09:30.077736+00:00",
+        "finished_at": "2026-11-19T12:09:30.094039+00:00"
+      },
+      {
+        "name": "reference",
+        "result": {
+          "names": 0,
+          "filled": 0,
+          "status": "ok",
+          "indices": 10,
+          "unresolved": []
+        },
+        "status": "success",
+        "attempt": 1,
+        "started_at": "2026-11-19T12:09:30.094039+00:00",
+        "finished_at": "2026-11-19T12:09:32.678608+00:00"
+      },
+      {
+        "name": "eod",
+        "result": {
+          "method": "Completed-session candles with verified NSE fallback",
+          "priced": 501,
+          "reused": true,
+          "status": "ok",
+          "members": 501,
+          "written": 501,
+          "trade_date": "2026-11-18",
+          "angel_one_bars": 40,
+          "fallback_reason": "Angel One daily candle unavailable",
+          "nse_fallback_bars": 461,
+          "live_capture_reconstructed": false
+        },
+        "status": "success",
+        "attempt": 1,
+        "started_at": "2026-11-19T12:09:32.714947+00:00",
+        "finished_at": "2026-11-19T12:09:32.783837+00:00"
+      },
+      {
+        "name": "providers",
+        "result": {
+          "date": "2026-11-19",
+          "status": "ok"
+        },
+        "status": "success",
+        "attempt": 1,
+        "started_at": "2026-11-19T12:09:32.798853+00:00",
+        "finished_at": "2026-11-19T12:09:33.084394+00:00"
+      },
+      {
+        "name": "insider",
+        "result": {
+          "filings": 44,
+          "written": 0,
+          "trade_rows": 52
+        },
+        "status": "success",
+        "attempt": 1,
+        "started_at": "2026-11-19T12:09:33.084394+00:00",
+        "finished_at": "2026-11-19T12:09:46.294550+00:00"
+      },
+      {
+        "name": "short_selling",
+        "result": {
+          "status": "ok",
+          "already_loaded": 6,
+          "non_trading_days": 2
+        },
+        "status": "success",
+        "attempt": 1,
+        "started_at": "2026-11-19T12:09:46.294550+00:00",
+        "finished_at": "2026-11-19T12:09:46.320241+00:00"
+      },
+      {
+        "name": "news",
+        "result": {
+          "rows": 0,
+          "eodhd": {
+            "rows": 0,
+            "errors": {},
+            "reason": "EODHD daily quota exhausted; resumes after reset",
+            "reused": 0,
+            "status": "awaiting_quota",
+            "members": 501,
+            "pending": 501,
+            "retry_at": "2026-11-20T00:05:00+00:00",
+            "missing_symbols": [],
+            "remaining_units": 4
+          },
+          "feeds": {
+            "stocks": {
+              "items": 50,
+              "status": "ok",
+              "rejected": 0
+            },
+            "industry": {
+              "items": 50,
+              "status": "ok",
+              "rejected": 0
+            },
+            "companies": {
+              "items": 49,
+              "status": "ok",
+              "rejected": 0
+            },
+            "technology": {
+              "items": 50,
+              "status": "ok",
+              "rejected": 0
+            }
+          },
+          "errors": {},
+          "reason": "EODHD daily quota exhausted; resumes after reset",
+          "status": "awaiting_quota",
+          "members": 501,
+          "articles": 199,
+          "feeds_ok": 4,
+          "retry_at": "2026-11-20T00:05:00+00:00",
+          "duplicates": 56,
+          "updated_at": "2026-11-19T12:09:46.337909+00:00",
+          "feeds_total": 4,
+          "matched_stocks": 45,
+          "stocks_without_recent_matches": 456
+        },
+        "status": "retrying",
+        "attempt": 1,
+        "started_at": "2026-11-19T12:09:46.322252+00:00",
+        "finished_at": "2026-11-19T12:09:50.098092+00:00"
+      }
+    ]
+  },
+  "schedules": [
+    {
+      "id": "evening",
+      "enabled": true,
+      "hour": 18,
+      "minute": 30
+    },
+    {
+      "id": "morning",
+      "enabled": true,
+      "hour": 7,
+      "minute": 0
+    }
+  ],
+  "live_success_blocker": "EODHD quota exhausted: 99996/100000; news and sentiment HTTP 402"
+}

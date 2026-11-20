@@ -5,7 +5,7 @@ import { Download, Plus, Trash2 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState, type FormEvent } from "react";
 import { SignInNotice, State } from "@/components/presentation";
-import { StockTicker } from "@/components/stock-ticker";
+import { StockIdentity as StockTicker } from "@/components/stock-identity";
 import { useMarketPrices } from "@/lib/use-market-prices";
 import { TickerPicker } from "@/components/ticker-picker";
 import { useSession } from "@/components/providers";

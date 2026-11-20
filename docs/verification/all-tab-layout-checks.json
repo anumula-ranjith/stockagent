@@ -1,0 +1,214 @@
+[
+  {
+    "tab": "Sentiment",
+    "tables": [
+      {
+        "bottom": 1357.6875,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "News tone",
+          "Headlines 7d",
+          "Revisions",
+          "Social",
+          "Net insider",
+          "Short interest",
+          "NSE short sales / volume (120 sessions)",
+          "Score"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 891.828125
+      },
+      {
+        "bottom": 2127.203125,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "News tone",
+          "Headlines 7d",
+          "Revisions",
+          "Social",
+          "Net insider",
+          "Short interest",
+          "NSE short sales / volume (120 sessions)",
+          "Score"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 1428.4375
+      }
+    ]
+  },
+  {
+    "tab": "Momentum",
+    "tables": [
+      {
+        "bottom": 831.953125,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "1M",
+          "3M",
+          "6M",
+          "12–1M",
+          "Relative",
+          "Accel.",
+          "Score"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 333.5
+      },
+      {
+        "bottom": 1366.09375,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "1M",
+          "3M",
+          "6M",
+          "12–1M",
+          "Relative",
+          "Accel.",
+          "Score"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 902.703125
+      }
+    ]
+  },
+  {
+    "tab": "Fundamental",
+    "tables": [
+      {
+        "bottom": 822.734375,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "P/E",
+          "ROE",
+          "Rev growth",
+          "D/E",
+          "Yield",
+          "Score"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 333.5
+      },
+      {
+        "bottom": 1394.40625,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "P/E",
+          "ROE",
+          "Rev growth",
+          "D/E",
+          "Yield",
+          "Score"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 893.484375
+      }
+    ]
+  },
+  {
+    "tab": "Combined",
+    "tables": [
+      {
+        "bottom": 935.328125,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "Tech",
+          "Sen",
+          "Mom",
+          "Fun",
+          "Agents",
+          "Composite"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 333.5
+      },
+      {
+        "bottom": 1607.90625,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Sector",
+          "Tech",
+          "Sen",
+          "Mom",
+          "Fun",
+          "Agents",
+          "Composite"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 1006.078125
+      }
+    ]
+  },
+  {
+    "tab": "Portfolio & Backtest",
+    "tables": [
+      {
+        "bottom": 2201.953125,
+        "clippedCells": 0,
+        "headers": [
+          "#",
+          "Ticker",
+          "Side",
+          "Weight",
+          "Composite"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 1308.5625
+      },
+      {
+        "bottom": 4026.09375,
+        "clippedCells": 0,
+        "headers": [
+          "Date",
+          "Ticker",
+          "Action",
+          "Composite"
+        ],
+        "overflow": false,
+        "width": 863,
+        "x": 361,
+        "y": 2272.703125
+      }
+    ]
+  }
+]

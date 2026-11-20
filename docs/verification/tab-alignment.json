@@ -1,0 +1,609 @@
+{
+  "initial": [
+    {
+      "tab": "Technical",
+      "tables": [
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "RSI",
+            "vs 50d",
+            "vs 200d",
+            "ADX",
+            "Vol surge",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Consumer Services",
+            "Consumer Durables",
+            "Automobile and Auto Components",
+            "Financial Services",
+            "Automobile and Auto Components",
+            "Healthcare",
+            "Chemicals",
+            "Automobile and Auto Components",
+            "Healthcare",
+            "Consumer Services"
+          ]
+        },
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "RSI",
+            "vs 50d",
+            "vs 200d",
+            "ADX",
+            "Vol surge",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Chemicals",
+            "Capital Goods",
+            "Capital Goods",
+            "Capital Goods",
+            "Capital Goods",
+            "Services",
+            "Consumer Durables",
+            "Capital Goods",
+            "Construction",
+            "Capital Goods"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Sentiment",
+      "tables": [
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "News tone",
+            "Headlines 7d",
+            "Revisions",
+            "Social",
+            "Net insider",
+            "Short interest",
+            "NSE short sales / volume (120 sessions)",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 6,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Automobile and Auto Components",
+            "Information Technology",
+            "Metals & Mining",
+            "Oil Gas & Consumable Fuels",
+            "Oil Gas & Consumable Fuels",
+            "Financial Services"
+          ]
+        },
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "News tone",
+            "Headlines 7d",
+            "Revisions",
+            "Social",
+            "Net insider",
+            "Short interest",
+            "NSE short sales / volume (120 sessions)",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Information Technology",
+            "Information Technology",
+            "Capital Goods",
+            "Information Technology",
+            "Capital Goods",
+            "Chemicals",
+            "Capital Goods",
+            "Capital Goods",
+            "Chemicals",
+            "Power"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Momentum",
+      "tables": [
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "1M",
+            "3M",
+            "6M",
+            "12–1M",
+            "Relative",
+            "Accel.",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Automobile and Auto Components",
+            "Healthcare",
+            "Textiles",
+            "Healthcare",
+            "Healthcare",
+            "Chemicals",
+            "Automobile and Auto Components",
+            "Fast Moving Consumer Goods",
+            "Healthcare",
+            "Healthcare"
+          ]
+        },
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "1M",
+            "3M",
+            "6M",
+            "12–1M",
+            "Relative",
+            "Accel.",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Chemicals",
+            "Consumer Services",
+            "Construction",
+            "Information Technology",
+            "Construction",
+            "Capital Goods",
+            "Chemicals",
+            "Capital Goods",
+            "Capital Goods",
+            "Capital Goods"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Fundamental",
+      "tables": [
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "P/E",
+            "ROE",
+            "Rev growth",
+            "D/E",
+            "Yield",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Services",
+            "Consumer Durables",
+            "Metals & Mining",
+            "Fast Moving Consumer Goods",
+            "Capital Goods",
+            "Healthcare",
+            "Healthcare",
+            "Services",
+            "Consumer Services",
+            "Oil Gas & Consumable Fuels"
+          ]
+        },
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "P/E",
+            "ROE",
+            "Rev growth",
+            "D/E",
+            "Yield",
+            "Score"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Information Technology",
+            "Consumer Durables",
+            "Chemicals",
+            "Automobile and Auto Components",
+            "Services",
+            "Healthcare",
+            "Financial Services",
+            "Construction",
+            "Metals & Mining",
+            "Chemicals"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Combined",
+      "tables": [
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "Tech",
+            "Sen",
+            "Mom",
+            "Fun",
+            "Agents",
+            "Composite"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Healthcare",
+            "Healthcare",
+            "Automobile and Auto Components",
+            "Automobile and Auto Components",
+            "Financial Services",
+            "Healthcare",
+            "Automobile and Auto Components",
+            "Financial Services",
+            "Realty",
+            "Financial Services"
+          ]
+        },
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Sector",
+            "Tech",
+            "Sen",
+            "Mom",
+            "Fun",
+            "Agents",
+            "Composite"
+          ],
+          "mismatches": [],
+          "rows": 10,
+          "sectorStyles": {
+            "cell": "left",
+            "heading": "left",
+            "whiteSpace": "normal"
+          },
+          "sectors": [
+            "Construction",
+            "Chemicals",
+            "Capital Goods",
+            "Capital Goods",
+            "Information Technology",
+            "Capital Goods",
+            "Information Technology",
+            "Power",
+            "Chemicals",
+            "Consumer Services"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Portfolio & Backtest",
+      "tables": [
+        {
+          "clipped": [],
+          "headers": [
+            "#",
+            "Ticker",
+            "Side",
+            "Weight",
+            "Composite"
+          ],
+          "mismatches": [],
+          "rows": 20
+        },
+        {
+          "clipped": [],
+          "headers": [
+            "Date",
+            "Ticker",
+            "Action",
+            "Composite"
+          ],
+          "mismatches": [],
+          "rows": 40
+        }
+      ]
+    }
+  ],
+  "desktop": [
+    {
+      "tab": "Technical",
+      "checks": {
+        "tables": [
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          },
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          }
+        ]
+      }
+    },
+    {
+      "tab": "Sentiment",
+      "checks": {
+        "tables": [
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 6
+          },
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          }
+        ]
+      }
+    },
+    {
+      "tab": "Momentum",
+      "checks": {
+        "tables": [
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          },
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          }
+        ]
+      }
+    },
+    {
+      "tab": "Fundamental",
+      "checks": {
+        "tables": [
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          },
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          }
+        ]
+      }
+    },
+    {
+      "tab": "Combined",
+      "checks": {
+        "tables": [
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          },
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 10
+          }
+        ]
+      }
+    },
+    {
+      "tab": "Portfolio & Backtest",
+      "checks": {
+        "tables": [
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 20
+          },
+          {
+            "alignmentErrors": 0,
+            "clipped": 0,
+            "overflow": false,
+            "rows": 40
+          }
+        ]
+      }
+    }
+  ],
+  "tablet": [
+    {
+      "tab": "Technical",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        }
+      ]
+    },
+    {
+      "tab": "Sentiment",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 6
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        }
+      ]
+    },
+    {
+      "tab": "Momentum",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        }
+      ]
+    },
+    {
+      "tab": "Fundamental",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        }
+      ]
+    },
+    {
+      "tab": "Combined",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 10
+        }
+      ]
+    },
+    {
+      "tab": "Portfolio & Backtest",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 20
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": 0,
+          "overflow": false,
+          "rows": 40
+        }
+      ]
+    }
+  ]
+}

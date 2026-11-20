@@ -4,7 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useState, type FormEvent } from "react";
 import { DataTable } from "@/components/data-table";
-import { StockTicker } from "@/components/stock-ticker";
+import { StockIdentity as StockTicker } from "@/components/stock-identity";
 import { CandleField, RangeFields } from "@/components/screen-fields";
 import { SignInNotice, State } from "@/components/presentation";
 import { useSession } from "@/components/providers";

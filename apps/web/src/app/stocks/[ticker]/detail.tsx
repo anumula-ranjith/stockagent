@@ -6,7 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { SignInNotice, State } from "@/components/presentation";
+import { PageTitle, SignInNotice, State } from "@/components/presentation";
 import { useSession } from "@/components/providers";
 import { api, ApiError, type HistoryPoint, type NewsItem, type PriceBar, type UniverseRow } from "@/lib/api";
 import { stockHref, type ChartRules, type Periods } from "@/lib/stock-context";
@@ -71,13 +71,27 @@ export function StockDetail({ ticker, periods: inputs, rules, settings, asof, sc
     queryFn:({signal}) => api<UniverseRow[]>("/universe",{signal})});
   const term = search.trim().toLowerCase();
   const matches = term ? (universe.data ?? []).filter(row =>
-    row.ticker.toLowerCase().includes(term) || row.symbol?.toLowerCase().includes(term)
+    row.ticker.toLowerCase().includes(term) || row.symbol?.toLowerCase().includes(term) || row.company_name?.toLowerCase().includes(term)
   ).sort((a,b) => Number(b.ticker.toLowerCase().startsWith(term)) - Number(a.ticker.toLowerCase().startsWith(term))
     || a.ticker.localeCompare(b.ticker)).slice(0,6) : [];
   const href = (symbol: string) => stockHref(symbol,{periods:chartPeriods,rules:chartRules,settings,asof:analysisDate||undefined,screen:appliedScreen});
   const latest = prices.data?.filter(row => row.close != null).at(-1);
   const tab = (value: number, label: string) => <button key={value} aria-pressed={days === value} onClick={() => setDays(value)}>{label}</button>;
   return <div className={`stack ${styles.detail}`}>
+    <PageTitle title={ticker} action={<form className={styles.stockSearch} role="search" onSubmit={event=>{
+      event.preventDefault();
+      if (matches.length) { setSearchError(""); window.open(href(matches[0].ticker), "_blank", "noopener,noreferrer"); }
+      else setSearchError(universe.isPending ? "Stock list is loading." : universe.isError ? "Stock search is unavailable. Please refresh and try again." : "No matching company found.");
+    }}>
+      <label htmlFor="detail-stock-search">Search company</label>
+      <div className={styles.stockSearchControls}><input id="detail-stock-search" type="search" value={search}
+        onChange={event=>{setSearch(event.target.value);setSearchError("");}} placeholder="Company name or NSE ticker" autoComplete="off"/>
+        <button type="submit">View stock</button></div>
+      {(searchError || (term && !matches.length)) && <p role="status" className={styles.searchMessage}>{searchError || (universe.isPending ? "Loading companies..." : universe.isError ? "Stock search is unavailable. Please refresh and try again." : "No matching company found.")}</p>}
+      {term && matches.length>0 && <ul className={styles.searchMatches} aria-label="Matching stocks">{matches.map(row=><li key={row.ticker}>
+        <Link href={href(row.ticker)} target="_blank" rel="noopener noreferrer"><strong>{row.ticker}</strong>{row.company_name && <span>{row.company_name}</span>}
+          {row.sector&&<span>{row.sector}</span>}</Link><StockActions ticker={row.ticker}/></li>)}</ul>}
+    </form>}>NSE equity research</PageTitle>
     <div className="surface" id="prices">
       <div className="surface-top"><h2 className="section-title">Price history</h2><div className="tabs" aria-label="Price range">{periods.filter(([value])=>source!=="angel" || value!==1095).map(([value, label]) => tab(value, label))}</div></div>
       {session.data && <div className="surface-top"><LatestQuote ticker={ticker}/><label className="field">Candle source<select value={source} onChange={event=>setSource(event.target.value)}><option value="warehouse">Local price history</option><option value="angel">Angel One · 2 years</option></select></label></div>}
@@ -87,20 +101,6 @@ export function StockDetail({ ticker, periods: inputs, rules, settings, asof, sc
           : prices.data ? <PriceChart prices={prices.data} periods={chartPeriods} rules={chartRules} days={days}/> : <State>Loading prices…</State>}
       </div>
     </div>
-    <form className={styles.stockSearch} role="search" onSubmit={event=>{
-      event.preventDefault();
-      if (matches.length) { setSearchError(""); window.open(href(matches[0].ticker), "_blank", "noopener,noreferrer"); }
-      else setSearchError(universe.isPending ? "Stock list is loading." : "No matching ticker found.");
-    }}>
-      <label htmlFor="detail-stock-search">Search another stock</label>
-      <div className={styles.stockSearchControls}><input id="detail-stock-search" type="search" value={search}
-        onChange={event=>{setSearch(event.target.value);setSearchError("");}} placeholder="Search NSE ticker or symbol" autoComplete="off"/>
-        <button type="submit">View stock</button></div>
-      {searchError&&<p role="status" className={styles.searchMessage}>{searchError}</p>}
-      {term && matches.length>0 && <ul className={styles.searchMatches} aria-label="Matching stocks">{matches.map(row=><li key={row.ticker}>
-        <Link href={href(row.ticker)} target="_blank" rel="noopener noreferrer"><strong>{row.ticker}</strong>{row.symbol&&row.symbol!==row.ticker&&<span>{row.symbol}</span>}
-          {row.sector&&<span>{row.sector}</span>}</Link><StockActions ticker={row.ticker}/></li>)}</ul>}
-    </form>
     <nav className={styles.nav} aria-label="Stock sections">{[
       ["profile","Overview"], ...(session.data ? [["analysis","Agent readings"],["indicators","Technical indicators"]] : []),
       ["prices","Price chart"],...(session.data?[["derivatives","Derivatives"]]:[]),["history","Score history"],["news","Headlines"],

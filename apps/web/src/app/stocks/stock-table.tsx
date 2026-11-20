@@ -7,13 +7,13 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { DataTable } from "@/components/data-table";
 import { State } from "@/components/presentation";
-import { StockTicker } from "@/components/stock-ticker";
+import { StockIdentity as StockTicker } from "@/components/stock-identity";
 import { useSession } from "@/components/providers";
 import { agentLabels, agents, api, type Agent, type ScoreRow, type UniverseRow } from "@/lib/api";
 
 type Stock = UniverseRow & Partial<Record<Agent, number | null>>;
 const baseColumns: ColumnDef<Stock>[] = [
-  { accessorKey: "ticker", header: "Ticker", cell: ({ row }) => <StockTicker ticker={row.original.ticker}/> },
+  { accessorKey: "ticker", header: "Ticker", cell: ({ row }) => <StockTicker ticker={row.original.ticker} showSector={false}/> },
   { accessorKey: "symbol", header: "Exchange symbol", cell: ({ row }) => row.original.symbol || "—" },
   { accessorKey: "sector", header: "Sector", cell: ({ row }) => row.original.sector || "—" },
   { accessorKey: "industry", header: "Industry", cell: ({ row }) => row.original.industry || "—" },
@@ -44,13 +44,13 @@ export function StockTable() {
   const maps = scores.map(rows => new Map(rows?.map(row => [row.ticker, row.score])));
   const term = q.trim().toLowerCase();
   const rows = (universeRows ?? []).filter(row =>
-    (!sector || row.sector === sector) && [row.ticker, row.symbol, row.industry, row.sector].some(value => value?.toLowerCase().includes(term))
+    (!sector || row.sector === sector) && [row.ticker, row.company_name, row.symbol, row.industry, row.sector].some(value => value?.toLowerCase().includes(term))
   ).map(row => Object.assign({}, row, Object.fromEntries(agents.map((agent, idx) => [agent, maps[idx].get(row.ticker)]))) as Stock);
   return <div className="surface">
     <div className="filters">
       <label className="field">Search
         <input type="search" value={q} onChange={event => void setFilters({ q: event.target.value })}
-          placeholder="Ticker, symbol or industry"/>
+          placeholder="Company, ticker or industry"/>
       </label>
       <label className="field">Sector
         <select value={sector} onChange={event => void setFilters({ sector: event.target.value })}>

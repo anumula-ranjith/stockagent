@@ -87,7 +87,12 @@ svg { flex:none; }
 .table-scroll { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; text-align:left; }
 th,td { white-space:nowrap; padding:11px 15px; border-bottom:1px solid var(--line); }
-th { font-size:12px; color:var(--muted); font-weight:650; background:var(--bg); }
+th { font-size:12px; color:var(--muted); font-weight:650; background:var(--bg); text-align:left; white-space:normal; }
+td[data-column="sector"],td[data-column="industry"] { white-space:normal; overflow-wrap:anywhere; min-width:160px; max-width:240px; }
+.stock-identity { display:grid; gap:4px; min-width:180px; max-width:260px; white-space:normal; overflow-wrap:anywhere; }
+.stock-identity>span { flex-wrap:wrap; white-space:normal; }
+.stock-description { color:var(--muted); font-size:12px; line-height:1.5; }
+.sort-button { text-align:inherit; }
 tr:last-child td { border-bottom:0; }
 tbody tr:hover { background:color-mix(in srgb,var(--soft) 44%,transparent); }
 td a { font-weight:700; color:var(--accent); text-underline-offset:3px; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { StockTicker } from "@/components/stock-ticker";
+import { StockIdentity as StockTicker } from "@/components/stock-identity";
 import { useState, type FormEvent } from "react";
 import { State } from "@/components/presentation";
 import { useSession } from "@/components/providers";

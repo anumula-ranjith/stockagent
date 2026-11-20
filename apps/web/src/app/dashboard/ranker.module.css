@@ -39,15 +39,20 @@
 .control input[type="number"] { width:72px; }
 .control select { max-width:164px; }
 .control input[type="checkbox"] { margin-right:1px; }
-.results,.stacked { display:grid; min-width:0; gap:16px; }
-.books { display:grid; gap:16px; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+.results,.stacked { display:grid; grid-template-columns:minmax(0,1fr); min-width:0; gap:16px; }
+.books { display:grid; gap:16px; grid-template-columns:minmax(0,1fr); align-items:start; }
 .card { padding:11px 14px 12px; }
 .card h2 { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .dot { height:9px; width:9px; flex:none; }
 .summary { max-width:88ch; }
 .scroll { overflow:auto; scrollbar-color:var(--rk-muted) var(--rk-card); }
 .scroll table { width:100%; border-collapse:collapse; font-size:13px; }
-.scroll th,.scroll td { padding:5px 7px; text-align:right; border-bottom:1px solid var(--rk-grid); white-space:nowrap; }
+.scroll th,.scroll td { padding:8px 7px; text-align:right; border-bottom:1px solid var(--rk-grid); white-space:normal; overflow-wrap:anywhere; vertical-align:middle; }
+.candidate { table-layout:fixed; min-width:720px; }
+.candidate th:first-child { width:4%; }
+.candidate th:nth-child(2) { width:20%; }
+.candidate th:nth-child(3) { width:22%; }
+.scroll td:nth-child(2)>span { max-width:100%; flex-wrap:wrap; white-space:normal; }
 .scroll th { color:var(--rk-muted); font-size:12px; font-weight:650; background:transparent; border-color:var(--rk-line); }
 .scroll td:nth-child(-n+2),.scroll th:nth-child(-n+2) { text-align:left; }
 .scroll td a { color:var(--rk-text); font-weight:740; }
@@ -55,19 +60,19 @@
 .scroll tr:hover { background:var(--rk-grid); }
 .scroll tr:last-child td { border-bottom:0; }
 .scroll .combined td { padding-block:8px; }
-.sector { color:var(--rk-muted); max-width:165px; overflow:hidden; text-overflow:ellipsis; }
+.scroll .sector { color:var(--rk-muted); white-space:normal; overflow-wrap:anywhere; text-align:left; }
 .up { color:var(--rk-up); }
 .down,.error { color:var(--rk-down); }
 .empty { color:var(--rk-muted); font-size:13px; padding:15px 3px; }
 .bars { height:24px; display:inline-flex; gap:3px; align-items:flex-end; vertical-align:middle; }
 .bars i { width:8px; border-radius:2px 2px 0 0; }
-.score { display:inline-flex; gap:8px; align-items:center; font-weight:680; }
+.score { display:inline-flex; max-width:100%; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; font-weight:680; }
 .score i,.heatTrack { position:relative; height:7px; background:var(--rk-grid); border-radius:5px; }
 .score i { width:54px; overflow:hidden; }
 .score b,.heatTrack i { display:block; height:100%; background:var(--rk-blue); }
 .heat { display:grid; gap:3px; }
 .heatRow { display:grid; grid-template-columns:minmax(95px,160px) minmax(25px,1fr) 55px; align-items:center; gap:9px; font-size:12px; }
-.heatRow>span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.heatRow>span:first-child { white-space:normal; overflow-wrap:anywhere; }
 .heatRow strong { text-align:right; font-weight:600; }
 .heatTrack { height:8px; }
 .heatTrack i { position:absolute; top:0; border-radius:5px; }
@@ -81,6 +86,6 @@
 .metrics small { color:var(--rk-muted); font-size:12px; }
 .metrics strong { font-weight:730; font-size:20px; margin:2px 0; }
 .chart { width:100%; height:300px; }
-@media(max-width:1050px) { .grid { grid-template-columns:245px minmax(0,1fr); gap:14px; } .books { gap:10px; } .tabs button { padding-inline:12px; } }
+@media(max-width:1050px) { .grid { grid-template-columns:minmax(0,1fr); gap:14px; } .panel { max-height:300px; overflow:auto; } .books { gap:10px; } .tabs button { padding-inline:12px; } }
 @media(max-width:760px) { .inner { width:calc(100% - 28px); padding-top:16px; } .grid { grid-template-columns:minmax(0,1fr); } .panel { max-height:300px; overflow:auto; } .books { grid-template-columns:minmax(0,1fr); } .header { align-items:flex-start; } .header h1 { font-size:24px; } .tabs button { padding-inline:10px; } }
 @media(max-width:480px) { .header { flex-wrap:wrap; } .date { display:flex; align-items:center; gap:8px; } .card { padding:10px; } .heatRow { grid-template-columns:90px minmax(25px,1fr) 47px; } }

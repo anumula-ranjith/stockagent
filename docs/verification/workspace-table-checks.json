@@ -1,0 +1,246 @@
+{
+  "desktop": [
+    {
+      "page": "Screener",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Ticker ",
+            "Cap segment ",
+            "Industry ",
+            "Latest price · ₹ ",
+            "% below high ",
+            "% below low ",
+            "% above high ",
+            "% above low ",
+            "52w high ",
+            "52w low ",
+            "Heikin Ashi candle ",
+            "Heikin Ashi turn "
+          ],
+          "identities": [
+            "360ONE360 ONE WAM Ltd.Financials",
+            "AADHARHFCAadhar Housing Finance Ltd.Financials",
+            "AARTIINDAarti Industries Ltd.Materials"
+          ],
+          "rows": 25
+        }
+      ]
+    },
+    {
+      "page": "Stocks",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Ticker ",
+            "Exchange symbol ",
+            "Sector ",
+            "Industry ",
+            "Technical ",
+            "Sentiment ",
+            "Momentum ",
+            "Fundamental "
+          ],
+          "identities": [
+            "360ONE360 ONE WAM Ltd.",
+            "AADHARHFCAadhar Housing Finance Ltd.",
+            "AARTIINDAarti Industries Ltd."
+          ],
+          "rows": 25
+        }
+      ]
+    },
+    {
+      "page": "Portfolio",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Stock",
+            "Quantity",
+            "Avg cost",
+            "Last close",
+            "Price date",
+            "Market value",
+            "Unrealized P&L",
+            "Weight"
+          ],
+          "identities": [
+            "TMPVTata Motors Passenger Vehicles Ltd.Consumer Discretionary"
+          ],
+          "rows": 1
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Date",
+            "Type",
+            "Ticker",
+            "Quantity",
+            "Price",
+            "Fees",
+            "Cash amount",
+            "Note",
+            ""
+          ],
+          "identities": [
+            "TMPVTata Motors Passenger Vehicles Ltd.Consumer Discretionary"
+          ],
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "page": "Watchlists",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Stock",
+            "Angel One LTP · ₹",
+            "Last close",
+            "1D move",
+            "Price date",
+            "Levels",
+            "Status",
+            "Research note",
+            ""
+          ],
+          "identities": [
+            "360ONE360 ONE WAM Ltd.Financials"
+          ],
+          "rows": 1
+        }
+      ]
+    }
+  ],
+  "tablet": [
+    {
+      "page": "/watchlist",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Stock",
+            "Angel One LTP · ₹",
+            "Last close",
+            "1D move",
+            "Price date",
+            "Levels",
+            "Status",
+            "Research note",
+            ""
+          ],
+          "identities": [
+            "360ONE360 ONE WAM Ltd.Financials"
+          ],
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "page": "/portfolio",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Stock",
+            "Quantity",
+            "Avg cost",
+            "Last close",
+            "Price date",
+            "Market value",
+            "Unrealized P&L",
+            "Weight"
+          ],
+          "identities": [
+            "TMPVTata Motors Passenger Vehicles Ltd.Consumer Discretionary"
+          ],
+          "rows": 1
+        },
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Date",
+            "Type",
+            "Ticker",
+            "Quantity",
+            "Price",
+            "Fees",
+            "Cash amount",
+            "Note",
+            ""
+          ],
+          "identities": [
+            "TMPVTata Motors Passenger Vehicles Ltd.Consumer Discretionary"
+          ],
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "page": "/stocks",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Ticker ",
+            "Exchange symbol ",
+            "Sector ",
+            "Industry ",
+            "Technical ",
+            "Sentiment ",
+            "Momentum ",
+            "Fundamental "
+          ],
+          "identities": [
+            "360ONE360 ONE WAM Ltd.",
+            "AADHARHFCAadhar Housing Finance Ltd.",
+            "AARTIINDAarti Industries Ltd."
+          ],
+          "rows": 25
+        }
+      ]
+    },
+    {
+      "page": "/screener",
+      "tables": [
+        {
+          "alignmentErrors": 0,
+          "clipped": [],
+          "headers": [
+            "Ticker ",
+            "Cap segment ",
+            "Industry ",
+            "Latest price · ₹ ",
+            "% below high ",
+            "% below low ",
+            "% above high ",
+            "% above low ",
+            "52w high ",
+            "52w low ",
+            "Heikin Ashi candle ",
+            "Heikin Ashi turn "
+          ],
+          "identities": [
+            "360ONE360 ONE WAM Ltd.Financials",
+            "AADHARHFCAadhar Housing Finance Ltd.Financials",
+            "AARTIINDAarti Industries Ltd.Materials"
+          ],
+          "rows": 25
+        }
+      ]
+    }
+  ]
+}

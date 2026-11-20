@@ -2266,6 +2266,8 @@ export interface components {
         };
         /** UniverseRow */
         UniverseRow: {
+            /** Company Name */
+            company_name?: string | null;
             /** Ticker */
             ticker: string;
             /** Symbol */

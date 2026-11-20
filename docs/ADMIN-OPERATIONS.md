@@ -358,3 +358,5 @@ Fundamentals loading and its missing-values backfill reserve 12,000 API units
 for news/sentiment by default (`EODHD_NEWS_RESERVED_UNITS`). Other consumers of
 the same API key can still exhaust the shared account quota. An API key or paid
 limit change is not performed automatically. Free RSS ingestion stays available.
+
+Verification: 30 related tests passed; seven final recovery tests passed after adding malformed-payload and mid-batch quota tests. Both daily paths complete successfully with controlled provider responses. Live full daily run ad41c5b2-c2ef-4d22-aa55-1181bc971b8d retained six successful stages and four healthy RSS feeds, then entered quota waiting with an automatic retry at 20 November 2026 05:35 IST. Successful live EODHD completion remains unverified because the external account has only four API units available. See verification/eodhd-recovery.json.

@@ -26,7 +26,7 @@ export function DataTable<T>({ data, columns, label, empty, pageSize = 25 }: {
           {group.headers.map(header => {
             const sorted = header.column.getIsSorted();
             const title = flexRender(header.column.columnDef.header, header.getContext());
-            return <th key={header.id} scope="col" aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}>
+            return <th key={header.id} data-column={header.column.id} scope="col" aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}>
               {header.column.getCanSort()
                 ? <button className="sort-button" onClick={header.column.getToggleSortingHandler()}>
                   {title} {sorted === "asc" ? <ArrowUp size={13}/> : sorted === "desc" ? <ArrowDown size={13}/> : <ArrowUpDown size={13}/>}
@@ -35,7 +35,7 @@ export function DataTable<T>({ data, columns, label, empty, pageSize = 25 }: {
           })}
         </tr>)}</thead>
         <tbody>{table.getRowModel().rows.map(row => <tr key={row.id}>
-          {row.getVisibleCells().map(cell => <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
+          {row.getVisibleCells().map(cell => <td key={cell.id} data-column={cell.column.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
         </tr>)}</tbody>
       </table>
     </div>

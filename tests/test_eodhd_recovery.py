@@ -19,6 +19,44 @@ def test_client_stops_account_errors_and_honors_retry_after(monkeypatch):
     assert error.value.status_code==402 and waits==[2]
 
 
+def test_invalid_payloads_cannot_be_checkpointed_as_empty(monkeypatch):
+    import pytest
+    monkeypatch.setattr(EODHDClient,'_get',lambda *a,**k:[{'title':'Headline','date':'not a date'}])
+    with pytest.raises(ValueError):
+        EODHDClient('secret').news('INFY.NSE')
+    monkeypatch.setattr(EODHDClient,'_get',lambda *a,**k:{'INFY.NSE':[{'date':'2026-11-19','count':2,'normalized':float('nan')}]})
+    with pytest.raises(ValueError):
+        EODHDClient('secret').sentiments('INFY.NSE')
+
+
+def test_mid_batch_quota_preserves_success_and_sentiment_reuses(auth_database):
+    from stock_agents.ingest.eodhd_news import refresh_eodhd_news
+    from stock_agents.sources.eodhd import EODHDAccountError
+    def first_news(symbol,**kwargs):
+        if symbol=='BBB.NSE':
+            raise EODHDAccountError('quota',402)
+        return [{'title':'AAA earnings','date':datetime.now(UTC).isoformat()}]
+    client=SimpleNamespace(remaining_calls=lambda:1000,news=first_news)
+    with auth_database.begin() as conn:
+        conn.execute(text("INSERT INTO symbology(ticker,eodhd_symbol,active) VALUES ('AAA','AAA.NSE',true),('BBB','BBB.NSE',true)"))
+        conn.execute(text("INSERT INTO index_membership(index_code,ticker,joined_on,known_on) VALUES ('NIFTY500','AAA','2020-01-01','2020-01-01'),('NSE_FO','BBB','2020-01-01','2020-01-01')"))
+        result=refresh_eodhd_news(conn,'news',client=client)
+        assert result['status']=='awaiting_quota' and result['pending']==1
+        assert conn.scalar(text('select count(*) from news'))==1
+        calls=[]
+        client.news=lambda symbol,**kw:calls.append(symbol) or []
+        result=refresh_eodhd_news(conn,'news',client=client)
+        assert result['status']=='ok' and calls==['BBB.NSE'] and result['reused']==1
+        calls.clear()
+        def sentiment(symbols):
+            calls.append(symbols)
+            return {s:[{'date':str(datetime.now(UTC).date()),'count':2,'normalized':0.5}] for s in symbols.split(',')}
+        client.sentiments=sentiment
+        assert refresh_eodhd_news(conn,'sentiment',client=client)['status']=='ok'
+        assert refresh_eodhd_news(conn,'sentiment',client=client)['reused']==2
+        assert len(calls)==1 and conn.scalar(text('select count(*) from sentiment_daily'))==2
+
+
 def test_morning_evening_slots_and_cancelled_quota_wait(auth_database,monkeypatch):
     from stock_agents.ingest.eodhd_news import refresh_slot
     from stock_agents.jobs import pipelines,pipeline_stages

@@ -27,8 +27,8 @@ export function Candidates({tab,data,side,size,settings}:{tab:Exclude<Tab,"portf
   const fields = combined ? agents.map((a):[string,string]=>[a,agentLabels[a].slice(0,a==="technical"?4:3)]) : columns[tab as Agent];
   return <section className={s.card}><h2><i className={s.dot} style={{background:short?"var(--rk-down)":"var(--rk-up)"}}/>
     {short?"Short":"Long"} {combined?"list":"candidates, "+(short?"bottom ":"top ")+size}</h2>
-    <div className={s.scroll} tabIndex={0} aria-label={(short?"Short":"Long")+" candidates"}><table className={combined?s.combined:undefined}>
-      <thead><tr><th>#</th><th>Ticker</th><th>Sector</th>{fields.map(([key,label])=><th key={key}>{label}</th>)}{combined && <><th>Agents</th><th>Composite</th></>}</tr></thead>
+    <div className={s.scroll} tabIndex={0} aria-label={(short?"Short":"Long")+" candidates"}><table className={combined?`${s.candidate} ${s.combined}`:s.candidate}>
+      <thead><tr><th>#</th><th>Ticker</th><th className={s.sector}>Sector</th>{fields.map(([key,label])=><th key={key}>{label}</th>)}{combined && <><th>Agents</th><th>Composite</th></>}</tr></thead>
       <tbody>{names.map((ticker,index)=>{
         const row = data.rows[ticker];
         return <tr key={ticker}><td>{index+1}</td><td><StockTicker ticker={ticker} href={stockHref(ticker,{settings,asof:data.asof})}/></td>

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageTitle } from "@/components/presentation";
 import { StockDetail } from "./detail";
 import { stockContext, type StockQuery } from "@/lib/stock-context";
 
@@ -21,7 +20,6 @@ export default async function TickerPage({ params, searchParams }: Props) {
   const context = stockContext(await searchParams);
   return <div className="shell workspace">
     <Link href="/stocks" className="text-link mb-4"><ArrowLeft size={16}/> Stocks</Link>
-    <PageTitle title={ticker}>NSE equity research</PageTitle>
     <StockDetail key={ticker} ticker={ticker} {...context}/>
   </div>;
 }
