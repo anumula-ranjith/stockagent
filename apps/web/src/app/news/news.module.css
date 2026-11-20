@@ -209,7 +209,7 @@
 .filterBox, .coverage {
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:0;
+  border-radius:var(--radius);
   padding:18px 20px;
 }
 .rail h2, .filterToggle {

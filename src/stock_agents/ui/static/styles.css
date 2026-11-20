@@ -8,7 +8,7 @@
   --line:#D4DBE3; --soft:#E4E9EF;
   --accent:#1F4E79; --accent-ink:#FFFFFF;
   --long:#1A7547; --short:#AE3628; --bench:#8A96A5;
-  --radius:8px; --radius-sm:5px;
+  --radius:16px; --radius-sm:5px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark){

@@ -27,7 +27,7 @@
 .composite, .agent {
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:0;
+  border-radius:var(--radius);
 }
 .composite {
   justify-content:flex-start; justify-items:start;
@@ -64,6 +64,8 @@
 }
 
 .agents {
+  overflow:clip;
+  border-radius:var(--radius);
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:0;
@@ -71,6 +73,7 @@
   background:var(--line);
 }
 .agent {
+  border-radius:0;
   min-width:0;
   padding:20px 22px 14px;
   border:0;
@@ -172,6 +175,8 @@
 }
 
 .pillars {
+  overflow:clip;
+  border-radius:var(--radius);
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
   gap:1px;

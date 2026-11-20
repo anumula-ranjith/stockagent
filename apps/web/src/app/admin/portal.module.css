@@ -48,6 +48,8 @@
 }
 
 .cards {
+  overflow:clip;
+  border-radius:var(--radius);
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
   gap:0;
@@ -75,6 +77,7 @@
 }
 
 .root section, .form {
+  border-radius:var(--radius);
   padding:24px;
   background:var(--panel);
   border:1px solid var(--line);
