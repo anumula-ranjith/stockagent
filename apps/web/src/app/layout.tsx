@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import "@fontsource-variable/archivo";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { Footer, Header } from "@/components/shell";
-import { AssistantWidget } from "@/components/assistant-widget";
+import { MarketHeader, MarketFooter } from "@/components/market-shell";
+import "./us/market.css";
+
 
 export const metadata: Metadata = {
   title: { default: "QUANTORA | Invest Smarter. Think Quant.", template: "%s | QUANTORA" },
@@ -14,6 +15,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return <html lang="en" suppressHydrationWarning><body>
     <a className="skip-link" href="#main">Skip to content</a>
-    <Providers><Header/><main id="main">{children}</main><Footer/><AssistantWidget/></Providers>
+    <Providers><MarketHeader/><main id="main">{children}</main><MarketFooter/></Providers>
   </body></html>;
 }

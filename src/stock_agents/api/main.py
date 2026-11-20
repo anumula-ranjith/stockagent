@@ -33,7 +33,7 @@ from pathlib import Path
 from secrets import token_urlsafe
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -42,6 +42,7 @@ from slowapi.errors import RateLimitExceeded
 from starlette.concurrency import run_in_threadpool
 
 from stock_agents.api import (
+    company_news,
     account,
     admin,
     auth,
@@ -54,6 +55,7 @@ from stock_agents.api import (
     stock_profile,
 )
 from stock_agents.api.auth import AdminUser, CurrentUser
+from stock_agents.api.screen_export import XLSX, ScreenEmail, ScreenExport, email_workbook, workbook
 from stock_agents.api.rq_dashboard import admin_dashboard
 from stock_agents.api.schemas import (
     AgentHistoryPoint,
@@ -113,6 +115,9 @@ app = FastAPI(title="stock-agents", version="0.3.0", lifespan=lifespan)
 app.state.limiter = auth.limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(auth.router)
+app.include_router(company_news.router)
+from stock_agents.api import market_signals
+app.include_router(market_signals.router)
 app.include_router(account.router)
 app.include_router(admin.router)
 app.include_router(job_routes.router)
@@ -199,6 +204,22 @@ async def universe(db: OperationalDB) -> list[dict[str, Any]]:
         {"ticker": ticker, "symbol": symbol, "sector": sector, "industry": industry, "company_name": company_name}
         for ticker, symbol, sector, industry, company_name in rows
     ]
+
+
+CompanyDirectory = Annotated[list[dict], Depends(universe)]
+
+
+@app.post("/screener/export", response_class=Response, responses={200: {"content": {XLSX: {}}}})
+def export_screen(body: ScreenExport, user: CurrentUser, companies: CompanyDirectory):
+    name, content = workbook(body, companies)
+    return Response(content, media_type=XLSX, headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@app.post("/screener/email", status_code=204, response_class=Response)
+@auth.limiter.limit("3/minute")
+def email_screen(request: Request, body: ScreenEmail, user: CurrentUser, companies: CompanyDirectory):
+    email_workbook(body, companies, user.email)
+    return Response(status_code=204)
 
 
 @app.get("/prices/{ticker}", response_model=list[PriceBar], dependencies=[Depends(auth.require_market_data_user)])
@@ -297,7 +318,7 @@ async def sentiment(
         """SELECT effective_date, polarity, n_headlines
            FROM sentiment_daily
            WHERE ticker = :ticker AND effective_date >= :cutoff
-             AND LOWER(TRIM(source)) NOT LIKE 'factset%'
+             AND source='free_news_finbert'
            ORDER BY effective_date, source""",
         ticker=ticker.upper(),
         cutoff=date.today() - timedelta(days=days),
@@ -427,3 +448,6 @@ app.mount("/_admin/rq", admin_dashboard, name="rq-dashboard")
 # Static assets (styles.css, future bundled JS, favicon)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.add_middleware(ObserveRequests)
+
+from stock_agents.api import us_market
+app.include_router(us_market.router)

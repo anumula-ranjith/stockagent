@@ -2,8 +2,8 @@ import type { NextRequest } from "next/server";
 import { isIP } from "node:net";
 
 const origin = new URL(process.env.API_ORIGIN || "http://127.0.0.1:8701");
-const reads = /^(market-feed\/stock\/[^/]+\/(?:quote|candles|derivatives)|admin\/(?:angel-one(?:\/scheduled-runs)?|overview|runs(?:\/[0-9a-f-]+)?|schedules|quality|users|audit)|screener\/market-status|health|me|universe|combine|ranker\/(?:snapshot|latest)|backtest\/latest|(?:prices|news|news-status|scores|agents|sentiment|jobs|stock-memberships|stock-profile)\/[^/]+|portfolios(?:\/[^/]+)?|watchlists(?:\/[^/]+)?|brokers\/angel-one\/snapshot)$/;
-const writes = /^(market-feed\/subscribe\/[^/]+|market-feed\/watchlist\/[0-9a-f-]+|admin\/(?:angel-one\/connect|runs(?:\/[0-9a-f-]+\/(?:retry|cancel))?|schedules\/(?:morning|evening)|users\/[0-9a-f-]+\/role)|stock-memberships\/[^/]+\/watchlists|login|logout|signup|register|verify-email|resend-verification|forgot-password|reset-password|change-password|backtest\/run|screener\/run|ranker\/(?:snapshot|backtest)|(?:ranker|screener)\/stock\/[^/]+|portfolios(?:\/[^/]+(?:\/entries(?:\/[^/]+)?)?)?|watchlists(?:\/[^/]+(?:\/items\/[^/]+)?)?|brokers\/angel-one\/(?:sync|snapshot))$/;
+const reads = /^(market-signals\/[^/]+|company-news(?:\/(?:companies|latest|export\.csv))?|market-feed\/stock\/[^/]+\/(?:quote|candles|derivatives)|admin\/(?:angel-one(?:\/scheduled-runs)?|overview|runs(?:\/[0-9a-f-]+)?|schedules|quality|users|audit)|screener\/market-status|health|me|universe|combine|ranker\/(?:snapshot|latest)|backtest\/latest|(?:prices|news|news-status|scores|agents|sentiment|jobs|stock-memberships|stock-profile)\/[^/]+|portfolios(?:\/[^/]+)?|watchlists(?:\/[^/]+)?|brokers\/angel-one\/snapshot)$/;
+const writes = /^(market-feed\/subscribe\/[^/]+|market-feed\/watchlist\/[0-9a-f-]+|admin\/(?:angel-one\/connect|runs(?:\/[0-9a-f-]+\/(?:retry|cancel))?|schedules\/(?:morning|evening)|users\/[0-9a-f-]+\/role)|stock-memberships\/[^/]+\/watchlists|login|logout|signup|register|verify-email|resend-verification|forgot-password|reset-password|change-password|backtest\/run|screener\/(?:run|export|email)|ranker\/(?:snapshot|backtest)|(?:ranker|screener)\/stock\/[^/]+|portfolios(?:\/[^/]+(?:\/entries(?:\/[^/]+)?)?)?|watchlists(?:\/[^/]+(?:\/items\/[^/]+)?)?|brokers\/angel-one\/(?:sync|snapshot))$/;
 
 export async function proxy(request: NextRequest, segments: string[], operations = false) {
   if (segments.some(segment => !segment || segment === "." || segment === ".." || /[\/\\]/.test(segment))) {
@@ -11,7 +11,8 @@ export async function proxy(request: NextRequest, segments: string[], operations
   }
   const path = segments.map(encodeURIComponent).join("/");
   const read = request.method === "GET" || request.method === "HEAD";
-  if (!operations && !(read ? reads : writes).test(path)) {
+  const usMarket = read ? /^us\/(?:market|watchlist|news|stock\/[A-Z0-9.-]{1,15}\/(?:candles|news|options))$/.test(path) : (request.method === "POST" && path === "us/subscribe") || (["PUT","DELETE"].includes(request.method) && /^us\/watchlist\/[A-Z0-9.-]{1,15}$/.test(path));
+  if (!operations && !usMarket && !(read ? reads : writes).test(path)) {
     return new Response(null, { status: 404 });
   }
   if (operations && !read && request.method !== "POST") {

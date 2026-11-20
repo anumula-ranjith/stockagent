@@ -1,4 +1,4 @@
-"""SMTP account emails. Credentials are read only on the server."""
+"""Application email delivery. Credentials are read only on the server."""
 
 import smtplib
 import ssl
@@ -14,15 +14,10 @@ class MailDeliveryError(RuntimeError):
 
 def send_account_email(recipient: str, purpose: str, token: str) -> None:
     settings = load_settings()
-    host = settings.env("EMAIL_HOST", "smtp.gmail.com")
-    sender = settings.env("EMAIL")
-    password = settings.env("EMAIL_PASSWORD")
     origin = settings.env("FRONTEND_URL", "http://localhost:3001").rstrip("/")
     parsed = urlsplit(origin)
     if (
-        not sender
-        or not password
-        or not parsed.hostname
+        not parsed.hostname
         or parsed.username
         or parsed.password
         or parsed.query
@@ -44,13 +39,23 @@ def send_account_email(recipient: str, purpose: str, token: str) -> None:
     url = f"{origin}/{path}#token={token}"
     message = EmailMessage()
     message["Subject"] = f"Stock Agents — {title}"
-    message["From"] = sender
     message["To"] = recipient
     message.set_content(
         f"{title} for your Stock Agents account using the link below.\n\n{url}\n\n"
         f"This link expires in {lifetime} and can be used once.\n"
         "If you did not request this email, you can ignore it.\n"
     )
+    deliver_message(message)
+
+
+def deliver_message(message: EmailMessage) -> None:
+    settings = load_settings()
+    host = settings.env("EMAIL_HOST", "smtp.gmail.com")
+    sender = settings.env("EMAIL")
+    password = settings.env("EMAIL_PASSWORD")
+    if not sender or not password:
+        raise MailDeliveryError("Email sender settings are incomplete")
+    message["From"] = sender
     try:
         port = int(settings.env("EMAIL_PORT", "587"))
         context = ssl.create_default_context()
@@ -67,5 +72,5 @@ def send_account_email(recipient: str, purpose: str, token: str) -> None:
             smtp.send_message(message)
     except (smtplib.SMTPException, OSError, ValueError) as exc:
         raise MailDeliveryError(
-            "Account email could not be delivered. Please try again later."
+            "Email could not be delivered. Please try again later."
         ) from exc

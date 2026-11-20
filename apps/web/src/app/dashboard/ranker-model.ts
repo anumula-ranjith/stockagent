@@ -10,9 +10,9 @@ export const factors: Record<Exclude<Agent,"fundamental">, Factor[]> = {
     ["obv_trend","On-balance volume trend",5],["atr_pct","Low volatility (ATR %)",3],["prox_52w_high","Near 52-week high",5],
   ],
   sentiment: [
-    ["news_tone_7d","News tone (7-day)",8],["news_volume","News volume vs normal",3],["hot_sector","Hot sector",6],
-    ["est_revisions","Analyst revisions",6],["rating_change_1m","Rating change (1 month)",4],["social_buzz","Social buzz",0],["insider_activity","Insider buying",3],["short_interest","Short interest",3],
-    ["nse_short_selling_activity","NSE short sales / volume (120 sessions)",0],
+    ["news_tone_7d","News tone (7-day)",8],["news_volume","News volume vs normal",3],["news_attention_7d","News attention (7-day)",3],["hot_sector","Hot sector",6],
+    ["est_revisions","Analyst revisions",6],["rating_change_1m","Rating change (1 month)",4],["social_buzz","Social buzz (not connected)",0],["insider_activity","Insider buying",3],["short_interest","Short interest (unavailable)",0],
+    ["nse_short_selling_activity","NSE short sales / volume (120 sessions)",3],
   ],
   momentum: [
     ["ret_1m","1-month return",3],["ret_3m","3-month return",6],["ret_6m","6-month return",7],

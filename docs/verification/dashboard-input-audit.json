@@ -1,0 +1,748 @@
+{
+  "checked_at": "2026-11-20T13:45:18.041931+05:30",
+  "dashboard_stocks": 500,
+  "dashboard_price_date": "2026-11-19",
+  "expected_eod_session": "2026-11-19",
+  "quality": {
+    "trade_date": "2026-11-19",
+    "members": 501,
+    "priced": 501,
+    "adjusted": 0,
+    "missing_prices": 0,
+    "missing_adjusted": 501,
+    "missing_sectors": 0,
+    "invalid_prices": 0,
+    "status": "warning"
+  },
+  "inputs": [
+    {
+      "group": "Technical",
+      "input": "rsi14",
+      "default_weight": 5,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Technical",
+      "input": "macd_hist",
+      "default_weight": 5,
+      "available": 499,
+      "missing": 1
+    },
+    {
+      "group": "Technical",
+      "input": "vs_sma50",
+      "default_weight": 5,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Technical",
+      "input": "vs_sma200",
+      "default_weight": 5,
+      "available": 488,
+      "missing": 12
+    },
+    {
+      "group": "Technical",
+      "input": "golden_cross",
+      "default_weight": 3,
+      "available": 488,
+      "missing": 12
+    },
+    {
+      "group": "Technical",
+      "input": "adx14_signed",
+      "default_weight": 5,
+      "available": 499,
+      "missing": 1
+    },
+    {
+      "group": "Technical",
+      "input": "bb_pctb",
+      "default_weight": 3,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Technical",
+      "input": "stoch_k",
+      "default_weight": 3,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Technical",
+      "input": "vol_surge",
+      "default_weight": 5,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Technical",
+      "input": "obv_trend",
+      "default_weight": 5,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Technical",
+      "input": "atr_pct",
+      "default_weight": 3,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Technical",
+      "input": "prox_52w_high",
+      "default_weight": 5,
+      "available": 482,
+      "missing": 18
+    },
+    {
+      "group": "Sentiment",
+      "input": "news_tone_7d",
+      "default_weight": 8,
+      "available": 53,
+      "missing": 447
+    },
+    {
+      "group": "Sentiment",
+      "input": "news_volume",
+      "default_weight": 3,
+      "available": 0,
+      "missing": 500
+    },
+    {
+      "group": "Sentiment",
+      "input": "hot_sector",
+      "default_weight": 6,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Sentiment",
+      "input": "est_revisions",
+      "default_weight": 6,
+      "available": 372,
+      "missing": 128
+    },
+    {
+      "group": "Sentiment",
+      "input": "rating_change_1m",
+      "default_weight": 4,
+      "available": 448,
+      "missing": 52
+    },
+    {
+      "group": "Sentiment",
+      "input": "social_buzz",
+      "default_weight": 0,
+      "available": 0,
+      "missing": 500
+    },
+    {
+      "group": "Sentiment",
+      "input": "insider_activity",
+      "default_weight": 3,
+      "available": 50,
+      "missing": 450
+    },
+    {
+      "group": "Sentiment",
+      "input": "short_interest",
+      "default_weight": 3,
+      "available": 0,
+      "missing": 500
+    },
+    {
+      "group": "Sentiment",
+      "input": "nse_short_selling_activity",
+      "default_weight": 0,
+      "available": 488,
+      "missing": 12
+    },
+    {
+      "group": "Momentum",
+      "input": "ret_1m",
+      "default_weight": 3,
+      "available": 500,
+      "missing": 0
+    },
+    {
+      "group": "Momentum",
+      "input": "ret_3m",
+      "default_weight": 6,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Momentum",
+      "input": "ret_6m",
+      "default_weight": 7,
+      "available": 494,
+      "missing": 6
+    },
+    {
+      "group": "Momentum",
+      "input": "ret_12_1",
+      "default_weight": 9,
+      "available": 482,
+      "missing": 18
+    },
+    {
+      "group": "Momentum",
+      "input": "rel_str",
+      "default_weight": 3,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Momentum",
+      "input": "accel",
+      "default_weight": 2,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Fundamental",
+      "input": "pe_ttm",
+      "default_weight": 1,
+      "available": 476,
+      "missing": 24
+    },
+    {
+      "group": "Fundamental",
+      "input": "forward_pe",
+      "default_weight": 1,
+      "available": 499,
+      "missing": 1
+    },
+    {
+      "group": "Fundamental",
+      "input": "price_to_book",
+      "default_weight": 1,
+      "available": 497,
+      "missing": 3
+    },
+    {
+      "group": "Fundamental",
+      "input": "ev_ebitda",
+      "default_weight": 1,
+      "available": 497,
+      "missing": 3
+    },
+    {
+      "group": "Fundamental",
+      "input": "price_to_sales",
+      "default_weight": 1,
+      "available": 497,
+      "missing": 3
+    },
+    {
+      "group": "Fundamental",
+      "input": "fcf_yield",
+      "default_weight": 1,
+      "available": 494,
+      "missing": 6
+    },
+    {
+      "group": "Fundamental",
+      "input": "peg",
+      "default_weight": 1,
+      "available": 138,
+      "missing": 362
+    },
+    {
+      "group": "Fundamental",
+      "input": "roe_ttm",
+      "default_weight": 1,
+      "available": 497,
+      "missing": 3
+    },
+    {
+      "group": "Fundamental",
+      "input": "roa_ttm",
+      "default_weight": 1,
+      "available": 497,
+      "missing": 3
+    },
+    {
+      "group": "Fundamental",
+      "input": "roic",
+      "default_weight": 1,
+      "available": 493,
+      "missing": 7
+    },
+    {
+      "group": "Fundamental",
+      "input": "gross_margin",
+      "default_weight": 1,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Fundamental",
+      "input": "operating_margin_ttm",
+      "default_weight": 1,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Fundamental",
+      "input": "net_margin_ttm",
+      "default_weight": 1,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Fundamental",
+      "input": "revenue_growth_yoy",
+      "default_weight": 1,
+      "available": 497,
+      "missing": 3
+    },
+    {
+      "group": "Fundamental",
+      "input": "eps_growth_yoy",
+      "default_weight": 1,
+      "available": 497,
+      "missing": 3
+    },
+    {
+      "group": "Fundamental",
+      "input": "eps_surprise",
+      "default_weight": 1,
+      "available": 472,
+      "missing": 28
+    },
+    {
+      "group": "Fundamental",
+      "input": "forward_eps_growth",
+      "default_weight": 1,
+      "available": 466,
+      "missing": 34
+    },
+    {
+      "group": "Fundamental",
+      "input": "debt_equity",
+      "default_weight": 1,
+      "available": 489,
+      "missing": 11
+    },
+    {
+      "group": "Fundamental",
+      "input": "current_ratio",
+      "default_weight": 1,
+      "available": 466,
+      "missing": 34
+    },
+    {
+      "group": "Fundamental",
+      "input": "interest_coverage",
+      "default_weight": 1,
+      "available": 498,
+      "missing": 2
+    },
+    {
+      "group": "Fundamental",
+      "input": "dividend_yield",
+      "default_weight": 1,
+      "available": 405,
+      "missing": 95
+    },
+    {
+      "group": "Fundamental",
+      "input": "buyback_yield",
+      "default_weight": 1,
+      "available": 499,
+      "missing": 1
+    }
+  ],
+  "score_coverage": {
+    "technical": 500,
+    "sentiment": 500,
+    "momentum": 500,
+    "fundamental": 500
+  },
+  "schedules": [
+    {
+      "id": "evening",
+      "label": "After-close update",
+      "hour": 18,
+      "minute": 30,
+      "enabled": true
+    },
+    {
+      "id": "morning",
+      "label": "Morning catch-up",
+      "hour": 7,
+      "minute": 0,
+      "enabled": true
+    }
+  ],
+  "runs": [
+    {
+      "pipeline": "news",
+      "trade_date": "2026-11-19",
+      "status": "success",
+      "trigger": "manual",
+      "created_at": "2026-11-20 12:57:02.308224+05:30",
+      "finished_at": "2026-11-20 12:57:11.279337+05:30",
+      "stages": [
+        {
+          "name": "preflight",
+          "status": "success"
+        },
+        {
+          "name": "news",
+          "status": "success"
+        },
+        {
+          "name": "sentiment",
+          "status": "success"
+        },
+        {
+          "name": "publish",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "pipeline": "news",
+      "trade_date": "2026-11-19",
+      "status": "partial",
+      "trigger": "manual",
+      "created_at": "2026-11-20 12:55:42.736314+05:30",
+      "finished_at": "2026-11-20 12:55:52.069839+05:30",
+      "stages": [
+        {
+          "name": "preflight",
+          "status": "success"
+        },
+        {
+          "name": "news",
+          "status": "success"
+        },
+        {
+          "name": "sentiment",
+          "status": "partial"
+        },
+        {
+          "name": "publish",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "pipeline": "daily",
+      "trade_date": "2026-11-19",
+      "status": "failed",
+      "trigger": "schedule",
+      "created_at": "2026-11-20 07:00:00.008127+05:30",
+      "finished_at": "2026-11-20 07:08:26.171940+05:30",
+      "stages": [
+        {
+          "name": "preflight",
+          "status": "success"
+        },
+        {
+          "name": "reference",
+          "status": "success"
+        },
+        {
+          "name": "eod",
+          "status": "success"
+        },
+        {
+          "name": "providers",
+          "status": "success"
+        },
+        {
+          "name": "insider",
+          "status": "success"
+        },
+        {
+          "name": "short_selling",
+          "status": "success"
+        },
+        {
+          "name": "news",
+          "status": "success"
+        },
+        {
+          "name": "sentiment",
+          "status": "partial"
+        },
+        {
+          "name": "validate",
+          "status": "partial"
+        },
+        {
+          "name": "scores",
+          "status": "failed"
+        }
+      ]
+    },
+    {
+      "pipeline": "daily",
+      "trade_date": "2026-11-19",
+      "status": "failed",
+      "trigger": "schedule",
+      "created_at": "2026-11-19 18:30:00.007280+05:30",
+      "finished_at": "2026-11-20 05:41:02.635103+05:30",
+      "stages": [
+        {
+          "name": "preflight",
+          "status": "success"
+        },
+        {
+          "name": "reference",
+          "status": "success"
+        },
+        {
+          "name": "eod",
+          "status": "success"
+        },
+        {
+          "name": "providers",
+          "status": "success"
+        },
+        {
+          "name": "insider",
+          "status": "success"
+        },
+        {
+          "name": "short_selling",
+          "status": "success"
+        },
+        {
+          "name": "news",
+          "status": "success"
+        },
+        {
+          "name": "sentiment",
+          "status": "partial"
+        },
+        {
+          "name": "validate",
+          "status": "partial"
+        },
+        {
+          "name": "scores",
+          "status": "failed"
+        }
+      ]
+    },
+    {
+      "pipeline": "daily",
+      "trade_date": "2026-11-18",
+      "status": "partial",
+      "trigger": "manual",
+      "created_at": "2026-11-19 17:39:25.269475+05:30",
+      "finished_at": "2026-11-20 05:40:43.878123+05:30",
+      "stages": [
+        {
+          "name": "preflight",
+          "status": "success"
+        },
+        {
+          "name": "reference",
+          "status": "success"
+        },
+        {
+          "name": "eod",
+          "status": "success"
+        },
+        {
+          "name": "providers",
+          "status": "success"
+        },
+        {
+          "name": "insider",
+          "status": "success"
+        },
+        {
+          "name": "short_selling",
+          "status": "success"
+        },
+        {
+          "name": "news",
+          "status": "success"
+        },
+        {
+          "name": "sentiment",
+          "status": "partial"
+        },
+        {
+          "name": "validate",
+          "status": "success"
+        },
+        {
+          "name": "scores",
+          "status": "success"
+        },
+        {
+          "name": "publish",
+          "status": "success"
+        }
+      ]
+    }
+  ],
+  "source_dates": {
+    "prices_daily": [
+      {
+        "source": "angel_one",
+        "stocks": 501,
+        "latest_effective": "2026-11-19",
+        "latest_known": "2026-11-19"
+      },
+      {
+        "source": "eodhd",
+        "stocks": 499,
+        "latest_effective": "2026-11-18",
+        "latest_known": "2026-11-18"
+      },
+      {
+        "source": "nse_bhavcopy",
+        "stocks": 461,
+        "latest_effective": "2026-11-19",
+        "latest_known": "2026-11-19"
+      }
+    ],
+    "fundamentals_pit": [
+      {
+        "source": "eodhd",
+        "stocks": 506,
+        "latest_effective": "2026-11-20",
+        "latest_known": "2026-11-20"
+      },
+      {
+        "source": "eodhd_derived",
+        "stocks": 88,
+        "latest_effective": "2026-11-20",
+        "latest_known": "2026-11-20"
+      },
+      {
+        "source": "factset_formula",
+        "stocks": 500,
+        "latest_effective": "2026-11-20",
+        "latest_known": "2026-11-20"
+      }
+    ],
+    "estimates_pit": [
+      {
+        "source": "eodhd",
+        "stocks": 487,
+        "latest_effective": "2026-11-20",
+        "latest_known": "2026-11-20"
+      },
+      {
+        "source": "factset_formula",
+        "stocks": 463,
+        "latest_effective": "2026-11-20",
+        "latest_known": "2026-11-20"
+      }
+    ],
+    "sentiment_daily": [
+      {
+        "source": "eodhd",
+        "stocks": 89,
+        "latest_effective": "2026-11-19",
+        "latest_known": "2026-11-20"
+      },
+      {
+        "source": "free_news_finbert",
+        "stocks": 53,
+        "latest_effective": "2026-11-20",
+        "latest_known": "2026-11-20"
+      }
+    ],
+    "classification": [
+      {
+        "source": "industry_sector_map",
+        "stocks": 296,
+        "latest_effective": "2026-11-19",
+        "latest_known": "2026-11-19"
+      },
+      {
+        "source": "nse_indices",
+        "stocks": 501,
+        "latest_effective": "2026-11-20",
+        "latest_known": "2026-11-20"
+      },
+      {
+        "source": "seed_csv",
+        "stocks": 213,
+        "latest_effective": "2026-11-18",
+        "latest_known": "2026-11-18"
+      }
+    ]
+  },
+  "news_coverage": [
+    {
+      "source": "Business Standard",
+      "day": "2026-11-20",
+      "status": "limited",
+      "checked_at": "2026-11-20 13:32:29.677358+05:30",
+      "last_success": "2026-11-20 13:32:29.677358+05:30",
+      "item_count": 10
+    },
+    {
+      "source": "Directory equities",
+      "day": "2026-11-20",
+      "status": "success",
+      "checked_at": "2026-11-20 09:57:41.200247+05:30",
+      "last_success": "2026-11-20 09:57:41.200247+05:30",
+      "item_count": 2631
+    },
+    {
+      "source": "Directory sme",
+      "day": "2026-11-20",
+      "status": "success",
+      "checked_at": "2026-11-20 09:57:42.197484+05:30",
+      "last_success": "2026-11-20 09:57:42.197484+05:30",
+      "item_count": 583
+    },
+    {
+      "source": "Mint",
+      "day": "2026-11-20",
+      "status": "limited",
+      "checked_at": "2026-11-20 13:32:25.819850+05:30",
+      "last_success": "2026-11-20 13:32:25.819850+05:30",
+      "item_count": 1
+    },
+    {
+      "source": "Moneycontrol",
+      "day": "2026-11-20",
+      "status": "limited",
+      "checked_at": "2026-11-20 13:32:28.938580+05:30",
+      "last_success": "2026-11-20 13:32:28.938580+05:30",
+      "item_count": 12
+    },
+    {
+      "source": "NSE equities",
+      "day": "2026-11-20",
+      "status": "success",
+      "checked_at": "2026-11-20 13:42:27.169264+05:30",
+      "last_success": "2026-11-20 13:42:27.169264+05:30",
+      "item_count": 103
+    },
+    {
+      "source": "NSE sme",
+      "day": "2026-11-20",
+      "status": "success",
+      "checked_at": "2026-11-20 13:42:28.172811+05:30",
+      "last_success": "2026-11-20 13:42:28.172811+05:30",
+      "item_count": 11
+    },
+    {
+      "source": "The Economic Times",
+      "day": "2026-11-20",
+      "status": "limited",
+      "checked_at": "2026-11-20 13:32:26.567876+05:30",
+      "last_success": "2026-11-20 13:32:26.567876+05:30",
+      "item_count": 4
+    }
+  ]
+}

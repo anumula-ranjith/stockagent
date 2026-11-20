@@ -118,7 +118,7 @@ export function AdminPortal() {
 
   if(session.isError)return <State error>Session unavailable. Refresh to try again.</State>;
 
-  if(!session.data)return <SignInNotice next="/admin">Sign in with an administrator account.</SignInNotice>;
+  if(!session.data)return <SignInNotice next="/datadaily/admin">Sign in with an administrator account.</SignInNotice>;
 
   if(!allowed)return <State error>Administrator access required. Your account cannot run pipelines or change system settings.</State>;
 

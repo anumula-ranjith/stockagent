@@ -16,6 +16,7 @@ alembic>=1.13          # schema migrations
 
 # --- analytics --------------------------------------------------
 pandas>=2.2
+openpyxl>=3.1,<4
 numpy>=1.26
 
 # --- jobs + cache -----------------------------------------------------------
@@ -54,3 +55,7 @@ opentelemetry-sdk>=1.31
 opentelemetry-exporter-otlp-proto-http>=1.31
 
 celery[redis]>=5.5,<6
+
+# Local financial headline sentiment
+torch>=2.6,<3
+transformers>=4.48,<5

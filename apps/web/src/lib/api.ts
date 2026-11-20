@@ -26,7 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiResponse(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.method && !["GET", "HEAD"].includes(init.method.toUpperCase())) headers.set("X-Stock-Agents-Request", "1");
   if (typeof init.body === "string") headers.set("Content-Type", "application/json");
@@ -41,5 +41,10 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       ? "Rate limit reached. Try again later."
       : detail || (response.status === 422 ? "Check the inputs and try again." : "The request could not be completed."));
   }
+  return response;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await apiResponse(path, init);
   return (response.status === 204 ? undefined : await response.json()) as T;
 }

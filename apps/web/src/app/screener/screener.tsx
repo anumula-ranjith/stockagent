@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useState, type FormEvent } from "react";
+import { UniverseFilters } from "@/components/universe-filters";
 import { DataTable } from "@/components/data-table";
 import { StockIdentity as StockTicker } from "@/components/stock-identity";
 import { CandleField, RangeFields } from "@/components/screen-fields";
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { AngelMarketStatus } from "@/components/angel-market-status";
 import type { components } from "@/lib/api-types";
 import styles from "./screener.module.css";
+import { ResultSettings } from "./result-settings";
 import { stockHref } from "@/lib/stock-context";
 
 import { screenQuery } from "@/lib/screener-query";
@@ -80,30 +82,7 @@ function AccountScreen({user}: {user: string}) {
   const rows = data?.rows.filter(r => r.ticker.toLowerCase().includes(search.trim().toLowerCase())) ?? [];
   return <div className={styles.layout}>
     <AngelMarketStatus user={user}/>
-    <section className={styles.universe} aria-label="Universe filters">
-      <label className="field">Nifty index
-        <select value={draft.index_code} onChange={e => set({index_code: e.target.value})}>
-          {Object.entries(data?.index_options ?? {NIFTY500: "Nifty 500", [draft.index_code]: draft.index_code}).map(([code, label]) =>
-            <option key={code} value={code}>{label}</option>)}
-        </select>
-      </label>
-      <label className="field">Market-cap segment
-        <select value={draft.cap} onChange={e => set({cap: e.target.value as ScreenFilters["cap"]})}>
-          <option value="">All sizes</option>
-          <option value="large">Large cap · Nifty 100</option>
-          <option value="mid">Mid cap · Midcap 150</option>
-          <option value="small">Small cap · Smallcap 250</option>
-        </select>
-      </label>
-      <label className="field">Industry
-        <select value={draft.industry} onChange={e => set({industry: e.target.value})}>
-          <option value="">All industries</option>
-          {(data?.industries ?? (draft.industry ? [draft.industry] : [])).map(value => <option key={value}>{value}</option>)}
-        </select>
-      </label>
-      <label className={styles.eligible}><input type="checkbox" checked={draft.fo_only}
-        onChange={e => set({fo_only: e.target.checked})}/>F&amp;O eligible only</label>
-    </section>
+    <UniverseFilters draft={draft} set={set} data={data}/>
     <form onSubmit={submit} className={styles.filter}>
       <h2>Screen filters</h2>
       <fieldset><legend>52-week range</legend>
@@ -128,10 +107,14 @@ function AccountScreen({user}: {user: string}) {
           <div><span>52-week range coverage</span><strong>{data.range_coverage}</strong></div>
         </div>
         <div className="surface">
-          <div className={styles.resultHead}><div><h2>{data.rows.length} matching stocks</h2>
-            <p>Daily Heikin Ashi · {day(data.asof)}</p></div>
-            <label className="field">Find a result<input type="search" value={search} placeholder="Ticker" onChange={e => setSearch(e.target.value)}/></label></div>
-          <DataTable columns={resultsColumns(data.filters)} data={rows} label="Nifty screener results" empty="No constituents match these filters."/>
+          <DataTable columns={resultsColumns(data.filters)} data={rows} label="Nifty screener results" empty="No constituents match these filters."
+            renderToolbar={sorted => <div className={styles.resultHead}>
+              <div><h2>{rows.length} matching stocks</h2><p>Daily Heikin Ashi · {day(data.asof)}</p></div>
+              <div className={styles.resultTools}><label className="field">Find a result<input type="search" value={search} placeholder="Ticker"
+                onChange={e => setSearch(e.target.value)}/></label>
+                <ResultSettings updating={query.isPlaceholderData} selection={{filters: data.filters, version: data.export_version,
+                  tickers: sorted.map(row => row.ticker), asof: data.asof}}/></div>
+            </div>}/>
         </div>
         <p className={styles.note}>The latest price is compared with adjusted highs and lows from the preceding 52 calendar weeks, excluding the latest session so new highs and lows can match. A listing must span the window and cover at least 95% of observed sessions. Heikin Ashi uses daily OHLC prices. A dash means history is unavailable.</p>
       </>}

@@ -1,5 +1,6 @@
 # Pinned-ish runtime deps. Dev tools in requirements-dev.txt.
 pandas>=2.1
+openpyxl>=3.1,<4
 numpy>=1.26
 pandas-ta>=0.3.14b
 pyarrow>=15
@@ -41,3 +42,7 @@ alpaca-py>=0.20
 #               fds.sdk.EventsandTranscripts
 
 celery[redis]>=5.5,<6
+
+# Local financial headline sentiment
+torch>=2.6,<3
+transformers>=4.48,<5

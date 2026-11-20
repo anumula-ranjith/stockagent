@@ -1,0 +1,42 @@
+{
+  "checked_at": "2026-11-20T08:37:45.520899+00:00",
+  "model": "ProsusAI/finbert@0bc2ac10dda6929bcb1f77ccc43c7ec5c424f031",
+  "headlines_checked": 2176,
+  "invalid_or_unscored_ids": [],
+  "by_publisher": [
+    {
+      "source": "Moneycontrol",
+      "headlines": 723
+    },
+    {
+      "source": "Mint",
+      "headlines": 253
+    },
+    {
+      "source": "Business Standard",
+      "headlines": 282
+    },
+    {
+      "source": "The Economic Times",
+      "headlines": 918
+    }
+  ],
+  "daily_aggregates": {
+    "stock_days": 984,
+    "stocks": 343
+  },
+  "universe_without_scored_headlines": 159,
+  "duplicate_source_keys": 0,
+  "news_pipeline_runs": [
+    {
+      "id": "a1e5cc96-a813-4e90-a528-fccf7fc980f1",
+      "status": "success",
+      "created_at": "2026-11-20 12:57:02.308224+05:30"
+    },
+    {
+      "id": "7a905291-a022-4334-83b6-6da92a602457",
+      "status": "partial",
+      "created_at": "2026-11-20 12:55:42.736314+05:30"
+    }
+  ]
+}

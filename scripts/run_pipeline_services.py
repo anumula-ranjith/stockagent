@@ -20,6 +20,7 @@ def main():
     pool = "solo" if os.name == "nt" else "prefork"
     base = [sys.executable, "-m", "celery", "-A", "stock_agents.jobs.celery_app:app"]
     commands = {
+        "company-news-worker": ["worker", "-Q", "quantora-news", "-n", "news@%h", "--pool", pool, "-c", "1", "-l", "INFO"],
         "pipeline-worker": ["worker", "-Q", "quantora-pipelines", "-n", "pipeline@%h", "--pool", pool, "-c", "1", "-l", "INFO"],
         "pipeline-control": ["worker", "-Q", "quantora-control", "-n", "control@%h", "--pool", pool, "-c", "1", "-l", "INFO"],
         "pipeline-beat": ["beat", "-s", str(logs / "celerybeat-schedule"), "-l", "INFO"],

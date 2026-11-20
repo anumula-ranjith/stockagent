@@ -116,30 +116,15 @@ def run_stage(name, day):
             from stock_agents.ingest.nse_short_selling import refresh_short_selling
             return summary(refresh_short_selling(day-timedelta(days=7), day))
         if name == "news":
-            from stock_agents.ingest.free_news import ingest_free_news
-            result = ingest_free_news(conn)
-            if result["status"] == "failed":
-                result["status"] = "partial"
-            # RSS remains independent of paid credentials and paid-source failures.
-            if settings.env("EODHD_API_KEY"):
-                from stock_agents.ingest.eodhd_news import refresh_eodhd_news
-                try:
-                    with conn.begin_nested():
-                        paid = refresh_eodhd_news(conn, "news")
-                except Exception:
-                    paid = {"status": "failed", "reason": "EODHD news unavailable"}
-                result["eodhd"] = paid
-                if paid["status"] == "awaiting_quota":
-                    result.update(status="awaiting_quota", retry_at=paid["retry_at"], reason=paid["reason"])
-                    return result
-                if paid["status"] != "ok" or result["status"] != "ok":
-                    result["status"] = "partial"
-            return result
+            from stock_agents.ingest.company_news import ingest
+            today = datetime.now(TZ).date()
+            sources = ingest(today-timedelta(days=1), today, "all")
+            incomplete = [r for r in sources if r["status"] not in ("success", "limited")]
+            return {"status": "partial" if incomplete else "ok", "sources": sources,
+                    "coverage": "limited publisher feeds", "failures_count": len(incomplete)}
         if name == "sentiment":
-            if not settings.env("EODHD_API_KEY"):
-                return {"status": "skipped", "reason": "EODHD source is not configured"}
-            from stock_agents.ingest.eodhd_news import refresh_eodhd_news
-            return refresh_eodhd_news(conn, "sentiment")
+            from stock_agents.ingest.free_sentiment import refresh_sentiment
+            return refresh_sentiment(conn)
         if name == "scores":
             from stock_agents.engine.scores import compute_and_store
             from stock_agents.storage.warehouse import Warehouse

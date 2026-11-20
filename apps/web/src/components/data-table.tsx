@@ -5,11 +5,12 @@ import {
   getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { State } from "./presentation";
 
-export function DataTable<T>({ data, columns, label, empty, pageSize = 25 }: {
+export function DataTable<T>({ data, columns, label, empty, pageSize = 25, renderToolbar }: {
   data: T[]; columns: ColumnDef<T>[]; label: string; empty: string; pageSize?: number;
+  renderToolbar?: (sortedRows: T[]) => ReactNode;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
@@ -18,8 +19,10 @@ export function DataTable<T>({ data, columns, label, empty, pageSize = 25 }: {
     getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
-  if (!data.length) return <State>{empty}</State>;
+  const toolbar = renderToolbar?.(table.getPrePaginationRowModel().rows.map(row => row.original));
   return <>
+    {toolbar}
+    {!data.length ? <State>{empty}</State> : <>
     <div className="table-scroll" tabIndex={0} role="region" aria-label={label}>
       <table aria-label={label}>
         <thead>{table.getHeaderGroups().map(group => <tr key={group.id}>
@@ -44,5 +47,6 @@ export function DataTable<T>({ data, columns, label, empty, pageSize = 25 }: {
       <button className="icon-button" aria-label="Previous page" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}><ChevronLeft size={19}/></button>
       <button className="icon-button" aria-label="Next page" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}><ChevronRight size={19}/></button>
     </div>}
+    </>}
   </>;
 }

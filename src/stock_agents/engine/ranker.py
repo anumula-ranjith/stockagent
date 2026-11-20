@@ -26,13 +26,14 @@ TECH = {
 SENT = {
     "news_tone_7d": 8,
     "news_volume": 3,
+    "news_attention_7d": 3,
     "hot_sector": 6,
     "est_revisions": 6,
     "rating_change_1m": 4,
     "social_buzz": 0,
     "insider_activity": 3,
-    "short_interest": 3,
-    "nse_short_selling_activity": 0,
+    "short_interest": 0,
+    "nse_short_selling_activity": 3,
 }
 MOM = {"ret_1m": 3, "ret_3m": 6, "ret_6m": 7, "ret_12_1": 9, "rel_str": 3, "accel": 2}
 PILLARS = {

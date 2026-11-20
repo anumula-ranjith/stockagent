@@ -15,7 +15,7 @@ const ClerkLogin = dynamic(() => import("@/components/clerk-login"), { ssr: fals
 export function LoginForm() {
   const search = useSearchParams();
   const candidate = search.get("next");
-  const next = candidate && /^\/(dashboard|screener|stocks(?:\/[a-z0-9.%&_-]+)?|backtest|methodology|account)(?:\?|$)/i.test(candidate)
+  const next = candidate && /^\/(dashboard|screener|stocks(?:\/[a-z0-9.%&_-]+)?|backtest|methodology|account|portfolio|watchlist|news|datadaily(?:\/[a-z0-9_%.-]+)*)(?:\?|$)/i.test(candidate)
     ? candidate : "/dashboard";
   const [message, setMessage] = useState("");
   const [needsVerification, setNeedsVerification] = useState(false);
