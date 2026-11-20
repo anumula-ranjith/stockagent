@@ -169,36 +169,12 @@
 }
 .searchMessage { color:var(--muted); font-size:12px; margin-top:7px; font-style:italic; }
 
-/* ---------- section nav (editorial jumplinks) ---------- */
 .nav {
-  display:flex; flex-wrap:wrap;
-  gap:0;
-  border-top:1px solid var(--line-strong);
-  border-bottom:1px solid var(--line-strong);
-  padding:0;
-  background:var(--panel);
+  composes: section-links from global;
+  display:flex; flex-wrap:wrap; gap:4px; padding:5px;
+  background:var(--panel); border:1px solid var(--line); border-radius:16px;
   position:sticky; top:60px; z-index:10;
-  margin-inline:-20px;
-  padding-inline:20px;
 }
-.nav a {
-  position:relative;
-  padding:14px 18px;
-  color:var(--muted);
-  font-weight:600; font-size:12.5px;
-  letter-spacing:.02em;
-  font-family:var(--font-sans);
-  border-right:1px solid var(--line);
-  transition:color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
-}
-.nav a:hover { color:var(--ink); background:var(--soft); }
-.nav a::after {
-  content:""; position:absolute;
-  left:50%; right:50%; bottom:-1px;
-  height:2px; background:var(--accent);
-  transition:left var(--dur-base) var(--ease-out), right var(--dur-base) var(--ease-out);
-}
-.nav a:hover::after { left:0; right:0; }
 
 @media (max-width: 720px) {
   .stockSearch { width:100%; }

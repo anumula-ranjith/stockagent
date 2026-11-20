@@ -74,26 +74,12 @@
   border-bottom:1px solid var(--rule);
   flex-wrap:wrap;
 }
-.sections {
-  display:inline-flex; flex-wrap:wrap; gap:0;
-  background:var(--soft); border:1px solid var(--line);
-  padding:3px; border-radius:var(--radius-input);
-}
-.sections button, .export, .actions button, .paging button, .filterToggle {
+.sections { composes: segmented-controls from global; flex-wrap:wrap; }
+.export, .actions button, .paging button, .filterToggle {
   display:inline-flex; align-items:center; justify-content:center;
   gap:7px; font-weight:600;
   border-radius:var(--radius-input);
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
-}
-.sections button {
-  padding:6px 13px; min-height:30px;
-  color:var(--muted); background:transparent; border:0;
-  font-size:12.5px; letter-spacing:.01em;
-}
-.sections button:hover { color:var(--ink); }
-.sections button[aria-pressed="true"] {
-  background:var(--panel); color:var(--ink);
-  box-shadow:0 1px 0 var(--line);
 }
 .actions button[type=submit] {
   background:var(--ink); color:var(--panel);
@@ -278,7 +264,7 @@
 .table a svg { display:inline; }
 
 @media(prefers-reduced-motion:no-preference) {
-  .sections button, .export, .story h3 svg, .coverage summary svg, .filterToggle svg {
+  .export, .story h3 svg, .coverage summary svg, .filterToggle svg {
     transition:background-color .18s, color .18s, transform .18s;
   }
 }
