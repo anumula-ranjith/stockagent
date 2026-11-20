@@ -41,12 +41,12 @@ export function Tuner() {
       <span className={s.source}><i/>{data?.price_date?"NSE close · "+data.price_date:"NSE India · End of day"}</span></div>
       {session.data && <label className={s.date}>Ranking date<input type="date" aria-label="Ranking date" value={date||data?.asof||""} max={new Date().toLocaleDateString("en-CA")} onChange={e=>setDate(e.target.value)}/></label>}
     </header>
-    {session.data && tab!=="portfolio" && <UniverseFilters data={data} draft={universe} set={patch=>setUniverse(current=>({...current,...patch}))}/>}
+    {session.data && <UniverseFilters data={data} draft={universe} set={patch=>setUniverse(current=>({...current,...patch}))}/>}
     <nav className={s.tabs} aria-label="Ranking workspaces">{tabs.map(name=><button key={name} aria-current={name===tab?"page":undefined}
       onClick={()=>void setTab(name as Tab)}>{labels[name]}</button>)}</nav>
     {session.isPending ? <State>Checking your session…</State> : session.isError ? <State error>Session unavailable.</State>
       : !session.data ? <SignInNotice next="/dashboard">Sign in to tune the four agents and compare their portfolios.</SignInNotice>
-      : tab==="portfolio" ? <Portfolio config={config} end={date||data?.asof||new Date().toISOString().slice(0,10)} admin={!!session.data.is_admin} user={session.data.id}/>
+      : tab==="portfolio" ? <Portfolio selection={universe} config={config} end={date||data?.asof||new Date().toISOString().slice(0,10)} admin={!!session.data.is_admin} user={session.data.id}/>
       : <div className={s.grid}><SettingsPanel tab={tab} config={config} change={setConfig} coverage={data?.coverage}/>
         <section className={s.results} aria-busy={snapshot.isFetching}>
           <p className={s.summary}>{summaries[tab]}</p>

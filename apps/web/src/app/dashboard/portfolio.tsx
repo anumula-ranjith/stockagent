@@ -7,6 +7,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, type JobRef, type JobStatus } from "@/lib/api";
+import type { UniverseSelection } from "@/components/universe-filters";
 import { Control } from "./ranker-controls";
 import { type Settings } from "./ranker-model";
 import s from "./ranker.module.css";
@@ -14,7 +15,7 @@ import s from "./ranker.module.css";
 type Metrics = { annual_return:number; sharpe:number; sortino:number|null; max_drawdown:number; annual_vol:number;
   calmar:number|null; up_days:number; total_return:number };
 type Report = Metrics & {benchmark:Metrics; start:string; end:string; beta:number|null; turnover:number; rebalances:number;
-  settings:{universe:string; portfolio:string; cost_bps:number; rebalance:string}; equity_curve:{date:string; equity:number; benchmark:number}[];
+  settings:{selection?:UniverseSelection; universe:string; portfolio:string; cost_bps:number; rebalance:string}; equity_curve:{date:string; equity:number; benchmark:number}[];
   holdings_date?:string|null; holdings_last?:{ticker:string;side:"Long"|"Short";weight:number;composite:number|null}[];
   trades_latest?:{date:string;ticker:string;action:"Buy"|"Sell"|"Short"|"Cover";composite:number|null}[]};
 const pct = (v:number) => (100*v).toFixed(1)+"%";
@@ -34,6 +35,7 @@ function ReplayResults({result}:{result:Report}) {
     ["max_drawdown","Max drawdown",pct],["annual_vol","Volatility",pct],["calmar","Calmar",number],["up_days","Up days",pct],
   ];
   return <>
+    <p className={s.hint}>Report filters · {[result.settings.selection?.index_code || "NIFTY500", result.settings.selection?.cap ? result.settings.selection.cap+" cap" : "All sizes", result.settings.selection?.industry || "All industries", result.settings.selection?.fo_only ? "F&O eligible only" : "All F&O statuses"].join(" · ")}</p>
     <p className={s.summary}>Strategy returned <strong>{pct(result.total_return)}</strong> versus {pct(result.benchmark.total_return)} for the equal-weight benchmark from {result.start} to {result.end}.</p>
     <div className={s.metrics}>{stats.map(([key,label,fmt])=><div key={key}><small>{label}</small><strong>{result[key]==null?"—":fmt(result[key])}</strong>
       <small>Benchmark {result.benchmark[key]==null?"—":fmt(result.benchmark[key])}</small></div>)}
@@ -68,7 +70,7 @@ function ReplayResults({result}:{result:Report}) {
     <p className={s.hint}>{result.settings.universe==="current_cohort"?"Current-cohort retrospective · Uses end-date constituents, classifications and revised adjusted prices. Survivorship bias applies.":"Historical membership · Signals use observations known on each rebalance date."} {result.rebalances} rebalances · {result.settings.cost_bps} bps per side.</p>
   </>;
 }
-export function Portfolio({config,end,admin,user}:{config:Settings;end:string;admin:boolean;user:string}) {
+export function Portfolio({selection,config,end,admin,user}:{selection:UniverseSelection;config:Settings;end:string;admin:boolean;user:string}) {
   const [job,setJob] = useQueryState("replay",parseAsString);
   const [months,setMonths] = useState(12);
   const [freq,setFreq] = useState("monthly");
@@ -79,7 +81,7 @@ export function Portfolio({config,end,admin,user}:{config:Settings;end:string;ad
   const latest = useQuery({queryKey:["ranker-report",user],queryFn:({signal})=>api<Report|{note:string}>("/ranker/latest",{signal}),enabled:!job});
   const task = useQuery({queryKey:["ranker-job",user,job],queryFn:({signal})=>api<JobStatus>("/jobs/"+encodeURIComponent(job!),{signal}),
     enabled:!!job, refetchInterval:q=>q.state.error||finish(q.state.data?.status)?false:1800});
-  const run = useMutation({mutationFn:()=>api<JobRef>("/ranker/backtest",{method:"POST",body:JSON.stringify({end,months,rebalance:freq,portfolio,universe,weighting,cost_bps:cost,settings:config})}),
+  const run = useMutation({mutationFn:()=>api<JobRef>("/ranker/backtest",{method:"POST",body:JSON.stringify({selection,end,months,rebalance:freq,portfolio,universe,weighting,cost_bps:cost,settings:config})}),
     onSuccess:v=>void setJob(v.job_id)});
   const busy = !!job && !task.isError && !finish(task.data?.status);
   const result = job ? task.data?.result as Report|null : latest.data && "benchmark" in latest.data ? latest.data : null;

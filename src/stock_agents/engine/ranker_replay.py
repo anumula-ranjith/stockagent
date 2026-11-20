@@ -1,6 +1,7 @@
 """Replay the ranker's settings on observed membership and point-in-time signals."""
 
 from datetime import date, timedelta
+from functools import lru_cache
 from typing import Literal
 
 import numpy as np
@@ -9,9 +10,11 @@ from pydantic import BaseModel, Field
 
 from stock_agents.engine.ranker import RankSettings, feature, score_book
 from stock_agents.engine.ranker_inputs import PUBLIC_SOURCE, snapshot_inputs
+from stock_agents.engine.rank_universe import UniverseSelection, universe_metadata
 
 
 class Replay(BaseModel):
+    selection: UniverseSelection = Field(default_factory=UniverseSelection)
     settings: RankSettings = Field(default_factory=RankSettings)
     end: date
     months: Literal[3, 6, 12, 24, 36] = 12
@@ -106,6 +109,13 @@ def replay(conn, cfg: Replay):
         return {
             "error": "No earlier point-in-time Nifty 500 membership is stored for this period. A replay needs membership before its first trade."
         }
+    filtered = cfg.selection != UniverseSelection()
+
+    @lru_cache(maxsize=32)
+    def eligible_on(observed):
+        groups, industries = universe_metadata(conn, observed)
+        return cfg.selection.eligible(prices.columns, groups, industries)
+
     dates = prices.index.tolist()
     target_by_day = {}
     current_period = None
@@ -118,6 +128,8 @@ def replay(conn, cfg: Replay):
         raw, _ = snapshot_inputs(conn, day, cohort_date=end if retrospective else None)
         if raw.empty:
             continue
+        if filtered:
+            raw = raw.loc[raw.index.isin(eligible_on(end if retrospective else day))]
         current_period = period
         ranked, books = score_book(raw, cfg.settings)
         book = books["combined"]
@@ -154,6 +166,8 @@ def replay(conn, cfg: Replay):
             if retrospective
             or (joined <= prior and known <= prior and (left is None or left > prior))
         }
+        if filtered:
+            membership_prior.intersection_update(eligible_on(end if retrospective else prior))
         benchmark_names = prices.loc[prior].dropna().index.intersection(membership_prior)
         benchmark_weights[:] = 0.0
         if len(benchmark_names):
