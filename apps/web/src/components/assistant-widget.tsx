@@ -20,7 +20,7 @@ export function AssistantWidget() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
-  if (pathname === "/assistant") return null;
+  if (pathname === "/assistant" || pathname === "/datadaily/assistant") return null;
   return <div className={styles.widget}>
     {open && <section className={styles.panel} aria-label="QUANTORA product assistant">
       <div className={styles.heading}><div><strong>Product assistant</strong><small>Private chat · QUANTORA</small></div>

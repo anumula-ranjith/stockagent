@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
@@ -96,6 +98,7 @@ class ScreenRow(BaseModel):
 
 
 class ScreenResult(BaseModel):
+    export_version: str
     asof: date | None
     price_source: str | None = None
     exchange_trade_at: datetime | None = None
@@ -430,7 +433,14 @@ def screen_market_status(_user: CurrentUser):
 
 @router.post("/screener/run", response_model=ScreenResult)
 def run_screen(query: Screen, _user: CurrentUser):
-    return evaluate(cached_history(), query)
+    return screen_snapshot(query)
+
+
+def screen_snapshot(query: Screen) -> dict:
+    result = evaluate(cached_history(), query)
+    snapshot = json.dumps([result["asof"], result["rows"]], sort_keys=True, separators=(",", ":"))
+    result["export_version"] = hashlib.sha256(snapshot.encode()).hexdigest()
+    return result
 
 
 @router.post("/screener/stock/{ticker}", response_model=StockIndicators)

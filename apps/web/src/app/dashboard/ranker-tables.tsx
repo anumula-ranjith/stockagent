@@ -9,7 +9,7 @@ import s from "./ranker.module.css";
 export function Heat({data,boost}:{data:Snapshot["heat"];boost:boolean}) {
   const width = Math.max(.001,...data.map(item=>Math.abs(item.value)));
   return <section className={s.card}><h2>Sector heat, 20-day return</h2>
-    {data.length ? <div className={s.heat}>{data.map(({sector,value},i)=><div key={sector} className={s.heatRow}>
+    {data.length ? <div className={s.heat}>{data.map(({sector,value},i)=><div key={sector} className={s.heatRow} style={{["--i" as never]:i}}>
       <span>{sector}{boost && i<3?" ★":""}</span><span className={s.heatTrack}><i style={{left:value>=0?"50%":(50-50*Math.abs(value)/width)+"%",width:50*Math.abs(value)/width+"%",background:value>=0?"var(--rk-up)":"var(--rk-down)"}}/></span>
       <strong className={value>=0?s.up:s.down}>{display(value,"percent")}</strong></div>)}</div>
       : <p className={s.empty}>No sector-classified stocks have a 20-session return on this date.</p>}
@@ -31,7 +31,7 @@ export function Candidates({tab,data,side,size,settings}:{tab:Exclude<Tab,"portf
       <thead><tr><th>#</th><th>Ticker</th><th className={s.sector}>Sector</th>{fields.map(([key,label])=><th key={key}>{label}</th>)}{combined && <><th>Agents</th><th>Composite</th></>}</tr></thead>
       <tbody>{names.map((ticker,index)=>{
         const row = data.rows[ticker];
-        return <tr key={ticker}><td>{index+1}</td><td><StockTicker ticker={ticker} href={stockHref(ticker,{settings,asof:data.asof})}/></td>
+        return <tr key={ticker} style={{["--i" as never]:index}}><td>{index+1}</td><td><StockTicker ticker={ticker} href={stockHref(ticker,{settings,asof:data.asof})}/></td>
           <td className={s.sector} title={row.sector}>{row.sector}</td>{fields.map(([key,,kind])=>{
             const val = row.values[key];
             return <td key={key} className={kind==="percent" && val!=null ? val<0?s.down:s.up:undefined}>{display(val,kind)}</td>;

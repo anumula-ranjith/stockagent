@@ -23,12 +23,15 @@ def _prices_pivot(
     """
     cutoff = asof - timedelta(days=lookback_days)
     rows = conn.execute(
-        """SELECT date, ticker, adj_close
+        """SELECT date, ticker, adj_close FROM (
+           SELECT date,ticker,adj_close,ROW_NUMBER() OVER (
+             PARTITION BY ticker,date ORDER BY (source='eodhd') DESC,
+             known_date DESC,source) AS priority
            FROM prices_daily
            WHERE date BETWEEN ? AND ?
              AND known_date <= ?
              AND adj_close IS NOT NULL
-           ORDER BY date""",
+           ) chosen WHERE priority=1 ORDER BY date""",
         [cutoff, asof, asof],
     ).fetchall()
     if not rows:

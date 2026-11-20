@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { LatestStockNews } from "@/app/news/company-news";
 import { StockActions } from "@/components/stock-actions";
-import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { PageTitle, SignInNotice, State } from "@/components/presentation";
 import { useSession } from "@/components/providers";
-import { api, ApiError, type HistoryPoint, type NewsItem, type PriceBar, type UniverseRow } from "@/lib/api";
+import { api, ApiError, type HistoryPoint, type PriceBar, type UniverseRow } from "@/lib/api";
 import { stockHref, type ChartRules, type Periods } from "@/lib/stock-context";
 import { screenDescription, type ScreenFilters } from "@/lib/screen-filters";
 import type { Settings } from "@/app/dashboard/ranker-model";
@@ -24,8 +24,6 @@ const HistoryChart = dynamic(() => import("@/components/research-charts").then(m
   ssr: false, loading: () => <State>Loading score chart…</State>,
 });
 const periods = [[90, "3M"], [365, "1Y"], [1095, "3Y"], [3650, "All"]] as const;
-const safeUrl = (value?: string | null) => !!value && /^https?:\/\//i.test(value) ? value : null;
-
 export function StockDetail({ ticker, periods: inputs, rules, settings, asof, screen }: {
   ticker: string; periods: Periods; rules: ChartRules; settings?: Settings; asof?: string; screen?: ScreenFilters;
 }) {
@@ -54,15 +52,6 @@ export function StockDetail({ ticker, periods: inputs, rules, settings, asof, sc
     const high=Math.max(...year.map(row=>row.high??0)), low=Math.min(...year.map(row=>row.low??Infinity));
     rangeText=`As of ${end.date} · ${(100*(1-end.close/high)).toFixed(2)}% below 52-week high · ${(100*(end.close/low-1)).toFixed(2)}% above 52-week low · Raw daily candles`;
   }
-  const news = useQuery({
-    queryKey: ["news", ticker, session.data?.id], enabled: !!session.data,
-    refetchInterval: 60000,
-    queryFn: ({ signal }) => api<NewsItem[]>(`/news/${encoded}?limit=15`, { signal }),
-  });
-  const newsStatus = useQuery({
-    queryKey: ["news-status", ticker, session.data?.id], enabled: !!session.data, refetchInterval: 60000,
-    queryFn: ({ signal }) => api<{status: string; updated_at: string | null; feeds_ok: number; feeds_total: number; articles: number}>(`/news-status/${encoded}`, { signal }),
-  });
   const history = useQuery({
     queryKey: ["history", ticker, session.data?.id], enabled: !!session.data,
     queryFn: ({ signal }) => api<HistoryPoint[]>(`/scores/${encoded}`, { signal }),
@@ -103,7 +92,7 @@ export function StockDetail({ ticker, periods: inputs, rules, settings, asof, sc
     </div>
     <nav className={styles.nav} aria-label="Stock sections">{[
       ["profile","Overview"], ...(session.data ? [["analysis","Agent readings"],["indicators","Technical indicators"]] : []),
-      ["prices","Price chart"],...(session.data?[["derivatives","Derivatives"]]:[]),["history","Score history"],["news","Headlines"],
+      ["prices","Price chart"],...(session.data?[["derivatives","Derivatives"]]:[]),["history","Score history"],["news","News & announcements"],
     ].map(([id,label])=><a key={id} href={"#"+id}>{label}</a>)}</nav>
     {appliedScreen && <div className="surface surface-top"><div>
       <h2 className="section-title">Applied screener filters</h2><p>{screenDescription(appliedScreen)}</p>
@@ -132,26 +121,6 @@ export function StockDetail({ ticker, periods: inputs, rules, settings, asof, sc
         : history.isError ? <State error>{history.error.message}</State>
         : history.data ? <div className="chart-pad"><HistoryChart points={history.data}/></div> : <State>Loading scores…</State>}
     </div>
-    <div className="surface" id="news">
-      <div className="surface-top"><h2 className="section-title">Stock-related news</h2>
-        <button className="button button-secondary" type="button" disabled={news.isFetching || !session.data} onClick={()=>{void news.refetch();void newsStatus.refetch();}}>Refresh headlines</button></div>
-      <div className="chart-pad subtle"><p>Free Economic Times RSS and configured news sources · Personal research only. Updates with the 7:00 AM and 6:30 PM IST pipelines.</p>
-      {newsStatus.data && <p role="status">{newsStatus.data.status === "not_run" ? "Free feeds have not been checked yet." :
-        `Free feeds: ${newsStatus.data.status === "ok" ? "Updated" : "Some feeds need attention"} · ${newsStatus.data.feeds_ok}/${newsStatus.data.feeds_total} feeds checked · ${newsStatus.data.articles} stored headlines for ${ticker}`}
-        {newsStatus.data.updated_at && ` · Last checked ${new Date(newsStatus.data.updated_at).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})} IST`}</p>}
-      {newsStatus.isError && <p>Feed update status is unavailable. Stored headlines remain available below.</p>}</div>
-      {!session.data ? <State>Sign in to view stock-related news.</State> : news.isError ? <State error>{news.error.message}</State> : !news.data ? <State>Loading news…</State>
-        : !news.data.length ? <State>No matching headlines are stored yet. All Nifty 500 and F&O stocks are checked; not every company has news each day.</State>
-        : <div className="table-scroll" tabIndex={0} role="region" aria-label="Recent headlines">
-          <table><thead><tr><th>Date</th><th>Headline</th><th>Source</th><th>Sentiment</th></tr></thead>
-          <tbody>{news.data.map((item, index) => <tr key={item.published_at + index}>
-            <td>{dateLabel(item.published_at.slice(0, 10))}</td>
-            <td className="headline">{safeUrl(item.url)
-              ? <a href={safeUrl(item.url)!} target="_blank" rel="noopener noreferrer">{item.headline ?? "Read article"} <ArrowUpRight size={13}/></a>
-              : item.headline ?? "—"}</td>
-            <td>{item.source || "—"}</td><td>{item.polarity?.toFixed(2) ?? "Not scored"}</td>
-          </tr>)}</tbody></table>
-        </div>}
-    </div>
+    <LatestStockNews symbol={ticker}/>
   </div>;
 }

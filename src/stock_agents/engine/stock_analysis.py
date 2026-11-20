@@ -81,7 +81,12 @@ FACTOR_INFO = {
     "news_tone_7d": (
         "Seven-day news tone",
         "polarity",
-        "Average headline polarity weighted by headline count and a two-day half-life.",
+        "Local FinBERT headline estimates (positive minus negative probability), weighted by deduplicated headline count and a two-day half-life. Free-feed coverage is limited.",
+    ),
+    "news_attention_7d": (
+        "News attention (7-day)",
+        "count",
+        "Deduplicated matched media headlines over seven days. Measures news coverage, not social-media activity.",
     ),
     "news_volume": (
         "News volume vs normal",

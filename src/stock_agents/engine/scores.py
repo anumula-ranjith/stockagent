@@ -83,7 +83,7 @@ def sentiment_scores(conn: Warehouse, asof: date) -> pd.DataFrame:
                   AVG(polarity) AS pol,
                   SUM(n_headlines) AS hn
            FROM sentiment_daily
-           WHERE effective_date >= ? - INTERVAL '30 days'
+           WHERE source='free_news_finbert' AND effective_date >= ? - INTERVAL '30 days'
              AND effective_date <= ?
              AND known_date <= ?
            GROUP BY ticker""",

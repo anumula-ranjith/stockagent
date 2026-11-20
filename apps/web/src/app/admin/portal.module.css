@@ -1,1 +1,177 @@
-.root{display:grid;gap:22px}.header,.row,.schedule{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.header h1{margin:4px 0;font-size:32px}.tabs{display:flex;gap:8px;border-bottom:1px solid var(--border);overflow-x:auto;padding-bottom:12px}.tabs button{padding:10px 16px;border-radius:7px;white-space:nowrap}.tabs [aria-current=page]{background:#24486c;color:white}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}.card{padding:18px;border:1px solid var(--border);border-radius:10px;display:grid;gap:10px}.card span{font-size:13px;opacity:.75}.card strong{font-size:23px}.root section,.form{padding:24px}.form{display:flex;flex-wrap:wrap;align-items:end;gap:16px}.form h2,.form p{flex-basis:100%;margin:0}.form label{min-width:210px}.flow{display:grid;gap:12px;padding-left:22px;line-height:1.6}.badge{display:inline-block;font-size:12px;padding:4px 8px;border-radius:5px;background:#e8edf4;color:#263e5b;text-transform:capitalize}.badge[data-status=success]{background:#d7f1e4;color:#11613b}.badge[data-status=partial],.badge[data-status=retrying]{background:#fff0cb;color:#795900}.badge[data-status=failed],.badge[data-status=cancelled]{background:#ffe0dc;color:#9b3022}.badge[data-status=running]{background:#dfeaff;color:#234d9c}.error{color:#b9372a}.warning{border-left:3px solid #c89624;padding:12px 16px;background:#b5881510}.stage{padding:14px 0;border-bottom:1px solid var(--border)}.stage summary{cursor:pointer;text-transform:capitalize;display:flex;gap:16px;align-items:center}.stage pre{overflow:auto;max-height:320px;padding:12px;background:#75879b10;border-radius:6px;font-size:12px}.schedule{padding:20px 0;border-bottom:1px solid var(--border)}.root table{width:100%}.root th,.root td{text-align:left;padding:12px;border-bottom:1px solid var(--border)}@media(max-width:640px){.root section,.form{padding:16px}.form label{min-width:0;width:100%}.header h1{font-size:26px}}
+/* =========================================================
+   Admin portal — operations console
+   ========================================================= */
+.root {
+  display:grid;
+  gap:24px;
+  --border:var(--line);
+}
+
+.header, .row, .schedule {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:18px; flex-wrap:wrap;
+}
+.header h1 {
+  font-size:24px; font-weight:650;
+  letter-spacing:-.02em;
+  line-height:1.2;
+  margin:4px 0;
+  animation:fade-up 480ms var(--ease-out) both;
+}
+.header h1 em { font-style:italic; color:var(--accent); }
+
+.tabs {
+  display:inline-flex;
+  gap:0;
+  background:var(--soft);
+  border:1px solid var(--line);
+  padding:3px;
+  border-radius:var(--radius-input);
+  overflow-x:auto;
+  scrollbar-width:thin;
+}
+.tabs button {
+  padding:7px 14px;
+  border-radius:var(--radius-input);
+  white-space:nowrap;
+  background:transparent;
+  border:0;
+  color:var(--muted);
+  font-weight:600; font-size:12.5px;
+  letter-spacing:.02em;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.tabs button:hover { color:var(--ink); }
+.tabs [aria-current=page] {
+  background:var(--ink);
+  color:var(--panel);
+}
+
+.cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:0;
+  margin:14px 0;
+  border:1px solid var(--line);
+  background:var(--line);
+}
+.card {
+  padding:18px 20px;
+  border:0;
+  background:var(--panel);
+  display:grid; gap:10px;
+  animation:fade-up 400ms var(--ease-out) both;
+  animation-delay:calc(var(--i,0) * 50ms);
+}
+.card span {
+  font-size:10.5px; letter-spacing:.11em;
+  text-transform:uppercase; font-weight:600;
+  color:var(--muted);
+}
+.card strong {
+  font-size:20px; font-weight:650;
+  letter-spacing:-.015em;
+  font-variant-numeric:tabular-nums;
+}
+
+.root section, .form {
+  padding:24px;
+  background:var(--panel);
+  border:1px solid var(--line);
+}
+.form {
+  display:flex; flex-wrap:wrap;
+  align-items:end; gap:18px;
+}
+.form h2 {
+  flex-basis:100%; margin:0;
+  font-size:16px; font-weight:650;
+  letter-spacing:-.01em;
+}
+.form p { flex-basis:100%; margin:0; color:var(--muted); font-size:13px; font-style:italic; }
+.form label { min-width:220px; font-size:12.5px; }
+
+.flow {
+  display:grid; gap:12px;
+  padding-left:24px;
+  line-height:1.6;
+  font-size:13.5px;
+  color:var(--ink-soft);
+}
+
+.badge {
+  display:inline-block;
+  font-size:10.5px;
+  padding:3px 9px;
+  border-radius:0;
+  background:var(--soft);
+  color:var(--ink);
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  font-weight:650;
+  border-left:2px solid var(--muted);
+}
+.badge[data-status=success] {
+  background:var(--long-soft); color:var(--long); border-left-color:var(--long);
+}
+.badge[data-status=partial], .badge[data-status=retrying] {
+  background:var(--accent-soft); color:var(--accent); border-left-color:var(--accent);
+}
+.badge[data-status=failed], .badge[data-status=cancelled] {
+  background:var(--short-soft); color:var(--short); border-left-color:var(--short);
+}
+.badge[data-status=running] {
+  background:color-mix(in srgb, var(--s1) 12%, var(--panel));
+  color:var(--s1);
+  border-left-color:var(--s1);
+}
+
+.error { color:var(--short); }
+.warning {
+  border-left:3px solid var(--accent);
+  padding:14px 18px;
+  background:var(--accent-soft);
+  font-size:13px;
+}
+
+.stage {
+  padding:16px 0;
+  border-bottom:1px solid var(--border);
+}
+.stage summary {
+  cursor:pointer;
+  text-transform:uppercase;
+  display:flex; gap:18px; align-items:center;
+  font-size:12px; font-weight:650;
+  letter-spacing:.09em;
+  color:var(--ink);
+}
+.stage summary:hover { color:var(--accent); }
+.stage pre {
+  overflow:auto; max-height:340px;
+  padding:14px; margin-top:12px;
+  background:var(--soft);
+  border-left:2px solid var(--line-strong);
+  border-radius:0;
+  font-size:11.5px; line-height:1.55;
+  font-family:ui-monospace, "SF Mono", Menlo, monospace;
+  color:var(--ink-soft);
+}
+
+.schedule {
+  padding:22px 0;
+  border-bottom:1px solid var(--border);
+}
+
+.root table { width:100%; }
+.root th, .root td {
+  text-align:left;
+  padding:12px 14px;
+  border-bottom:1px solid var(--border);
+}
+
+@media(max-width:640px) {
+  .root section, .form { padding:18px; }
+  .form label { min-width:0; width:100%; }
+  .header h1 { font-size:28px; }
+}

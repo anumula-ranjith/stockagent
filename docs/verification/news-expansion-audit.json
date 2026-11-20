@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-11-20T14:07:35.871573+05:30",
+  "stocks": 500,
+  "price_date": "2026-11-19",
+  "coverage": {
+    "news_tone_7d": 299,
+    "news_attention_7d": 299,
+    "news_volume": 296,
+    "insider_activity": 51,
+    "nse_short_selling_activity": 488,
+    "short_interest": 0,
+    "social_buzz": 0
+  },
+  "company_search": {
+    "companies": 501,
+    "failed": 0,
+    "matches": 4973
+  },
+  "headlines": {
+    "stored": 2176,
+    "scored": 2176
+  }
+}

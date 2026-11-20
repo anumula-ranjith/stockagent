@@ -21,6 +21,6 @@ export function SignInNotice({ next, children }: { next: string; children: React
   return <div className="signin-notice">
     <LockKeyhole size={20} aria-hidden="true"/>
     <div><h3>Sign in to continue</h3><p>{children}</p></div>
-    <Button asChild variant="secondary"><Link href={"/login?next=" + encodeURIComponent(next)}>Sign in <ArrowRight size={16}/></Link></Button>
+    <Button asChild variant="primary"><Link href={"/login?next=" + encodeURIComponent(next)}>Sign in <ArrowRight size={16}/></Link></Button>
   </div>;
 }

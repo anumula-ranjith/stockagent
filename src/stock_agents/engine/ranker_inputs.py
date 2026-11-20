@@ -198,35 +198,13 @@ def snapshot_inputs(
         conn,
         f"""SELECT ticker,effective_date,polarity,n_headlines
         FROM sentiment_daily WHERE effective_date BETWEEN ? AND ? AND known_date<=?
-        AND {PUBLIC_SOURCE}""",
+        AND source='free_news_finbert'""",
         [asof - timedelta(days=29), asof, asof],
         ["ticker", "day", "tone", "count"],
     )
-    # A headline-level observation can fill a missing daily aggregate. The
-    # aggregate takes precedence where both feeds describe the same stock-day.
-    headlines = _frame(
-        conn,
-        f"""SELECT ticker, CAST(published_at AS DATE), AVG(polarity), COUNT(*)
-            FROM news WHERE CAST(published_at AS DATE) BETWEEN ? AND ?
-              AND known_date<=? AND {PUBLIC_SOURCE}
-            GROUP BY ticker, CAST(published_at AS DATE)""",
-        [asof - timedelta(days=29), asof, asof],
-        ["ticker", "day", "tone", "count"],
-    )
-    if not headlines.empty:
-        news = pd.concat([news, headlines], ignore_index=True).drop_duplicates(["ticker", "day"])
     if not news.empty:
-        news["age"] = news["day"].map(lambda d: (asof - d).days)
-        recent = news.loc[news.age < 7].copy()
-        mass = recent["count"] * 2.0 ** (-recent.age / 2)
-        frame["news_tone_7d"] = (recent.tone * mass).groupby(recent.ticker).sum(
-            min_count=1
-        ) / mass.where(recent.tone.notna()).groupby(recent.ticker).sum(min_count=1)
-        frame["headlines"] = recent.groupby("ticker")["count"].sum()
-        normal = news.loc[news.age >= 3].groupby("ticker")["count"].sum() / 27
-        frame["news_volume"] = news.loc[news.age < 3].groupby("ticker")["count"].sum() / (
-            3 * normal.replace(0, np.nan)
-        )
+        from stock_agents.engine.news_factors import baseline_complete, news_factors
+        frame=frame.join(news_factors(news,asof,baseline_available=baseline_complete(conn,asof)))
     est = latest(
         "estimates_pit",
         ["ticker", "metric", "value", "source"],

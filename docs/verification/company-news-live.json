@@ -1,0 +1,48 @@
+{
+  "directory_companies": 3226,
+  "source_counts": [
+    {
+      "source": "Business Standard",
+      "records": 8
+    },
+    {
+      "source": "Mint",
+      "records": 4
+    },
+    {
+      "source": "Moneycontrol",
+      "records": 19
+    },
+    {
+      "source": "NSE equities",
+      "records": 1588
+    },
+    {
+      "source": "NSE sme",
+      "records": 397
+    },
+    {
+      "source": "The Economic Times",
+      "records": 22
+    }
+  ],
+  "historical_nse_repeat": {
+    "before": 1420,
+    "after": 1420
+  },
+  "pdf_http": 206,
+  "api_csv_comparison": {
+    "day": "2026-11-19",
+    "api_total": 580,
+    "pages": 12,
+    "csv_rows": 580,
+    "same_order_titles_urls": true
+  },
+  "backend_tests": 16,
+  "typescript": "passed",
+  "next_build": "passed",
+  "celery_task": "24e83029-7b79-4e2e-92a7-d14642a9ffaf succeeded",
+  "browser": "Sign-in pending; browser CSV download not yet verified",
+  "scheduled_nse_task": "68127b93-a36b-4cfc-933a-81a038dc0242 delivered by Beat and succeeded",
+  "media_worker_task": "ef7a0ed6-8449-4f51-9c63-173d7111295a succeeded for all four publishers"
+}

@@ -1,0 +1,95 @@
+{
+  "ticker": "PAYTM",
+  "start": "2026-11-19",
+  "end": "2026-11-19",
+  "timezone": "Asia/Kolkata",
+  "membership_basis": "current_snapshot_backfill",
+  "short_sales": [
+    {
+      "ticker": "PAYTM",
+      "trade_date": "2026-11-19",
+      "short_sale_shares": 56,
+      "source": "NSE historical short selling",
+      "retrieved_at": "2026-11-20T09:28:16.216143+00:00",
+      "run_id": "9707ae1c-218a-42e1-8fc4-5ad3f0b5dd87"
+    }
+  ],
+  "short_interest": [],
+  "publisher_buzz": [],
+  "public_social_posts": [],
+  "coverage": [
+    {
+      "source": "hacker_news",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-20",
+      "status": "success",
+      "started_at": "2026-11-20T09:28:50.248430+00:00",
+      "finished_at": "2026-11-20T09:29:38.979259+00:00",
+      "rows_fetched": 7034,
+      "rows_inserted": 0,
+      "rows_updated": 0,
+      "reason": "HN stories only; not all social networks",
+      "snapshot_id": "45ae7543-8bdb-44f0-a567-cf0eccddfa39",
+      "membership_basis": "current_snapshot_backfill",
+      "ticker_reason": null,
+      "ticker_not_requested": false,
+      "covers_requested_window": true
+    },
+    {
+      "source": "nse_short_sales",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-20",
+      "status": "success",
+      "started_at": "2026-11-20T09:28:15.568454+00:00",
+      "finished_at": "2026-11-20T09:28:16.334163+00:00",
+      "rows_fetched": 342,
+      "rows_inserted": 0,
+      "rows_updated": 0,
+      "reason": "Missing disclosure is not a zero",
+      "snapshot_id": "45ae7543-8bdb-44f0-a567-cf0eccddfa39",
+      "membership_basis": "current_snapshot_backfill",
+      "ticker_reason": null,
+      "ticker_not_requested": false,
+      "covers_requested_window": true
+    },
+    {
+      "source": "ortex",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-20",
+      "status": "unavailable",
+      "started_at": "2026-11-20T09:28:16.352358+00:00",
+      "finished_at": "2026-11-20T09:28:16.365120+00:00",
+      "rows_fetched": 0,
+      "rows_inserted": 0,
+      "rows_updated": 0,
+      "reason": "ORTEX_API_KEY not configured; no outstanding estimates collected",
+      "snapshot_id": "45ae7543-8bdb-44f0-a567-cf0eccddfa39",
+      "membership_basis": "current_snapshot_backfill",
+      "ticker_reason": null,
+      "ticker_not_requested": false,
+      "covers_requested_window": true
+    },
+    {
+      "source": "publisher_buzz",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-20",
+      "status": "limited",
+      "started_at": "2026-11-20T09:28:16.368148+00:00",
+      "finished_at": "2026-11-20T09:28:50.242374+00:00",
+      "rows_fetched": 1558,
+      "rows_inserted": 0,
+      "rows_updated": 0,
+      "reason": "Publisher/search coverage is limited; headline rule, not measured social engagement",
+      "snapshot_id": "45ae7543-8bdb-44f0-a567-cf0eccddfa39",
+      "membership_basis": "current_snapshot_backfill",
+      "ticker_reason": null,
+      "ticker_not_requested": false,
+      "covers_requested_window": true
+    }
+  ],
+  "notes": [
+    "No row means no collected observation, not zero.",
+    "Publisher buzz is headline coverage; HN is one public network.",
+    "Coverage describes overlapping ingestion runs; inspect covers_requested_window and ticker reasons."
+  ]
+}

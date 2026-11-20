@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { AngelMarketStatus } from "@/components/angel-market-status";
 import type { components } from "@/lib/api-types";
 import styles from "./screener.module.css";
+import { ResultSettings } from "./result-settings";
 import { stockHref } from "@/lib/stock-context";
 
 import { screenQuery } from "@/lib/screener-query";
@@ -106,10 +107,14 @@ function AccountScreen({user}: {user: string}) {
           <div><span>52-week range coverage</span><strong>{data.range_coverage}</strong></div>
         </div>
         <div className="surface">
-          <div className={styles.resultHead}><div><h2>{data.rows.length} matching stocks</h2>
-            <p>Daily Heikin Ashi · {day(data.asof)}</p></div>
-            <label className="field">Find a result<input type="search" value={search} placeholder="Ticker" onChange={e => setSearch(e.target.value)}/></label></div>
-          <DataTable columns={resultsColumns(data.filters)} data={rows} label="Nifty screener results" empty="No constituents match these filters."/>
+          <DataTable columns={resultsColumns(data.filters)} data={rows} label="Nifty screener results" empty="No constituents match these filters."
+            renderToolbar={sorted => <div className={styles.resultHead}>
+              <div><h2>{rows.length} matching stocks</h2><p>Daily Heikin Ashi · {day(data.asof)}</p></div>
+              <div className={styles.resultTools}><label className="field">Find a result<input type="search" value={search} placeholder="Ticker"
+                onChange={e => setSearch(e.target.value)}/></label>
+                <ResultSettings updating={query.isPlaceholderData} selection={{filters: data.filters, version: data.export_version,
+                  tickers: sorted.map(row => row.ticker), asof: data.asof}}/></div>
+            </div>}/>
         </div>
         <p className={styles.note}>The latest price is compared with adjusted highs and lows from the preceding 52 calendar weeks, excluding the latest session so new highs and lows can match. A listing must span the window and cover at least 95% of observed sessions. Heikin Ashi uses daily OHLC prices. A dash means history is unavailable.</p>
       </>}

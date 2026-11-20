@@ -57,8 +57,6 @@ class BacktestInputError(Exception):
 
 def _warehouse_job(kind: str, payload: dict, submitted: datetime, target) -> dict:
     from stock_agents.engine.scores import compute_and_store
-    from stock_agents.ingest.news import ingest_news, ingest_sentiment_daily
-    from stock_agents.sources.eodhd import EODHDClient
 
     since = submitted.astimezone(MARKET_TZ).date()
     source = Warehouse(target)
@@ -70,14 +68,15 @@ def _warehouse_job(kind: str, payload: dict, submitted: datetime, target) -> dic
 
         trade_date = date.fromisoformat(payload["trade_date"]) if payload.get("trade_date") else None
         return refresh_eod(target, trade_date=trade_date)
-    client = EODHDClient.from_env()
     if kind == "news":
-        count = ingest_news(source, client)
-    elif kind == "sentiment":
-        count = ingest_sentiment_daily(source, client)
-    else:
-        raise ValueError("Unsupported job type")
-    return {"rows": count}
+        from datetime import timedelta
+        from stock_agents.ingest.company_news import ingest
+        results=ingest(since-timedelta(days=1),since,"all")
+        return {"sources":results,"status":"partial" if any(r["status"] not in ("success","limited") for r in results) else "ok"}
+    if kind == "sentiment":
+        from stock_agents.ingest.free_sentiment import refresh_sentiment
+        return refresh_sentiment(target)
+    raise ValueError("Unsupported job type")
 
 
 def run_job(job_id: str) -> None:

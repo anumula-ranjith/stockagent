@@ -14,6 +14,7 @@ export function rankingQuery(user: string | undefined, date = "", settings: Sett
   return queryOptions({
     queryKey: ["ranker", user, date, settings, selection],
     enabled: !!user,
+    refetchInterval: date ? false : 60_000,
     queryFn: async ({ signal }) => ({
       ...await api<Snapshot & UniverseOptions>("/ranker/snapshot" + (params.size ? "?" + params : ""), {
         method: "POST", signal, body: JSON.stringify(settings),

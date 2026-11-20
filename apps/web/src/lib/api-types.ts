@@ -966,6 +966,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/screener/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export Screen */
+        post: operations["export_screen_screener_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/screener/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email Screen */
+        post: operations["email_screen_screener_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/prices/{ticker}": {
         parameters: {
             query?: never;
@@ -2061,8 +2095,31 @@ export interface components {
              */
             macd_rule: "any" | "above" | "below" | "cross_up" | "cross_down";
         };
+        /** ScreenEmail */
+        ScreenEmail: {
+            screen: components["schemas"]["Screen"];
+            /** Export Version */
+            export_version: string;
+            /** Tickers */
+            tickers: string[];
+            /**
+             * Recipient
+             * Format: email
+             */
+            recipient: string;
+        };
+        /** ScreenExport */
+        ScreenExport: {
+            screen: components["schemas"]["Screen"];
+            /** Export Version */
+            export_version: string;
+            /** Tickers */
+            tickers: string[];
+        };
         /** ScreenResult */
         ScreenResult: {
+            /** Export Version */
+            export_version: string;
             /** Asof */
             asof: string | null;
             /** Price Source */
@@ -4329,6 +4386,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UniverseRow"][];
+                };
+            };
+        };
+    };
+    export_screen_screener_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreenExport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    email_screen_screener_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreenEmail"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
