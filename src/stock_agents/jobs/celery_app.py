@@ -21,6 +21,8 @@ app.conf.update(
     broker_connection_timeout=3, broker_transport_options={"visibility_timeout": 14400, "socket_connect_timeout": 3, "socket_timeout": 5},
     task_routes={"quantora.tick": {"queue": "quantora-control"}, "quantora.execute": {"queue": "quantora-pipelines"}, "quantora.company_news": {"queue": "quantora-news"}, "quantora.news_directory": {"queue": "quantora-news"}, "quantora.market_signals": {"queue": "quantora-pipelines"}},
     beat_schedule={
+        "daily-paper-portfolios": {"task": "quantora.daily_picks", "schedule": crontab(minute="*/15"),
+                                  "options": {"queue": "quantora-pipelines", "expires": 900}},
         "market-signals-universe": {"task": "quantora.market_signals", "schedule": crontab(hour=6, minute=20), "args": ["sync"], "options": {"queue": "quantora-pipelines", "expires": 3600}},
         "market-signals-morning": {"task": "quantora.market_signals", "schedule": crontab(hour=7, minute=10), "options": {"queue": "quantora-pipelines", "expires": 7200}},
         "market-signals-evening": {"task": "quantora.market_signals", "schedule": crontab(hour=18, minute=40), "options": {"queue": "quantora-pipelines", "expires": 7200}},
@@ -108,3 +110,9 @@ def market_signals_task(command="incremental"):
         raise ValueError("Unknown market signals command")
     today = datetime.now(IST).date()
     return backfill(today-timedelta(days=6), today)
+
+
+@app.task(name="quantora.daily_picks")
+def daily_picks_task():
+    from stock_agents.engine.daily_picks import capture_due
+    return {"saved": capture_due()}

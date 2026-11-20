@@ -1,12 +1,12 @@
 .stock {display:inline-flex;align-items:center;gap:6px}
 .stock > button {display:grid;place-items:center;width:26px;height:26px;color:var(--muted);cursor:pointer}
 .stock > button:hover {color:var(--accent)}
-.dialog {margin:auto;width:min(400px,94vw);max-height:88vh;overflow:auto;padding:22px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);text-align:left;white-space:normal;font-weight:400}
+.dialog {margin:auto;width:min(400px,94vw);max-height:88vh;overflow:auto;padding:22px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);color:var(--ink);text-align:left;white-space:normal;font-weight:400}
 .dialog::backdrop {background:#09101bb3}
 .dialog h2 {font-size:18px;font-weight:700;margin-bottom:14px}
 .dialog form {display:grid;gap:10px}
 .dialog > button {margin-top:12px}
-.listDetails {display:grid;gap:8px;margin:6px 0 14px;padding:10px;border:1px solid var(--line);border-radius:6px}
+.listDetails {display:grid;gap:8px;margin:6px 0 14px;padding:10px;border:1px solid var(--line);border-radius:var(--radius)}
 .positions {overflow-x:auto;margin:12px 0}
 .positions table {width:100%;font-size:13px}
 .positions caption {text-align:left;font-weight:700;margin-bottom:5px}

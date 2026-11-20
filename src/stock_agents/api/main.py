@@ -49,6 +49,7 @@ from stock_agents.api import (
     broker,
     diagnostics,
     job_routes,
+    daily_picks,
     personal,
     ranker,
     screener,
@@ -126,6 +127,7 @@ app.include_router(screener.router)
 app.include_router(ranker.router)
 app.include_router(stock_profile.router)
 app.include_router(personal.router)
+app.include_router(daily_picks.router)
 from stock_agents.api import market_feed
 app.include_router(market_feed.router)
 app.include_router(broker.router)

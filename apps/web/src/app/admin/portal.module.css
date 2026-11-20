@@ -20,34 +20,11 @@
 }
 .header h1 em { font-style:italic; color:var(--accent); }
 
-.tabs {
-  display:inline-flex;
-  gap:0;
-  background:var(--soft);
-  border:1px solid var(--line);
-  padding:3px;
-  border-radius:var(--radius-input);
-  overflow-x:auto;
-  scrollbar-width:thin;
-}
-.tabs button {
-  padding:7px 14px;
-  border-radius:var(--radius-input);
-  white-space:nowrap;
-  background:transparent;
-  border:0;
-  color:var(--muted);
-  font-weight:600; font-size:12.5px;
-  letter-spacing:.02em;
-  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
-}
-.tabs button:hover { color:var(--ink); }
-.tabs [aria-current=page] {
-  background:var(--ink);
-  color:var(--panel);
-}
+.tabs { composes: segmented-controls from global; }
 
 .cards {
+  overflow:clip;
+  border-radius:var(--radius);
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
   gap:0;
@@ -75,6 +52,7 @@
 }
 
 .root section, .form {
+  border-radius:var(--radius);
   padding:24px;
   background:var(--panel);
   border:1px solid var(--line);

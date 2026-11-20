@@ -33,6 +33,7 @@
 }
 
 .rail {
+  border-radius:var(--radius);
   display:flex; gap:0;
   overflow-x:auto;
   scroll-snap-type:x proximity;

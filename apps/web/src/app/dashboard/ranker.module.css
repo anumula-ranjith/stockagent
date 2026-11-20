@@ -77,34 +77,11 @@
   text-transform:none; letter-spacing:0;
 }
 
-/* ---------- editorial tabs ---------- */
 .tabs {
-  display:flex; gap:0; margin:0 0 20px;
-  border-bottom:1px solid var(--rk-line);
-  overflow-x:auto;
-  scrollbar-width:none;
+  composes: segmented-controls from global;
+  margin:0 0 20px;
 }
-.tabs::-webkit-scrollbar { display:none; }
-.tabs button {
-  position:relative; white-space:nowrap;
-  padding:14px 18px 15px;
-  color:var(--rk-muted);
-  border:0; background:transparent;
-  font-family:var(--font-sans);
-  font-weight:600; font-size:13px;
-  letter-spacing:-.005em;
-  transition:color var(--dur-fast) var(--ease);
-}
-.tabs button::after {
-  content:""; position:absolute;
-  left:12px; right:12px; bottom:-1px;
-  height:2px; background:var(--rk-accent);
-  transform:scaleX(0); transform-origin:left;
-  transition:transform var(--dur-base) var(--ease-out);
-}
-.tabs button:hover { color:var(--rk-text); }
-.tabs button[aria-current] { color:var(--rk-text); }
-.tabs button[aria-current]::after { transform:scaleX(1); }
+.tabs button { min-height:38px; padding-inline:15px; }
 
 /* ---------- layout grid ---------- */
 .grid {
@@ -115,6 +92,7 @@
 
 /* ---------- control rail ---------- */
 .panel {
+  border-radius:var(--radius);
   padding:18px 18px 22px;
   background:var(--rk-card);
   border:1px solid var(--rk-line);
@@ -199,6 +177,8 @@
 .books { display:grid; gap:16px; grid-template-columns:minmax(0,1fr); align-items:start; }
 
 .card {
+  overflow:clip;
+  border-radius:var(--radius);
   padding:0;
   background:var(--rk-card);
   border:1px solid var(--rk-line);
@@ -362,6 +342,7 @@
 .primary:disabled { opacity:.55; }
 .link, .status button, .error button { color:var(--rk-accent); background:transparent; border:0; font-weight:600; }
 .status {
+  border-radius:var(--radius);
   display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
   padding:12px 14px;
   border:1px solid var(--rk-line);
@@ -371,6 +352,8 @@
 
 /* ---------- metrics row ---------- */
 .metrics {
+  overflow:clip;
+  border-radius:var(--radius);
   display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
   gap:0;
   border:1px solid var(--rk-line);

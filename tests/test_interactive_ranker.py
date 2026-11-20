@@ -100,6 +100,12 @@ def test_dated_membership_and_knowledge_separate_a_cohort_replay():
         )
         report = replay(conn, cfg)
         assert report["rebalances"] >= 2 and report["total_return"] > 0
+        for ticker in ["A", "B"]:
+            conn.execute("INSERT INTO index_membership VALUES ('NIFTY50',?,?,NULL,?)",
+                         [ticker, observed, observed])
+        filtered = replay(conn, Replay(**{**cfg.model_dump(), "selection": {"index_code": "NIFTY50"}}))
+        assert {row["ticker"] for row in filtered["holdings_last"]} == {"A", "B"}
+        assert filtered["benchmark"]["total_return"] < report["benchmark"]["total_return"]
         assert str(holiday) not in {p["date"] for p in report["equity_curve"]}
         assert report["longs_last"] == ["D"] and report["shorts_last"] == ["A"]
         assert report["holdings_date"] is not None

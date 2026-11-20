@@ -27,13 +27,8 @@ export function HomeSnapshot() {
   const universe = useQuery({ queryKey: ["universe"], queryFn: ({ signal }) => api<UniverseRow[]>("/universe", { signal }) });
   const book = useQuery(rankingQuery(session.data?.id));
   const sectors = new Set(universe.data?.map(row => row.sector).filter(Boolean));
+  void universe; void sectors;
   return <>
-    <div className="market-overview" aria-label="Research coverage">
-      <div><strong>{book.data?.universe ?? universe.data?.length ?? "—"}</strong><span>{book.data ? "Nifty 500 constituents" : "Stocks in NSE directory"}</span></div>
-      <div><strong>{book.data?.heat.length ?? (sectors.size || "—")}</strong><span>{book.data ? "Sectors with 20-day returns" : "Directory sectors"}</span></div>
-      <div><strong>4</strong><span>Ranking agents</span></div>
-      <div><strong>NSE</strong><span>India equity market</span></div>
-    </div>
     <section className="home-section"><div className="home-heading">
       <div><h2>Latest rankings</h2><p className="subtle">{book.data ? dateLabel(book.data.asof) : "Top five long and short candidates."}</p></div>
       <Link href="/dashboard" className="text-link">Open dashboard <ArrowUpRight size={17}/></Link>

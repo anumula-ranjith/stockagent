@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { ExternalLink, Download, ArrowUpRight, ChevronLeft, ChevronRight, SlidersHorizontal, Newspaper, FileText, Layers, Radio, ChevronDown } from "lucide-react";
 import { api } from "@/lib/api";
 import { useSession } from "@/components/providers";
@@ -13,25 +14,26 @@ type Story = {id:number;kind:string;source:string;title:string;url:string;publis
 type Coverage = {source:string;status:string;missing_days:number;failed_days:number;last_success:string|null;details:{day:string;status:string;detail:string}[]};
 type Result = {items:Story[];total:number;page:number;page_size:number;start:string;end:string;coverage:Coverage[]};
 type Filters = {symbol:string;kind:string;source:string;start:string;end:string};
-const blank:Filters={symbol:"",kind:"all",source:"",start:"",end:""};
 const publishers=["NSE equities","NSE sme","Mint","The Economic Times","Moneycontrol","Business Standard"];
 const stamp=(value:string)=>new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(new Date(value))+" IST";
 const sentimentLabel=(story:Story)=>story.sentiment ? `${story.sentiment.label} (${story.sentiment.polarity.toFixed(2)}) · FinBERT headline estimate` : story.kind==="announcement" ? "Announcement · not scored" : "Sentiment pending";
 const query=(filters:Filters)=>new URLSearchParams(Object.entries(filters).filter(([,v])=>v));
 
-export function CompanyNews({
-  symbol, initialKind = "all", nextPath,
-}: {symbol?: string; initialKind?: "all" | "headline"; nextPath?: string} = {}) {
+const kinds = ["all", "headline", "announcement"] as const;
+type Kind = typeof kinds[number];
+
+export function CompanyNews({symbol}: {symbol?: string} = {}) {
   const session=useSession();
+  const [kind, setKind] = useQueryState("kind", parseAsStringLiteral(kinds).withDefault("all"));
   if(session.isPending) return <State>Checking session…</State>;
   if(session.isError) return <State error>{session.error.message}</State>;
-  if(!session.data) return <SignInNotice next={nextPath ?? (symbol ? `/stocks/${encodeURIComponent(symbol)}` : "/news")}>Sign in to read company news and download reports.</SignInNotice>;
-  return <Workspace key={symbol || initialKind} symbol={symbol} initialKind={initialKind}/>;
+  if(!session.data) return <SignInNotice next={symbol ? `/stocks/${encodeURIComponent(symbol)}` : kind === "all" ? "/news" : `/news?kind=${kind}`}>Sign in to read company news and download reports.</SignInNotice>;
+  return <Workspace key={symbol} symbol={symbol} kind={kind} setKind={value => void setKind(value)}/>;
 }
 
 const sections = [
   {value:"all", label:"All news", Icon:Layers},
-  {value:"headline", label:"Media headlines", Icon:Newspaper},
+  {value:"headline", label:"Market Headlines", Icon:Newspaper},
   {value:"announcement", label:"NSE filings", Icon:FileText},
 ] as const;
 const newsDate = new Intl.DateTimeFormat("en-IN", {timeZone:"Asia/Kolkata", day:"numeric", month:"short", year:"numeric"});
@@ -74,10 +76,11 @@ function SourceCoverage({data}: {data:Result}) {
   </section>;
 }
 
-function Workspace({symbol, initialKind}: {symbol?:string; initialKind:"all" | "headline"}) {
-  const initial:Filters = {...blank, kind:initialKind, symbol:symbol ? symbol.replace(/\.(NS|NSE)$/i,"")+".NS" : ""};
+function Workspace({symbol, kind, setKind}: {symbol?:string; kind:Kind; setKind:(value:Kind)=>void}) {
+  const initial = {symbol:symbol ? symbol.replace(/\.(NS|NSE)$/i,"")+".NS" : "", source:"", start:"", end:""};
   const [draft,setDraft] = useState(initial);
-  const [filters,setFilters] = useState(initial);
+  const [applied,setFilters] = useState(initial);
+  const filters = {...applied, kind};
   const [page,setPage] = useState(1);
   const [validation,setValidation] = useState("");
   const [mobileFilters,setMobileFilters] = useState(false);
@@ -86,7 +89,7 @@ function Workspace({symbol, initialKind}: {symbol?:string; initialKind:"all" | "
     queryFn:({signal})=>api<Result>(`/company-news?${params}&page=${page}&page_size=50`,{signal}),refetchInterval:60000});
   const lookup = useQuery({queryKey:["news-companies",draft.symbol],enabled:!symbol && draft.symbol.trim().length>=2,
     queryFn:({signal})=>api<Company[]>("/company-news/companies?q="+encodeURIComponent(draft.symbol),{signal})});
-  const set = (key:keyof Filters,value:string)=>setDraft(old=>({...old,[key]:value}));
+  const set = (key:keyof typeof initial,value:string)=>setDraft(old=>({...old,[key]:value}));
   function apply(event:FormEvent) {
     event.preventDefault();
     if (draft.start && draft.end && draft.start>draft.end) {setValidation("Choose an end date on or after the start date.");return;}
@@ -99,7 +102,7 @@ function Workspace({symbol, initialKind}: {symbol?:string; initialKind:"all" | "
     <div className={s.toolbar}>
       <div className={s.sections} role="group" aria-label="News type">{sections.map(({value,label,Icon})=>
         <button key={value} type="button" aria-pressed={filters.kind===value} onClick={()=>{
-          set("kind",value);setFilters(current=>({...current,kind:value}));setPage(1);
+          setKind(value);setPage(1);
         }}><Icon size={15}/>{label}</button>)}</div>
       {data && <a className={s.export} href={`${base}/company-news/export.csv?${params}`} download title="Download all matching records"><Download size={15}/> Download CSV</a>}
     </div>
@@ -119,7 +122,7 @@ function Workspace({symbol, initialKind}: {symbol?:string; initialKind:"all" | "
             <p className={s.help}>Dates use IST. Leave both blank for the latest seven days, or choose one date for a single day.</p>
             {validation && <p role="alert" className={s.error}>{validation}</p>}
             <div className={s.actions}><button type="submit">Apply filters</button>
-              <button type="button" onClick={()=>{setDraft(initial);setFilters(initial);setPage(1);setValidation("");}}>Clear</button></div>
+              <button type="button" onClick={()=>{setDraft(initial);setFilters(initial);setKind("all");setPage(1);setValidation("");}}>Clear</button></div>
           </form>
         </section>
         {data && <SourceCoverage data={data}/>}
