@@ -58,7 +58,7 @@
   letter-spacing:-.025em;
   margin:12px 0 10px; text-wrap:balance;
 }
-.mastCopy h1 em { color:var(--accent); font-style:normal; }
+.mastCopy a { color:var(--hero-ink); margin-top:12px; text-decoration:underline; text-underline-offset:3px; }
 .intro {
   color:#cdd4de; max-width:54ch;
   line-height:1.55; font-size:14.5px;

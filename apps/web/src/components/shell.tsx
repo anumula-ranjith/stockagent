@@ -17,7 +17,6 @@ const ClerkSignOut = dynamic(() => import("./clerk-sign-out"), { ssr: false });
 const links = [
   ["/", "Home"], ["/dashboard", "Dashboard"], ["/stocks", "Stocks"],
   ["/portfolio", "Portfolio"], ["/watchlist", "Watchlist"], ["/news", "News"],
-  ["/tradingview-news", "Market Headlines"],
 ] as const;
 
 export function Header() {
@@ -76,11 +75,11 @@ export function Header() {
 }
 
 const palettes = [
-  { id: "default", name: "Indigo", color: "#4f46e5" },
-  { id: "forest",  name: "Forest", color: "#059669" },
-  { id: "slate",   name: "Slate",  color: "#334155" },
-  { id: "rose",    name: "Rose",   color: "#e11d48" },
-  { id: "amber",   name: "Amber",  color: "#d97706" },
+  { id: "default", name: "Emerald", color: "#10b981" },
+  { id: "forest",  name: "Indigo",  color: "#4f46e5" },
+  { id: "slate",   name: "Slate",   color: "#334155" },
+  { id: "rose",    name: "Rose",    color: "#e11d48" },
+  { id: "amber",   name: "Amber",   color: "#d97706" },
 ] as const;
 type PaletteId = (typeof palettes)[number]["id"];
 

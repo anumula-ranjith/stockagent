@@ -17,7 +17,10 @@ type Indicator = keyof Visibility;
 const preferenceKey = "quantora.chart.indicators.v1";
 const signedRupees = new Intl.NumberFormat("en-IN", {style: "currency", currency: "INR", signDisplay: "exceptZero"});
 const signedPercent = new Intl.NumberFormat("en-IN", {style: "percent", signDisplay: "exceptZero", minimumFractionDigits: 2, maximumFractionDigits: 2});
-const shares = new Intl.NumberFormat("en-IN");
+const shareFormats = {
+  INR: new Intl.NumberFormat("en-IN", {notation: "compact", maximumFractionDigits: 2}),
+  USD: new Intl.NumberFormat("en-US", {notation: "compact", maximumFractionDigits: 2}),
+};
 
 function DailyBarReadout({bar, previousClose, currency}: {currency: "INR" | "USD"; bar: PriceBar; previousClose?: number | null}) {
   const priceFormat = currency === "USD" ? new Intl.NumberFormat("en-US", {style:"currency",currency}) : rupees;
@@ -27,15 +30,17 @@ function DailyBarReadout({bar, previousClose, currency}: {currency: "INR" | "USD
   return <div className="daily-bar-readout" role="group" aria-label="Daily candle values">
     <time dateTime={bar.date}>{dateLabel(bar.date)}</time>
     <dl>
-      {(["open", "high", "low", "close"] as const).map(key => <div key={key}>
-        <dt>{key}</dt><dd>{bar[key] != null ? priceFormat.format(bar[key]) : "—"}</dd>
+      {(["open", "high", "low", "close"] as const).map(key => <div key={key} title={key}>
+        <dt className="sr-only">{key}</dt><dd>{bar[key] != null ? priceFormat.format(bar[key]) : "—"}</dd>
       </div>)}
-      <div title="Change from the previous trading session’s close"><dt>Day change</dt>
+      <div title="Change from the previous trading session’s close"><dt className="sr-only">Day change</dt>
         <dd data-direction={change == null || change === 0 ? undefined : change > 0 ? "up" : "down"}>
           {change == null ? "—" : changeFormat.format(change)}{fraction != null && ` (${signedPercent.format(fraction)})`}
         </dd>
       </div>
-      <div><dt>Volume</dt><dd>{bar.volume == null ? "—" : shares.format(bar.volume)}</dd></div>
+      <div title={bar.volume == null ? "Volume" : `Volume · ${bar.volume.toLocaleString(currency === "INR" ? "en-IN" : "en-US")} shares`}>
+        <dt className="sr-only">Volume</dt><dd>{bar.volume == null ? "—" : shareFormats[currency].format(bar.volume)}</dd>
+      </div>
     </dl>
   </div>;
 }
